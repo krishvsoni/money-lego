@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { formatAmount, splitByPercent } from "@/lib/amounts";
 import { Reveal } from "./reveal";
 
 // Tiles: a visual on top, then a title and a short description. Each visual is a small,
@@ -41,61 +40,6 @@ function Row({ left, right, tone = "text-ink" }: { left: ReactNode; right: React
       <span className="min-w-0 text-ink-2">{left}</span>
       <span className={`num shrink-0 whitespace-nowrap font-medium ${tone}`}>{right}</span>
     </div>
-  );
-}
-
-// Computed with the same function the workflow engine runs.
-export function ExactVisual() {
-  const shares = [3_333, 3_333, 3_334];
-  const parts = splitByPercent(100_000_000n, shares);
-  return (
-    <Panel>
-      {["Design", "Eng", "Ops"].map((name, i) => (
-        <Row key={name} left={`${name} ${(shares[i] / 100).toFixed(2)}%`} right={formatAmount(parts[i], 0)} />
-      ))}
-      <div className="mt-1 border-t border-dashed border-line-strong pt-1">
-        <Row left="Total" right={`${formatAmount(parts.reduce((a, b) => a + b, 0n), 0)} exact`} tone="text-[var(--brick-6)]" />
-      </div>
-    </Panel>
-  );
-}
-
-const dot = (color: string) => <span className="mr-2 inline-block h-2 w-2 rounded-full align-middle" style={{ background: color }} aria-hidden />;
-
-export function ResumeVisual() {
-  return (
-    <Panel>
-      <Row left={<>{dot("var(--success)")}Webhook trigger</>} right="Done" tone="text-success" />
-      <Row left={<>{dot("var(--attention)")}Human approval</>} right="Waiting" tone="text-attention" />
-      <Row left={<>{dot("var(--line-strong)")}Server restarted</>} right="09:41" tone="text-ink-3" />
-      <Row left={<>{dot("var(--progress)")}Human approval</>} right="Resumed" tone="text-progress" />
-    </Panel>
-  );
-}
-
-export function DedupeVisual() {
-  return (
-    <Panel>
-      <p className="num truncate text-ink-3">key: delivery-0417</p>
-      <Row left="Delivery" right="run 6adc1f" />
-      <Row left="Retry +30 s" right="run 6adc1f" />
-      <Row left="Retry +5 min" right="run 6adc1f" />
-      <div className="mt-1 border-t border-dashed border-line-strong pt-1">
-        <Row left="Payouts started" right="1" tone="text-[var(--brick-6)]" />
-      </div>
-    </Panel>
-  );
-}
-
-export function QuoteVisual() {
-  return (
-    <Panel>
-      <p className="text-ink-3">Example quote</p>
-      <Row left="You send" right="2,500.00 USDC" />
-      <Row left="Fee 0.5%" right="12.50 USDC" />
-      <Row left="They get" right="2,487.50 USDC" />
-      <Row left="SOL needed" right="0.0412 SOL" tone="text-ink-2" />
-    </Panel>
   );
 }
 

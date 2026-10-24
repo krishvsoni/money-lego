@@ -6,22 +6,22 @@ export const BENEFITS = [
   {
     icon: "equals",
     title: "Exact to the base unit",
-    body: "Splits use integer math, so 100 USDC at 33.33, 33.33 and 33.34 percent always adds back to exactly 100 USDC.",
+    body: "Splits use integer math, so the parts always add back to the exact total. Never a cent lost to rounding.",
   },
   {
     icon: "clock",
     title: "Runs that outlive a closed tab",
-    body: "Every step is saved as it finishes. Delays, approvals and wallet waits resume on the server, even after a restart.",
+    body: "Every step is saved as it finishes. Approvals and waits pick up on the server, even after a restart.",
   },
   {
     icon: "copy",
     title: "One delivery, one payout",
-    body: "A webhook sent twice, a retried request or a double click all resolve to the same run. Nothing is paid twice.",
+    body: "Duplicate webhooks, retries and double clicks all land on the same run. Nothing is paid twice.",
   },
   {
     icon: "receipt",
     title: "Real quotes, not estimates",
-    body: "The protocol fee, the SOL you need up front and what each recipient receives come from MultiHopper's live quote.",
+    body: "Fees, the SOL you need up front and what each person receives come from MultiHopper's live quote.",
   },
 ];
 
