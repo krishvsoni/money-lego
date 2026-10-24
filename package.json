@@ -9,9 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@solana/wallet-adapter-base": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.40",
+    "@solana/web3.js": "^1.98.0",
+    "bs58": "^6.0.0",
+    "mongodb": "^7.7.0",
+    "motion": "^14.6.0",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "tweetnacl": "^1.0.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -21,7 +29,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.5"
   },
   "packageManager": "bun@1.4.2",
   "ignoreScripts": [
