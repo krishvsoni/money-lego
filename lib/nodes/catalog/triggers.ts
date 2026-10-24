@@ -1,0 +1,55 @@
+import { MAIN_OUT, type NodeDefinition } from "../types";
+
+export const triggerNodes: NodeDefinition[] = [
+  {
+    type: "trigger.manual",
+    title: "Manual trigger",
+    category: "triggers",
+    description: "Start the workflow from the editor with an optional test payload.",
+    icon: "MousePointerClick",
+    fields: [{ key: "samplePayload", label: "Test payload", kind: "json", help: "JSON passed to the next node when you click Run.", placeholder: '{ "amount": "100" }' }],
+    inputs: [],
+    outputs: MAIN_OUT,
+    defaults: { samplePayload: "{}" },
+    retrySafe: true,
+    outputHint: "The test payload object.",
+  },
+  {
+    type: "trigger.webhook",
+    title: "Webhook trigger",
+    category: "triggers",
+    description: "Start the workflow when a signed HTTP POST arrives. Unsigned requests are refused.",
+    icon: "Webhook",
+    fields: [
+      {
+        key: "credentialId",
+        label: "Signing secret",
+        kind: "credential",
+        credentialType: "webhook_secret",
+        required: true,
+        help: "Senders sign the raw body with HMAC-SHA256 and send it as x-money-lego-signature: sha256=<hex>.",
+      },
+    ],
+    inputs: [],
+    outputs: MAIN_OUT,
+    defaults: {},
+    retrySafe: true,
+    outputHint: "{ body, receivedAt, deliveryId }. The body is whatever the sender posted, verified but not trusted as proof of payment.",
+  },
+  {
+    type: "trigger.schedule",
+    title: "Schedule trigger",
+    category: "triggers",
+    description: "Start the workflow on a fixed interval while it's enabled. Money steps still wait for your wallet.",
+    icon: "CalendarClock",
+    fields: [
+      { key: "intervalMinutes", label: "Every (minutes)", kind: "number", min: 5, max: 10_080, step: 5, required: true },
+      { key: "payload", label: "Payload", kind: "json", help: "JSON passed to the next node on each run." },
+    ],
+    inputs: [],
+    outputs: MAIN_OUT,
+    defaults: { intervalMinutes: 60, payload: "{}" },
+    retrySafe: true,
+    outputHint: "{ payload, scheduledFor }.",
+  },
+];

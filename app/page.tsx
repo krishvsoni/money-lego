@@ -1,25 +1,27 @@
 import { NetworkBadge } from "@/components/network-badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
-import { AllocationBar, brickColor } from "@/features/recipes/allocation-bar";
+import { brickColor } from "@/features/recipes/allocation-bar";
+import { NodeIcon } from "@/features/workflows/node-icon";
 
-const EXAMPLE = [
-  { key: "design", title: "Design", amount: 1_600n },
-  { key: "eng", title: "Engineering", amount: 1_400n },
-  { key: "community", title: "Community", amount: 700n },
-  { key: "ops", title: "Operations", amount: 500n },
+const CHAIN = [
+  { title: "Signed webhook", note: "A payout is requested", icon: "Webhook", color: "var(--brick-2)" },
+  { title: "Split allocation", note: "Exact amounts per wallet", icon: "Split", color: "var(--brick-5)" },
+  { title: "Human approval", note: "You say yes or no", icon: "UserCheck", color: "var(--brick-4)" },
+  { title: "Sign & broadcast", note: "Your wallet, your keys", icon: "PenLine", color: "var(--brick-1)" },
+  { title: "Discord message", note: "The team hears it landed", icon: "MessageSquare", color: "var(--brick-3)" },
 ];
 
 const STEPS = [
-  { title: "Build the recipe", body: "Pick the token, add up to 20 recipient wallets and their amounts. The totals are checked to the last base unit." },
-  { title: "Review the real quote", body: "MultiHopper prices the run live. You see the fee, the SOL you need up front, and what each recipient receives." },
-  { title: "Sign in your wallet", body: "Your wallet approves each transaction in the order MultiHopper requires. Money Lego never holds your keys." },
-  { title: "Track every recipient", body: "Watch the route progress and see each payout land, with signatures you can open in an explorer." },
+  { title: "Snap the bricks together", body: "Drag triggers, logic, MultiHopper steps and notifications onto a canvas and connect them. Every step validates as you build." },
+  { title: "Price it with a live quote", body: "MultiHopper nodes return the real fee, the SOL you need up front and what each recipient receives. Nothing is guessed." },
+  { title: "Approve and sign yourself", body: "Runs pause at approval and wallet steps until you act. Automation prepares the payout; it never signs for you." },
+  { title: "Track every run", body: "Each step's input, output, timing and errors are recorded, and runs resume on their own after waits and restarts." },
 ];
 
 const LIMITS = [
   { title: "No custody", body: "Funds go from your wallet into MultiHopper's route. We never hold keys, balances or seed phrases." },
-  { title: "No autopay", body: "A recipe is not permission to move money. Every run needs a fresh quote and your signature." },
+  { title: "No autopay", body: "A workflow is not permission to move money. Schedules and webhooks can start a run; only your wallet can fund it." },
   { title: "No privacy promises", body: "Routing spreads a payout across hops. It doesn't erase public chain history, and we won't claim it does." },
 ];
 
@@ -30,7 +32,7 @@ export default function Landing() {
         <Wordmark />
         <div className="flex items-center gap-3">
           <NetworkBadge />
-          <ButtonLink href="/dashboard" variant="secondary">
+          <ButtonLink href="/workflows" variant="secondary">
             Open app
           </ButtonLink>
         </div>
@@ -38,31 +40,43 @@ export default function Landing() {
 
       <main className="mx-auto w-full max-w-[1080px] flex-1 px-4 sm:px-6">
         <section className="pb-20 pt-14 sm:pt-24">
-          <h1 className="headline max-w-[14ch] text-display">Set up a payout once. Run it every time you pay.</h1>
+          <h1 className="headline max-w-[15ch] text-display">Build how your money moves, brick by brick.</h1>
           <p className="mt-6 max-w-[58ch] text-lg text-ink-2">
-            Money Lego saves who you pay and how much as a recipe. Each run gets a live MultiHopper quote, you approve it in your own
-            wallet, and every recipient&apos;s payout is tracked down to its signature.
+            Money Lego is a visual workflow builder for Solana payouts. Connect triggers, checks, approvals and MultiHopper routing on a
+            canvas. Runs are durable and every transfer still waits for your wallet.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/dashboard">Build your first recipe</ButtonLink>
+            <ButtonLink href="/workflows">Open the builder</ButtonLink>
             <ButtonLink href="#how" variant="quiet">
               How a run works
             </ButtonLink>
           </div>
 
-          <figure className="mt-16 rounded-xl border border-line bg-surface p-5 pt-8 sm:p-8 sm:pt-10">
-            <AllocationBar segments={EXAMPLE} size="lg" assemble label="Example payout split between four teams" />
-            <figcaption className="mt-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3">
-              <span className="text-sm font-semibold">Studio contributors, 4,200 USDC</span>
-              <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-ink-2">
-                {EXAMPLE.map((s, i) => (
-                  <li key={s.key} className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: brickColor(i) }} aria-hidden />
-                    {s.title} <span className="text-ink">{s.amount.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ul>
-            </figcaption>
+          <figure className="mt-16 overflow-x-auto rounded-xl border border-line bg-surface p-6 pt-9">
+            <ol className="flex min-w-[860px] items-center">
+              {CHAIN.map((b, i) => (
+                <li key={b.title} className="flex flex-1 items-center">
+                  <div className="brick-snap relative w-full" style={{ ["--i" as string]: i }}>
+                    <span className="absolute -top-[6px] left-5 h-[7px] w-6 rounded-t-[3px]" style={{ background: b.color }} aria-hidden />
+                    <span className="absolute -top-[6px] left-14 h-[7px] w-6 rounded-t-[3px]" style={{ background: b.color }} aria-hidden />
+                    <div className="overflow-hidden rounded-[10px] border border-line-strong bg-paper shadow-[inset_0_-2px_0_rgb(0_0_0/0.06)]">
+                      <div className="h-[6px]" style={{ background: b.color }} />
+                      <div className="flex items-start gap-2.5 p-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: `color-mix(in srgb, ${b.color} 16%, transparent)`, color: b.color }}>
+                          <NodeIcon name={b.icon} className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[0.8125rem] font-bold leading-tight">{b.title}</span>
+                          <span className="block text-xs text-ink-3">{b.note}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {i < CHAIN.length - 1 && <span className="h-[2px] w-6 shrink-0 bg-ink-3" aria-hidden />}
+                </li>
+              ))}
+            </ol>
+            <figcaption className="mt-5 text-sm text-ink-2">The example template: a signed request becomes an approved, wallet-signed, announced payout.</figcaption>
           </figure>
         </section>
 
@@ -101,7 +115,7 @@ export default function Landing() {
       </main>
 
       <footer className="mx-auto w-full max-w-[1080px] px-4 py-8 text-sm text-ink-3 sm:px-6">
-        Routing by MultiHopper on Solana. Built for teams that pay the same people more than once.
+        Routing by MultiHopper on Solana. Built for teams that move money the same way more than once.
       </footer>
     </div>
   );

@@ -108,13 +108,13 @@ export function QuoteReview({ run, onSign, signing, onRequote }: { run: Executio
           {left === null
             ? "MultiHopper didn't return an expiry for this quote."
             : expired
-              ? "This quote expired. Get a new one to continue."
+              ? "This quote expired. Start a new workflow run for a fresh quote."
               : `Quote valid for ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`}
         </p>
 
         {expired ? (
           <Button className="mt-4 w-full" onClick={onRequote}>
-            Get a new quote
+            Back to the workflow
           </Button>
         ) : (
           <>

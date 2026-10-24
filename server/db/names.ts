@@ -12,6 +12,11 @@ export const COLLECTIONS = {
   rateLimits: "rate_limits",
   locks: "locks",
   migrations: "migrations",
+  workflows: "workflows",
+  workflowVersions: "workflow_versions",
+  workflowRuns: "workflow_runs",
+  nodeRuns: "node_runs",
+  credentials: "credentials",
 } as const;
 
 export function isDuplicateKeyError(error: unknown): boolean {

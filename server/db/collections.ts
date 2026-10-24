@@ -2,7 +2,12 @@ import "server-only";
 import type { Collection, Db } from "mongodb";
 import { getDb } from "./client";
 import type {
+  CredentialDoc,
   ExecutionDoc,
+  NodeRunDoc,
+  WorkflowDoc,
+  WorkflowRunDoc,
+  WorkflowVersionDoc,
   LockDoc,
   NonceDoc,
   RateLimitDoc,
@@ -28,6 +33,11 @@ export interface Collections {
   webhookEvents: Collection<WebhookEventDoc>;
   rateLimits: Collection<RateLimitDoc>;
   locks: Collection<LockDoc>;
+  workflows: Collection<WorkflowDoc>;
+  workflowVersions: Collection<WorkflowVersionDoc>;
+  workflowRuns: Collection<WorkflowRunDoc>;
+  nodeRuns: Collection<NodeRunDoc>;
+  credentials: Collection<CredentialDoc>;
 }
 
 export function collectionsOf(db: Db): Collections {
@@ -42,6 +52,11 @@ export function collectionsOf(db: Db): Collections {
     webhookEvents: db.collection<WebhookEventDoc>(COLLECTIONS.webhookEvents),
     rateLimits: db.collection<RateLimitDoc>(COLLECTIONS.rateLimits),
     locks: db.collection<LockDoc>(COLLECTIONS.locks),
+    workflows: db.collection<WorkflowDoc>(COLLECTIONS.workflows),
+    workflowVersions: db.collection<WorkflowVersionDoc>(COLLECTIONS.workflowVersions),
+    workflowRuns: db.collection<WorkflowRunDoc>(COLLECTIONS.workflowRuns),
+    nodeRuns: db.collection<NodeRunDoc>(COLLECTIONS.nodeRuns),
+    credentials: db.collection<CredentialDoc>(COLLECTIONS.credentials),
   };
 }
 

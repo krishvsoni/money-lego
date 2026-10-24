@@ -1,0 +1,95 @@
+import { ARRIVAL_MAX_SECONDS, ARRIVAL_MIN_SECONDS, HOPS_MAX, HOPS_MIN } from "../../recipe-schema";
+import { MAIN_IN, MAIN_OUT, type Field, type NodeDefinition } from "../types";
+
+const routeFields: Field[] = [
+  { key: "hops", label: "Hops", kind: "number", min: HOPS_MIN, max: HOPS_MAX, help: "Leave empty for MultiHopper's default." },
+  {
+    key: "arrivalSeconds",
+    label: "Delivery window (seconds)",
+    kind: "number",
+    min: ARRIVAL_MIN_SECONDS,
+    max: ARRIVAL_MAX_SECONDS,
+    help: "How long the route may take after funding. Not a schedule.",
+  },
+];
+
+export const moneyNodes: NodeDefinition[] = [
+  {
+    type: "mh.estimate",
+    title: "MultiHopper estimate",
+    category: "money",
+    description: "Price the allocation from the previous node: fees, SOL needed up front and net delivery. Moves nothing.",
+    icon: "Calculator",
+    fields: routeFields,
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: {},
+    retrySafe: true,
+    outputHint: "The allocation plus { estimate: { percentFeeRaw, netDeliveredRaw, requiredSolUpFrontLamports, … } }.",
+  },
+  {
+    type: "mh.create_transfer",
+    title: "MultiHopper create transfer",
+    category: "money",
+    description: "Create a binding quote for the allocation, paid from the workflow owner's wallet. Idempotent per run.",
+    icon: "FilePlus2",
+    fields: routeFields,
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: {},
+    retrySafe: true,
+    outputHint: "{ transferRunId, providerTransferId, quote, expiresAt }.",
+  },
+  {
+    type: "mh.wallet_sign",
+    title: "Sign & broadcast",
+    category: "money",
+    description:
+      "Pause until the owner signs in their wallet. Runs MultiHopper's prepare, keeper-funding broadcast and confirm-broadcast in the required order, in the browser. Keys never reach the server.",
+    icon: "PenLine",
+    fields: [{ key: "timeoutHours", label: "Give up after (hours)", kind: "number", min: 1, max: 72, required: true, help: "Unsigned quotes also expire on MultiHopper's side." }],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: { timeoutHours: 24 },
+    retrySafe: true,
+    outputHint: "The input plus { signedAt, state } once MultiHopper is processing the route.",
+  },
+  {
+    type: "mh.wait_status",
+    title: "Wait for transfer",
+    category: "money",
+    description: "Wait until MultiHopper reports the transfer reached a state. Fails if it fails, expires or is refunded.",
+    icon: "Radar",
+    fields: [
+      {
+        key: "target",
+        label: "Wait until",
+        kind: "select",
+        required: true,
+        options: [
+          { value: "processing", label: "Route is running" },
+          { value: "completed", label: "Every recipient is paid" },
+        ],
+      },
+      { key: "timeoutHours", label: "Give up after (hours)", kind: "number", min: 1, max: 720, required: true },
+    ],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: { target: "completed", timeoutHours: 72 },
+    retrySafe: true,
+    outputHint: "The input plus { state, providerStatus, destinations }.",
+  },
+  {
+    type: "mh.result",
+    title: "Transfer result",
+    category: "money",
+    description: "Summarise the transfer for notifications and logs: amounts, recipients and signatures.",
+    icon: "Receipt",
+    fields: [],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: {},
+    retrySafe: true,
+    outputHint: "{ state, amount, token, recipients, receiptUrl, signatures }.",
+  },
+];

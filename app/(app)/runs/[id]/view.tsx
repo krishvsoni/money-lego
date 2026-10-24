@@ -2,12 +2,9 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/toast";
-import { api, errorMessage, newRequestKey } from "@/lib/api-client";
-import type { ExecutionDTO } from "@/lib/dto";
 import { isTerminal, STATE_META } from "@/lib/execution-states";
 import { formatToken, relativeTime } from "@/lib/format";
 import { QuoteReview } from "@/features/runs/quote-review";
@@ -21,23 +18,13 @@ export function View() {
   const router = useRouter();
   const toast = useToast();
   const { run, loadError, signing, progress, signError, refreshing, sign, recheck } = useRun(id);
-  const [requoting, setRequoting] = useState(false);
-  const requestKey = useRef<string | null>(null);
 
   if (loadError && !run) return <p role="alert" className="text-danger">{loadError}</p>;
   if (!run) return <div className="h-72 animate-pulse rounded-xl bg-sunken" />;
 
-  const requote = async () => {
-    setRequoting(true);
-    requestKey.current ??= newRequestKey();
-    try {
-      const { run: next } = await api<{ run: ExecutionDTO }>("/api/runs", { body: { recipeId: run.recipeId, requestKey: requestKey.current } });
-      router.push(`/runs/${next.id}`);
-    } catch (e) {
-      toast(errorMessage(e), "error");
-      setRequoting(false);
-    }
-  };
+  const workflowHref = run.workflowRunId ? `/workflows/${run.recipeId}?run=${run.workflowRunId}` : "/transfers";
+  // A transfer belongs to one workflow run; a fresh quote means a fresh run.
+  const requote = () => router.push(workflowHref);
 
   const copyReceipt = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/receipts/${run.shareToken}`).catch(() => null);
@@ -52,13 +39,13 @@ export function View() {
     <div className="flex flex-col gap-10">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link href={`/recipes/${run.recipeId}`} className="text-sm text-ink-2 hover:text-ink">
-            {run.recipeName}
+          <Link href={workflowHref} className="text-sm text-ink-2 hover:text-ink">
+            {run.workflowRunId ? `Back to ${run.recipeName}` : "Transfers"}
           </Link>
           <h1 className="headline mt-1 text-3xl">{formatToken(run.amountRaw, run.config.tokenMint)}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-ink-2">
             <StatusBadge state={run.state} />
-            <span>Started {relativeTime(run.createdAt)} from version {run.recipeVersion}</span>
+            <span>Quoted {relativeTime(run.createdAt)}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -106,9 +93,9 @@ export function View() {
 
       {run.state === "expired" && (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
-          <p className="text-ink-2">{meta.help}</p>
-          <Button onClick={requote} busy={requoting}>
-            Get a new quote
+          <p className="text-ink-2">{meta.help} Start a new run of the workflow to get a fresh quote.</p>
+          <Button onClick={requote}>
+            Back to the workflow
           </Button>
         </section>
       )}

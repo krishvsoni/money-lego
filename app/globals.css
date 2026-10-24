@@ -202,3 +202,51 @@ dd,
     opacity: 0;
   }
 }
+
+@keyframes pulse-ring {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--action) 18%, transparent);
+  }
+}
+.pulse-ring {
+  animation: pulse-ring 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring {
+    animation: none;
+  }
+}
+
+.react-flow {
+  --xy-background-color: var(--paper);
+  --xy-background-pattern-dots-color-default: var(--line-strong);
+  --xy-edge-stroke-default: var(--ink-3);
+  --xy-edge-stroke-selected-default: var(--action);
+  --xy-edge-stroke-width-default: 1.75;
+  --xy-connectionline-stroke-default: var(--action);
+  --xy-minimap-background-color-default: var(--surface);
+  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--paper) 70%, transparent);
+  --xy-controls-button-background-color-default: var(--surface);
+  --xy-controls-button-background-color-hover-default: var(--sunken);
+  --xy-controls-button-color-default: var(--ink-2);
+  --xy-controls-button-border-color-default: var(--line);
+  --xy-attribution-background-color-default: transparent;
+}
+.react-flow__controls {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.react-flow__minimap {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.react-flow__minimap-node.mm-triggers { fill: var(--brick-2); }
+.react-flow__minimap-node.mm-logic { fill: var(--brick-4); }
+.react-flow__minimap-node.mm-data { fill: var(--brick-5); }
+.react-flow__minimap-node.mm-money { fill: var(--brick-1); }
+.react-flow__minimap-node.mm-integrations { fill: var(--brick-3); }
+.react-flow__minimap-node.mm-utilities { fill: var(--brick-6); }

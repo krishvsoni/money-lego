@@ -24,6 +24,9 @@ function createClient(): MongoClient {
   const e = env();
   return new MongoClient(e.MONGODB_URI, {
     appName: "money-lego",
+    // Optional fields are omitted rather than stored as null, so documents round-trip
+    // through the zod schemas unchanged.
+    ignoreUndefined: true,
     maxPoolSize: 20,
     minPoolSize: 0,
     maxIdleTimeMS: 60_000,

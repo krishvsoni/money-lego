@@ -25,6 +25,10 @@ const schema = z
     CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters").optional(),
     CLIENT_IP_HEADER: z.string().regex(/^[a-z0-9-]+$/).optional(),
     SOLANA_RPC_URL: z.url().optional(),
+    CREDENTIALS_KEY: z
+      .string()
+      .refine((v) => Buffer.from(v, "base64").length === 32, "CREDENTIALS_KEY must be 32 bytes, base64 encoded (openssl rand -base64 32)")
+      .optional(),
     NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
   })
   .superRefine((env, ctx) => {

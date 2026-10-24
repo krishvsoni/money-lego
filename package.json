@@ -16,7 +16,9 @@
     "@solana/wallet-adapter-base": "^0.9.28",
     "@solana/wallet-adapter-react": "^0.15.40",
     "@solana/web3.js": "^1.99.0",
+    "@xyflow/react": "^12.12.0",
     "bs58": "^6.0.0",
+    "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
     "motion": "^14.6.0",
     "next": "16.4.3",
@@ -24,6 +26,7 @@
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "tweetnacl": "^1.0.3",
+    "undici": "^8.12.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {

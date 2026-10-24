@@ -2,17 +2,16 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
 import type { ExecutionDTO, PreparedBundleDTO } from "@/lib/dto";
-import { totalRaw } from "@/lib/recipe-schema";
+import { recipeConfigSchema, totalRaw, type RecipeConfig } from "@/lib/recipe-schema";
 import { findToken } from "@/lib/tokens";
 import type { SessionUser } from "../auth/session";
+import { parseId } from "../db/ids";
 import { collections, isDuplicateKeyError } from "../db/collections";
-import { inTransaction } from "../db/transaction";
 import type { ExecutionDoc, QuoteSnapshot, SignatureKind, SignatureRecord } from "../db/types";
 import { errors } from "../errors";
 import { ProviderAmbiguous, ProviderRejected } from "../multihopper/http";
 import type { Estimate, ProviderTransfer } from "../multihopper/schemas";
 import { confirmBroadcast, createTransfer, estimateTransfer, prepareTransfer } from "../multihopper/transfers";
-import { getRecipeDoc, parseId } from "../recipes/service";
 import { providerCode, providerToAppError } from "./provider-errors";
 import { syncFromProvider } from "./reconcile";
 import { findOwnedExecution, toExecutionDTO, updateWithRetry } from "./repository";
@@ -36,22 +35,30 @@ function quoteFrom(t: ProviderTransfer, estimate: Estimate | null): QuoteSnapsho
   };
 }
 
-// Starts a run: price it, record it, then ask MultiHopper for a binding quote. The client
-// sends a requestKey per attempt; a double-click or network retry with the same key gets
-// the same run back instead of a second one.
-export async function startRun(user: SessionUser, recipeId: string, requestKey: string): Promise<ExecutionDTO> {
-  const { executions, recipes } = await collections();
-  const recipe = await getRecipeDoc(user, recipeId);
+export interface QuoteRequest {
+  ownerId: ObjectId;
+  sourceWallet: string;
+  config: RecipeConfig;
+  // Same key, same transfer: a retried node or double-clicked button never makes a second.
+  requestKey: string;
+  label: string;
+  source: ExecutionDoc["source"];
+}
 
-  const existing = await executions.findOne({ ownerId: user.userId, requestKey });
-  if (existing) return toExecutionDTO(existing);
-  if (recipe.status !== "active") throw errors.invalidState("Restore this recipe before running it.");
+// Prices a payout, records it, then asks MultiHopper for a binding quote.
+export async function quoteTransfer(req: QuoteRequest): Promise<ExecutionDoc> {
+  const { executions } = await collections();
+  const existing = await executions.findOne({ ownerId: req.ownerId, requestKey: req.requestKey });
+  if (existing) return existing;
 
-  const token = findToken(recipe.config.tokenMint);
-  if (!token) throw errors.validation("This recipe's token is not supported on this network. Edit the recipe to pick another.");
-  const amountRaw = totalRaw(recipe.config).toString();
+  const parsed = recipeConfigSchema.safeParse(req.config);
+  if (!parsed.success) throw errors.validation(parsed.error.issues[0]?.message ?? "The allocation is invalid.");
+  const config = parsed.data;
+  const token = findToken(config.tokenMint);
+  if (!token) throw errors.validation("This token is not supported on this network.");
+  const amountRaw = totalRaw(config).toString();
 
-  const estimate = await estimateTransfer(recipe.config, token, amountRaw).catch((e) => {
+  const estimate = await estimateTransfer(config, token, amountRaw).catch((e) => {
     throw providerToAppError(e);
   });
 
@@ -59,14 +66,15 @@ export async function startRun(user: SessionUser, recipeId: string, requestKey: 
   const id = new ObjectId();
   const doc: ExecutionDoc = {
     _id: id,
-    ownerId: user.userId,
-    recipeId: recipe._id,
-    recipeVersion: recipe.currentVersion,
-    recipeName: recipe.name,
-    requestKey,
+    source: req.source,
+    ownerId: req.ownerId,
+    recipeId: req.source?.workflowId ?? id,
+    recipeVersion: 1,
+    recipeName: req.label.slice(0, 80),
+    requestKey: req.requestKey,
     externalId: `ml_${id.toHexString()}`,
-    sourceWallet: user.wallet,
-    snapshot: recipe.config,
+    sourceWallet: req.sourceWallet,
+    snapshot: config,
     amountRaw,
     state: "quoting",
     providerTransferId: null,
@@ -77,7 +85,7 @@ export async function startRun(user: SessionUser, recipeId: string, requestKey: 
     quote: null,
     signatures: [],
     destinations: [],
-    timeline: [{ at: now, state: "quoting", note: `Run started from version ${recipe.currentVersion}.`, source: "app" }],
+    timeline: [{ at: now, state: "quoting", note: "Quote requested.", source: "app" }],
     lastError: null,
     prepareAttempts: 0,
     confirmAttempts: 0,
@@ -91,19 +99,16 @@ export async function startRun(user: SessionUser, recipeId: string, requestKey: 
   };
 
   try {
-    await inTransaction(async (session) => {
-      await executions.insertOne(doc, { session });
-      await recipes.updateOne({ _id: recipe._id }, { $inc: { runCount: 1 }, $set: { lastRunAt: now } }, { session });
-    });
+    await executions.insertOne(doc);
   } catch (error) {
     if (!isDuplicateKeyError(error)) throw error;
-    const raced = await executions.findOne({ ownerId: user.userId, requestKey });
-    if (raced) return toExecutionDTO(raced);
+    const raced = await executions.findOne({ ownerId: req.ownerId, requestKey: req.requestKey });
+    if (raced) return raced;
     throw error;
   }
 
   try {
-    const transfer = await createTransfer({ config: recipe.config, token, amountRaw, sourceOwner: user.wallet, externalId: doc.externalId });
+    const transfer = await createTransfer({ config, token, amountRaw, sourceOwner: req.sourceWallet, externalId: doc.externalId });
     const next = await updateWithRetry(id, () => ({
       to: "quoted",
       note: "MultiHopper returned a quote.",
@@ -116,7 +121,7 @@ export async function startRun(user: SessionUser, recipeId: string, requestKey: 
         nextCheckAt: new Date(Date.now() + 5 * 60_000),
       },
     }));
-    return toExecutionDTO(next);
+    return next;
   } catch (error) {
     if (error instanceof ProviderAmbiguous || providerCode(error) === "MH_033") {
       const next = await updateWithRetry(id, () => ({
@@ -124,7 +129,7 @@ export async function startRun(user: SessionUser, recipeId: string, requestKey: 
         note: "The quote request didn't get a clear answer. Looking it up before anything else.",
         set: { nextCheckAt: new Date() },
       }));
-      return toExecutionDTO(await syncFromProvider(next, "app").catch(() => next));
+      return syncFromProvider(next, "app").catch(() => next);
     }
     const appError = providerToAppError(error);
     await updateWithRetry(id, () => ({
@@ -248,9 +253,9 @@ export async function refreshRun(user: SessionUser, id: string): Promise<Executi
   }
 }
 
-export async function listRuns(user: SessionUser, recipeId?: string, limit = 30): Promise<ExecutionDTO[]> {
+export async function listTransfers(user: SessionUser, workflowId?: string, limit = 30): Promise<ExecutionDTO[]> {
   const { executions } = await collections();
-  const filter = recipeId ? { ownerId: user.userId, recipeId: parseId(recipeId) } : { ownerId: user.userId };
+  const filter = workflowId ? { ownerId: user.userId, recipeId: parseId(workflowId, "Workflow") } : { ownerId: user.userId };
   const docs = await executions.find(filter).sort({ createdAt: -1 }).limit(Math.min(limit, 100)).toArray();
   return docs.map(toExecutionDTO);
 }

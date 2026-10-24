@@ -3,20 +3,6 @@ import type { RecipeConfig } from "./recipe-schema";
 
 // Wire shapes shared by API routes and the UI. Ids are hex strings, dates ISO strings.
 
-export interface RecipeDTO {
-  id: string;
-  name: string;
-  description: string;
-  status: "active" | "archived";
-  version: number;
-  config: RecipeConfig;
-  totalRaw: string;
-  runCount: number;
-  lastRunAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface QuoteDTO {
   amountRaw: string;
   recipientReceivesRaw: string;
@@ -35,6 +21,7 @@ export interface QuoteDTO {
 
 export interface ExecutionDTO {
   id: string;
+  workflowRunId: string | null;
   recipeId: string;
   recipeName: string;
   recipeVersion: number;

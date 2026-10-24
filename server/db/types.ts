@@ -1,6 +1,8 @@
 import type { ObjectId } from "mongodb";
 import type { RecipeConfig } from "@/lib/recipe-schema";
 import type { ExecutionState } from "@/lib/execution-states";
+import type { CredentialType } from "@/lib/nodes/types";
+import type { NodeRunStatus, RunStatus, WaitKind, WorkflowGraph } from "@/lib/workflow/types";
 
 // Document shapes as stored. Token amounts are base-unit integer strings; Mongo's numeric
 // types either lose precision (double) or cap at 2^63 (long), and u64 token supplies can
@@ -97,6 +99,7 @@ export interface DestinationOutcome {
 
 export interface ExecutionDoc {
   _id: ObjectId;
+  source: { workflowId: ObjectId; workflowRunId: ObjectId; nodeId: string } | null;
   ownerId: ObjectId;
   recipeId: ObjectId;
   recipeVersion: number;
@@ -155,4 +158,86 @@ export interface LockDoc {
 export interface MigrationDoc {
   _id: string;
   appliedAt: Date;
+}
+
+export interface WorkflowDoc {
+  _id: ObjectId;
+  ownerId: ObjectId;
+  name: string;
+  status: "active" | "archived";
+  enabled: boolean;
+  currentVersion: number;
+  graph: WorkflowGraph;
+  triggerType: string | null;
+  // Webhook triggers are addressed by an unguessable key, never by the workflow id.
+  webhookKey: string;
+  schedule: { intervalMinutes: number; nextAt: Date } | null;
+  runCount: number;
+  lastRunAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkflowVersionDoc {
+  _id: ObjectId;
+  workflowId: ObjectId;
+  ownerId: ObjectId;
+  version: number;
+  graph: WorkflowGraph;
+  createdAt: Date;
+}
+
+export interface RunLogEntry {
+  at: Date;
+  nodeId: string | null;
+  level: "info" | "warn" | "error";
+  message: string;
+}
+
+export interface WorkflowRunDoc {
+  _id: ObjectId;
+  ownerId: ObjectId;
+  workflowId: ObjectId;
+  workflowName: string;
+  workflowVersion: number;
+  graph: WorkflowGraph;
+  trigger: { type: string; key: string; payload: unknown; at: Date };
+  status: RunStatus;
+  waiting: { nodeId: string; kind: WaitKind; until: Date | null; ref: string | null } | null;
+  log: RunLogEntry[];
+  error: string | null;
+  lease: { owner: string; expiresAt: Date } | null;
+  nextWakeAt: Date | null;
+  version: number;
+  startedAt: Date;
+  finishedAt: Date | null;
+  updatedAt: Date;
+}
+
+export interface NodeRunDoc {
+  _id: ObjectId;
+  runId: ObjectId;
+  ownerId: ObjectId;
+  nodeId: string;
+  nodeType: string;
+  status: NodeRunStatus;
+  port: string | null;
+  input: unknown;
+  output: unknown;
+  error: string | null;
+  attempts: number;
+  waitState: Record<string, unknown> | null;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+}
+
+export interface CredentialDoc {
+  _id: ObjectId;
+  ownerId: ObjectId;
+  type: CredentialType;
+  name: string;
+  // AES-256-GCM: base64 of iv(12) | tag(16) | ciphertext. Never returned by any API.
+  secret: string;
+  hint: string;
+  createdAt: Date;
 }

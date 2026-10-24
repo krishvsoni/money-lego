@@ -6,7 +6,7 @@ import type { SessionUser } from "../auth/session";
 import { collections } from "../db/collections";
 import type { ExecutionDoc, TimelineEvent } from "../db/types";
 import { errors } from "../errors";
-import { parseId } from "../recipes/service";
+import { parseId } from "../db/ids";
 
 const TIMELINE_LIMIT = 50;
 
@@ -71,6 +71,7 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 export function toExecutionDTO(doc: ExecutionDoc): ExecutionDTO {
   return {
     id: doc._id.toHexString(),
+    workflowRunId: doc.source?.workflowRunId.toHexString() ?? null,
     recipeId: doc.recipeId.toHexString(),
     recipeName: doc.recipeName,
     recipeVersion: doc.recipeVersion,

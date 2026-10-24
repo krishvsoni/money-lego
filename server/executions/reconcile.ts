@@ -8,6 +8,7 @@ import { ProviderRejected } from "../multihopper/http";
 import type { ProviderTransfer } from "../multihopper/schemas";
 import { getTransfer, getTransferByExternalId } from "../multihopper/transfers";
 import { updateWithRetry } from "./repository";
+import { wakeRun } from "../engine/wake";
 
 // Pulls MultiHopper's view of a run and folds it into ours. Webhooks, the user's refresh
 // button and the background reconciler all funnel through here, so there is exactly one
@@ -76,7 +77,9 @@ export async function syncFromProvider(doc: ExecutionDoc, source: TimelineEvent[
     }));
     throw error;
   }
-  return updateWithRetry(doc._id, (fresh) => applyProviderTransfer(fresh, transfer, source));
+  const next = await updateWithRetry(doc._id, (fresh) => applyProviderTransfer(fresh, transfer, source));
+  if (next.state !== doc.state && next.source) await wakeRun(next.source.workflowRunId);
+  return next;
 }
 
 // Claims due runs one at a time with a lease, so several reconciler instances running at
