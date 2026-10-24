@@ -1,17 +1,20 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "quiet" | "danger";
+type Variant = "primary" | "secondary" | "quiet" | "danger" | "accent";
 
+// Tactile pills: raised black for the main action, raised white for secondary, cobalt for
+// a selected or accent action, and flat text for quiet actions.
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-action text-action-ink hover:bg-action-hover",
-  secondary: "border border-line-strong bg-surface text-ink hover:border-ink-3",
+  primary: "tactile-ink hover:bg-[#27272a]",
+  secondary: "tactile text-ink hover:border-line-strong",
+  accent: "tactile-accent hover:brightness-110",
   quiet: "text-ink-2 hover:text-ink hover:bg-sunken",
-  danger: "border border-danger/40 bg-surface text-danger hover:bg-danger-wash",
+  danger: "tactile text-danger hover:bg-danger-wash",
 };
 
 const BASE =
-  "press inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50";
+  "press inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50";
 
 export function Button({
   variant = "primary",

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowUpRight } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/toast";
 import { api, errorMessage } from "@/lib/api-client";
@@ -113,22 +114,33 @@ export function View() {
       {!archived && (
         <section>
           <h2 className="headline text-2xl">Start from a template</h2>
+          <p className="mt-1 text-sm text-ink-2">Each one opens in the editor, ready to configure.</p>
           <ul className="mt-5 grid gap-4 md:grid-cols-2">
             {TEMPLATES.filter((t) => t.id !== "blank").map((t) => {
               const g = t.graph();
               return (
-                <li key={t.id} className="flex flex-col rounded-xl border border-line bg-surface p-5">
-                  <span className="flex items-end gap-[3px]" aria-hidden>
+                <li key={t.id} className="tactile flex flex-col rounded-2xl p-2">
+                  <span className="tactile-soft flex h-28 flex-wrap content-center items-center justify-center gap-1 rounded-lg px-4" aria-hidden>
                     {g.nodes.map((n) => {
                       const def = nodeDefinition(n.type);
-                      return <span key={n.id} className="h-4 w-5 rounded-[3px]" style={{ background: def ? CATEGORY_META[def.category].color : "var(--line)" }} />;
+                      return <span key={n.id} className="h-5 w-7 rounded-[4px]" style={{ background: def ? CATEGORY_META[def.category].color : "var(--line)" }} />;
                     })}
                   </span>
-                  <h3 className="mt-4 font-bold">{t.name}</h3>
-                  <p className="mt-1 flex-1 text-sm text-ink-2">{t.description}</p>
-                  <Button variant="secondary" className="mt-4 self-start" onClick={() => create(t.id)} busy={busy === t.id}>
-                    Use this template
-                  </Button>
+                  <div className="flex flex-1 items-start justify-between gap-4 px-2 pb-2 pt-4">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold">{t.name}</h3>
+                      <p className="mt-1 text-sm text-ink-2">{t.description}</p>
+                    </div>
+                    <button
+                      onClick={() => create(t.id)}
+                      disabled={busy === t.id}
+                      aria-label={`Use the ${t.name} template`}
+                      title="Use this template"
+                      className="press tactile-accent flex h-9 w-9 shrink-0 items-center justify-center self-end rounded-full disabled:opacity-60"
+                    >
+                      {busy === t.id ? <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-white" /> : <ArrowUpRight size={16} weight="bold" aria-hidden />}
+                    </button>
+                  </div>
                 </li>
               );
             })}

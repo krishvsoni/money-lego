@@ -6,7 +6,7 @@ export const BENEFITS = [
   {
     icon: "equals",
     title: "Exact to the base unit",
-    body: "Splits use integer math. 100 USDC at 33.33, 33.33 and 33.34 percent lands as 33,330,000, 33,330,000 and 33,340,000 base units, every time.",
+    body: "Splits use integer math, so 100 USDC at 33.33, 33.33 and 33.34 percent always adds back to exactly 100 USDC.",
   },
   {
     icon: "clock",

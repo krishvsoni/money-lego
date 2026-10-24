@@ -4,7 +4,8 @@ import { resolveValue, type Scope } from "@/lib/workflow/expressions";
 import { TEMPLATES } from "@/lib/workflow/templates";
 import { emptyGraph, type WorkflowGraph } from "@/lib/workflow/types";
 import { topologicalOrder, validateGraph, wouldCreateCycle } from "@/lib/workflow/validate";
-import { compare, splitByPercent } from "@/server/engine/executors/core";
+import { splitByPercent } from "@/lib/amounts";
+import { compare } from "@/server/engine/executors/core";
 
 const scope: Scope = { input: { amount: "12.5", list: [1, 2], nested: { a: { b: true } } }, trigger: { body: { type: "x" } }, nodes: { split: { amountRaw: "100" } }, run: { id: "r", workflowId: "w" } };
 

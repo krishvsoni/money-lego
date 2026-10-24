@@ -67,8 +67,8 @@ export function View() {
       {showReview && <QuoteReview run={run} onSign={sign} signing={signing} onRequote={requote} />}
 
       {(signing || progress) && (
-        <section className="reveal rounded-xl border border-action/40 bg-progress-wash p-6" aria-live="polite">
-          <p className="font-bold text-action">{progress ?? "Working"}</p>
+        <section className="reveal rounded-xl border border-progress/40 bg-progress-wash p-6" aria-live="polite">
+          <p className="font-bold text-progress">{progress ?? "Working"}</p>
           <p className="mt-1 text-sm text-ink-2">Keep this tab open. Each transaction is saved as it&apos;s sent, so you can safely resume if something interrupts.</p>
         </section>
       )}

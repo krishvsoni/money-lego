@@ -13,7 +13,7 @@ import type { Runs } from "./use-workflow-runs";
 
 const RUN_TONE: Record<string, string> = {
   queued: "bg-ink-3",
-  running: "bg-action pulse-dot",
+  running: "bg-progress pulse-dot",
   waiting: "bg-attention",
   succeeded: "bg-success",
   failed: "bg-danger",

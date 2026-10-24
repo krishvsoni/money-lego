@@ -12,7 +12,7 @@ export const instant = false;
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-line bg-paper/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-dashed border-line-strong bg-paper/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1080px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-5">
             <Wordmark href="/workflows" />

@@ -8,7 +8,7 @@ import { Plus } from "@phosphor-icons/react";
 export function Faq({ items }: { items: Array<{ q: string; a: string }> }) {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <ul className="divide-y divide-line rounded-2xl border border-line bg-white">
+    <ul className="tactile divide-y divide-dashed divide-line-strong rounded-2xl">
       {items.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -21,7 +21,9 @@ export function Faq({ items }: { items: Array<{ q: string; a: string }> }) {
                 className="flex w-full items-center justify-between gap-6 px-6 py-6 text-left text-base font-medium text-ink"
               >
                 {item.q}
-                <Plus size={18} className={`fluid shrink-0 text-ink-2 transition-transform ${isOpen ? "rotate-45" : ""}`} aria-hidden />
+                <span className="tactile-soft flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                  <Plus size={16} className={`fluid text-ink-2 transition-transform ${isOpen ? "rotate-45" : ""}`} aria-hidden />
+                </span>
               </button>
             </h3>
             <div id={`faq-${i}`} role="region" className={`fluid grid transition-[grid-template-rows] ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>

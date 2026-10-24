@@ -27,7 +27,7 @@ export function HopProgress({ run }: { run: ExecutionDTO }) {
           <span
             key={i}
             className="h-2.5 flex-1 rounded-sm"
-            style={{ background: i < hopsCompleted ? "var(--action)" : "var(--sunken)", transition: "background-color 300ms ease" }}
+            style={{ background: i < hopsCompleted ? "var(--progress)" : "var(--sunken)", transition: "background-color 300ms ease" }}
           />
         ))}
       </div>
@@ -73,7 +73,7 @@ export function Timeline({ run }: { run: ExecutionDTO }) {
     <ol className="relative flex flex-col gap-4 border-l border-line pl-5">
       {events.map((e, i) => (
         <li key={`${e.at}-${i}`} className={i === 0 ? "reveal" : undefined}>
-          <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-paper" style={{ background: i === 0 ? "var(--action)" : "var(--line-strong)" }} aria-hidden />
+          <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-paper" style={{ background: i === 0 ? "var(--progress)" : "var(--line-strong)" }} aria-hidden />
           <p className="text-sm font-semibold">{STATE_META[e.state].label}</p>
           {e.note && <p className="text-sm text-ink-2">{e.note}</p>}
           <p className="text-xs text-ink-3">{relativeTime(e.at)}</p>

@@ -70,3 +70,15 @@ export function shareBps(part: bigint, total: bigint): number {
   if (total <= 0n) return 0;
   return Number((part * 10_000n) / total);
 }
+
+// Percentages are held as hundredths of a percent, so 33.33% is exact. Each recipient gets
+// the floor of their share and leftover base units go to the largest remainders, so the
+// parts always sum to the total.
+export function splitByPercent(total: bigint, hundredths: number[]): bigint[] {
+  const parts = hundredths.map((h) => (total * BigInt(h)) / 10_000n);
+  const remainders = hundredths.map((h, i) => ({ i, r: (total * BigInt(h)) % 10_000n }));
+  let left = total - sumRaw(parts);
+  remainders.sort((a, b) => (b.r > a.r ? 1 : b.r < a.r ? -1 : a.i - b.i));
+  for (let k = 0; left > 0n; k = (k + 1) % parts.length, left--) parts[remainders[k].i] += 1n;
+  return parts;
+}

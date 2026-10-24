@@ -87,7 +87,6 @@ export function AsciiField() {
       if (width >= 768) {
         ctx.font = `400 11px ${mono}`;
         ctx.textAlign = "left";
-        ctx.fillStyle = "rgba(113, 113, 122, 0.9)";
         // Labels get a white backing so a passing trail never makes them unreadable.
         const label = (text: string, x: number, y: number) => {
           if (inContent(x, y)) return;

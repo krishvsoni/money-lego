@@ -2,7 +2,7 @@ import { STATE_META, type ExecutionState, type Tone } from "@/lib/execution-stat
 
 const TONE: Record<Tone, string> = {
   neutral: "bg-sunken text-ink-2",
-  progress: "bg-progress-wash text-action",
+  progress: "bg-progress-wash text-progress",
   attention: "bg-attention-wash text-attention",
   success: "bg-success-wash text-success",
   danger: "bg-danger-wash text-danger",

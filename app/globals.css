@@ -1,24 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #eef0f3;
-  --surface: #f8f9fb;
-  --sunken: #e3e6eb;
-  --ink: #172033;
-  --ink-2: #4a5468;
-  --ink-3: #7b8496;
-  --line: #d3d8e0;
-  --line-strong: #b4bccb;
-  --action: #2c4bd6;
+  /* One white theme for every page: the landing page and the app share these tokens. */
+  --paper: #ffffff;
+  --surface: #fafafa;
+  --sunken: #f4f4f5;
+  --ink: #09090b;
+  --ink-2: #52525b;
+  --ink-3: #a1a1aa;
+  --line: #ececee;
+  --line-strong: #d4d4d8;
+  --action: #09090b;
   --action-ink: #ffffff;
-  --action-hover: #213cb4;
+  --action-hover: #27272a;
+  --progress: #2c4bd6;
+  --progress-wash: #e8ecfc;
   --success: #17784a;
-  --success-wash: #dcefe5;
+  --success-wash: #e3f2ea;
   --attention: #a86400;
-  --attention-wash: #f6ead4;
+  --attention-wash: #fbf1df;
   --danger: #b93a2b;
-  --danger-wash: #f6dfdb;
-  --progress-wash: #dfe5fb;
+  --danger-wash: #fbe8e5;
 
   --brick-1: #2c4bd6;
   --brick-2: #e3a21a;
@@ -30,35 +32,6 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #121725;
-    --surface: #1a2032;
-    --sunken: #0e1320;
-    --ink: #e7eaf1;
-    --ink-2: #aeb6c7;
-    --ink-3: #7e889c;
-    --line: #2a3247;
-    --line-strong: #3b4560;
-    --action: #6f86f2;
-    --action-ink: #0e1320;
-    --action-hover: #8c9ff6;
-    --success: #4fbf86;
-    --success-wash: #173326;
-    --attention: #e3a64a;
-    --attention-wash: #3a2c14;
-    --danger: #ec7b6a;
-    --danger-wash: #3d1d19;
-    --progress-wash: #1f2a52;
-    --brick-1: #6f86f2;
-    --brick-2: #e9b440;
-    --brick-3: #e06a55;
-    --brick-4: #b07ac4;
-    --brick-5: #63b1dc;
-    --brick-6: #a8b552;
-  }
 }
 
 @theme inline {
@@ -79,6 +52,7 @@
   --color-attention-wash: var(--attention-wash);
   --color-danger: var(--danger);
   --color-danger-wash: var(--danger-wash);
+  --color-progress: var(--progress);
   --color-progress-wash: var(--progress-wash);
   --font-sans: var(--font-geist);
   --font-mono: var(--font-geist-mono);
@@ -86,7 +60,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
@@ -97,7 +71,8 @@ body {
 }
 
 ::selection {
-  background: var(--progress-wash);
+  background: color-mix(in srgb, var(--progress) 18%, transparent);
+  color: var(--ink);
 }
 
 :focus-visible {
@@ -189,7 +164,7 @@ dd,
 
 @keyframes pulse-ring {
   50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--action) 18%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--progress) 18%, transparent);
   }
 }
 .pulse-ring {
@@ -207,7 +182,7 @@ dd,
   --xy-edge-stroke-default: var(--ink-3);
   --xy-edge-stroke-selected-default: var(--action);
   --xy-edge-stroke-width-default: 1.75;
-  --xy-connectionline-stroke-default: var(--action);
+  --xy-connectionline-stroke-default: var(--progress);
   --xy-minimap-background-color-default: var(--surface);
   --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--paper) 70%, transparent);
   --xy-controls-button-background-color-default: var(--surface);
@@ -235,26 +210,8 @@ dd,
 .react-flow__minimap-node.mm-integrations { fill: var(--brick-3); }
 .react-flow__minimap-node.mm-utilities { fill: var(--brick-6); }
 
-/* The landing page is always white, whatever the visitor's colour scheme. */
+/* Kept as a hook for full-page white surfaces; tokens are global now. */
 .theme-white {
-  --paper: #ffffff;
-  --surface: #fafafa;
-  --sunken: #f4f4f5;
-  --ink: #09090b;
-  --ink-2: #52525b;
-  --ink-3: #a1a1aa;
-  --line: #ececee;
-  --line-strong: #d4d4d8;
-  --action: #09090b;
-  --action-ink: #ffffff;
-  --action-hover: #27272a;
-  --brick-1: #2c4bd6;
-  --brick-2: #e3a21a;
-  --brick-3: #c2412d;
-  --brick-4: #7a3e8f;
-  --brick-5: #3c8dbc;
-  --brick-6: #7d8b2e;
-  color-scheme: light;
   background: var(--paper);
   color: var(--ink);
 }
@@ -284,4 +241,43 @@ dd,
     transform: none;
     filter: none;
   }
+}
+
+
+/* Tactile surfaces. Depth comes from an inner highlight plus layered soft shadows, never
+   from gradients. Shared by the landing sections and the app's buttons and tiles. */
+.tactile {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 -2px 0 rgb(9 9 11 / 0.04),
+    0 1px 2px rgb(9 9 11 / 0.06),
+    0 2px 8px -2px rgb(9 9 11 / 0.08);
+}
+.tactile-ink {
+  background: var(--ink);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 1px 2px rgb(9 9 11 / 0.3),
+    0 6px 14px -6px rgb(9 9 11 / 0.5);
+}
+.tactile-accent {
+  background: var(--brick-1);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 1px 2px rgb(44 75 214 / 0.35),
+    0 6px 14px -6px rgb(44 75 214 / 0.55);
+}
+.tactile-soft {
+  background: var(--sunken);
+  box-shadow: inset 0 -1px 0 rgb(9 9 11 / 0.05), inset 0 0 0 1px rgb(9 9 11 / 0.03);
+}
+.dashed-x {
+  border-left: 1px dashed var(--line-strong);
+  border-right: 1px dashed var(--line-strong);
+}
+.dashed-t {
+  border-top: 1px dashed var(--line-strong);
 }

@@ -11,7 +11,7 @@ export type BrickData = { node: WorkflowNode; status: NodeRunStatus | null; issu
 export type BrickNodeType = Node<BrickData, "brick">;
 
 const STATUS: Partial<Record<NodeRunStatus, { ring: string; label: string; tone: string }>> = {
-  running: { ring: "ring-[3px] ring-action/60 pulse-ring", label: "Running", tone: "text-action" },
+  running: { ring: "ring-[3px] ring-progress/60 pulse-ring", label: "Running", tone: "text-progress" },
   waiting: { ring: "ring-[3px] ring-attention/70", label: "Waiting", tone: "text-attention" },
   succeeded: { ring: "ring-2 ring-success/60", label: "Done", tone: "text-success" },
   failed: { ring: "ring-[3px] ring-danger/70", label: "Failed", tone: "text-danger" },
