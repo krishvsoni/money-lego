@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const schibsted = Schibsted_Grotesk({
-  variable: "--font-schibsted",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
 });
 
 const geistMono = Geist_Mono({
@@ -14,14 +13,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const description =
+  "Payout workflows for Solana teams. Connect signed webhooks, approvals and MultiHopper routing on one canvas, and sign every transfer from your own wallet.";
+
 export const metadata: Metadata = {
-  title: "Money Lego",
-  description: "Reusable payout recipes for Solana teams. Set up a payout once, review the real quote, sign with your wallet, track every run.",
+  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+  title: { default: "Money Lego", template: "%s, Money Lego" },
+  description,
+  openGraph: { title: "Money Lego", description, type: "website", siteName: "Money Lego" },
+  twitter: { card: "summary_large_image", title: "Money Lego", description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${schibsted.variable} ${geistMono.variable} h-full`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

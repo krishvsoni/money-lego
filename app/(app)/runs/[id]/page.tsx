@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { View } from "./view";
 
+// Gated on the signed-in wallet, which is only known in the browser.
+export const instant = false;
+
 export default function Page() {
   return (
     <Suspense fallback={<div className="h-72 animate-pulse rounded-xl bg-sunken" aria-label="Loading" />}>
