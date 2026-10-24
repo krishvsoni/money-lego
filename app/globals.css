@@ -1,26 +1,197 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --paper: #eef0f3;
+  --surface: #f8f9fb;
+  --sunken: #e3e6eb;
+  --ink: #172033;
+  --ink-2: #4a5468;
+  --ink-3: #7b8496;
+  --line: #d3d8e0;
+  --line-strong: #b4bccb;
+  --action: #2c4bd6;
+  --action-ink: #ffffff;
+  --action-hover: #213cb4;
+  --success: #17784a;
+  --success-wash: #dcefe5;
+  --attention: #a86400;
+  --attention-wash: #f6ead4;
+  --danger: #b93a2b;
+  --danger-wash: #f6dfdb;
+  --progress-wash: #dfe5fb;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --brick-1: #2c4bd6;
+  --brick-2: #e3a21a;
+  --brick-3: #c2412d;
+  --brick-4: #7a3e8f;
+  --brick-5: #3c8dbc;
+  --brick-6: #7d8b2e;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #121725;
+    --surface: #1a2032;
+    --sunken: #0e1320;
+    --ink: #e7eaf1;
+    --ink-2: #aeb6c7;
+    --ink-3: #7e889c;
+    --line: #2a3247;
+    --line-strong: #3b4560;
+    --action: #6f86f2;
+    --action-ink: #0e1320;
+    --action-hover: #8c9ff6;
+    --success: #4fbf86;
+    --success-wash: #173326;
+    --attention: #e3a64a;
+    --attention-wash: #3a2c14;
+    --danger: #ec7b6a;
+    --danger-wash: #3d1d19;
+    --progress-wash: #1f2a52;
+    --brick-1: #6f86f2;
+    --brick-2: #e9b440;
+    --brick-3: #e06a55;
+    --brick-4: #b07ac4;
+    --brick-5: #63b1dc;
+    --brick-6: #a8b552;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-action: var(--action);
+  --color-action-ink: var(--action-ink);
+  --color-action-hover: var(--action-hover);
+  --color-success: var(--success);
+  --color-success-wash: var(--success-wash);
+  --color-attention: var(--attention);
+  --color-attention-wash: var(--attention-wash);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-progress-wash: var(--progress-wash);
+  --font-sans: var(--font-schibsted);
+  --font-mono: var(--font-geist-mono);
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 1.1;
+  --text-display: clamp(2.6rem, 6vw, 4.25rem);
+  --text-display--line-height: 1;
+}
+
+html {
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-schibsted), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--progress-wash);
+}
+
+:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+.headline {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.press {
+  transition: transform 140ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.reveal {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes brick-snap {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(1px) scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.brick-snap {
+  animation: brick-snap 560ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 150ms);
+}
+
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brick-snap {
+    animation: fade-in 300ms ease both;
+    animation-delay: 0ms;
+  }
+  .reveal {
+    @starting-style {
+      transform: none;
+    }
+  }
+  .pulse-dot {
+    animation: none;
+  }
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }

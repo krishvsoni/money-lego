@@ -11,10 +11,12 @@ export const ARRIVAL_MAX_SECONDS = 2_592_000;
 
 const address = z.string().trim().refine(isSolanaAddress, "Not a valid Solana address");
 
-const rawAmount = z
-  .string()
-  .refine(isRawAmount, "Amount must be a whole number of base units")
-  .refine((v) => BigInt(v) > 0n, "Amount must be greater than zero");
+// One check, not two chained refines: zod runs every refinement even after one fails, and
+// BigInt() throws on non-digit input.
+const rawAmount = z.string().superRefine((v, ctx) => {
+  if (!isRawAmount(v)) ctx.addIssue({ code: "custom", message: "Amount must be a whole number of base units" });
+  else if (BigInt(v) <= 0n) ctx.addIssue({ code: "custom", message: "Amount must be greater than zero" });
+});
 
 export const destinationSchema = z.object({
   wallet: address,
