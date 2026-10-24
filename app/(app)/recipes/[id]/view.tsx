@@ -112,8 +112,8 @@ export function View() {
                 {d.label && <span className="mr-3 font-semibold">{d.label}</span>}
                 <Address value={d.wallet} />
               </span>
-              <span className="text-right font-semibold">{formatToken(d.amountRaw, r.config.tokenMint)}</span>
-              <span className="col-start-3 text-right text-sm text-ink-3 sm:col-start-auto">{(shareBps(BigInt(d.amountRaw), total) / 100).toFixed(1)}%</span>
+              <span className="num text-right font-semibold">{formatToken(d.amountRaw, r.config.tokenMint)}</span>
+              <span className="num col-start-3 text-right text-sm text-ink-3 sm:col-start-auto">{(shareBps(BigInt(d.amountRaw), total) / 100).toFixed(1)}%</span>
             </li>
           ))}
         </ul>

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:up": "docker compose up -d"
+    "db:up": "docker compose up -d",
+    "smoke": "bun scripts/smoke.ts"
   },
   "dependencies": {
     "@solana/wallet-adapter-base": "^0.9.28",

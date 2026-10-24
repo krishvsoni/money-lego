@@ -109,7 +109,6 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-schibsted), system-ui, sans-serif;
-  font-feature-settings: "tnum" 1;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -120,6 +119,14 @@ body {
 :focus-visible {
   outline: 2px solid var(--action);
   outline-offset: 2px;
+}
+
+/* Tabular figures only where numbers line up in columns; applied globally they give
+   punctuation figure width in this face and open gaps before commas and periods. */
+td,
+dd,
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 .headline {

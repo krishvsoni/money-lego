@@ -17,6 +17,7 @@ export const RATE_RULES = {
   write: { name: "write", limit: 60, windowSeconds: 60 },
   quote: { name: "quote", limit: 8, windowSeconds: 60 },
   refresh: { name: "refresh", limit: 30, windowSeconds: 60 },
+  rpc: { name: "rpc", limit: 240, windowSeconds: 60 },
   webhook: { name: "webhook", limit: 600, windowSeconds: 60 },
 } satisfies Record<string, RateRule>;
 

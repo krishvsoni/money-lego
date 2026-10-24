@@ -57,7 +57,7 @@ export function RecipientOutcomes({ run }: { run: ExecutionDTO }) {
               )}
             </span>
             <span className="text-right text-sm">
-              <span className="block font-semibold">{formatToken(o?.amountRaw ?? d.amountRaw, mint)}</span>
+              <span className="num block font-semibold">{formatToken(o?.amountRaw ?? d.amountRaw, mint)}</span>
               <span className={paid ? "text-success" : "text-ink-3"}>{paid ? "Paid" : "Pending"}</span>
             </span>
           </li>

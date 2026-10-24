@@ -22,7 +22,9 @@ const schema = z
     MULTIHOPPER_API_KEY: z.string().optional(),
     MULTIHOPPER_WEBHOOK_SECRET: z.string().optional(),
     MULTIHOPPER_ALLOW_PRODUCTION: z.enum(["true", "false"]).default("false"),
-    CRON_SECRET: z.string().optional(),
+    CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters").optional(),
+    CLIENT_IP_HEADER: z.string().regex(/^[a-z0-9-]+$/).optional(),
+    SOLANA_RPC_URL: z.url().optional(),
     NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
   })
   .superRefine((env, ctx) => {
@@ -52,7 +54,9 @@ let cached: Env | null = null;
 
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // A blank line like `CRON_SECRET=` in an env file means "not set", not "empty secret".
+  const present = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined && v.trim() !== ""));
+  const parsed = schema.safeParse(present);
   if (!parsed.success) {
     const detail = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid server environment. ${detail}`);

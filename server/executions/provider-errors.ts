@@ -32,7 +32,7 @@ export function providerToAppError(error: unknown): AppError {
   if (error instanceof ProviderAmbiguous) return errors.providerUnavailable(error);
   if (error instanceof ProviderRejected) {
     if (error.code === "MH_004") return errors.rateLimited(error.retryAfterSeconds ?? 10);
-    const message = MESSAGES[error.code] ?? `MultiHopper declined the request (${error.code}). ${error.message}`;
+    const message = MESSAGES[error.code] ?? `MultiHopper declined the request (${error.code}). Nothing was sent.`;
     return new AppError("PROVIDER_ERROR", error.status === 409 ? 409 : 422, message, { cause: error });
   }
   return errors.internal(error);

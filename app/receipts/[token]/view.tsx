@@ -40,7 +40,7 @@ export function View() {
                 <li key={d.wallet} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                   <Address value={d.wallet} />
                   <span>
-                    <span className="font-semibold">{formatToken(d.amountRaw, r.tokenMint)}</span>
+                    <span className="num font-semibold">{formatToken(d.amountRaw, r.tokenMint)}</span>
                     <span className={`ml-3 ${d.status === "paid" ? "text-success" : "text-ink-3"}`}>{d.status === "paid" ? "Paid" : "Pending"}</span>
                   </span>
                 </li>

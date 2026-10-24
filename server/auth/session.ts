@@ -10,7 +10,11 @@ import { errors } from "../errors";
 // holds only its SHA-256, so reading the sessions collection never yields a usable login.
 // Sessions live in Mongo rather than process memory, so any instance can serve any request.
 
-export const SESSION_COOKIE = "ml_session";
+// In production the __Host- prefix makes the browser reject the cookie unless it is Secure,
+// host-only and path=/, so a sibling subdomain can never set or shadow it.
+export function sessionCookieName(): string {
+  return env().NODE_ENV === "production" && env().APP_URL.startsWith("https://") ? "__Host-ml_session" : "ml_session";
+}
 
 export interface SessionUser {
   userId: ObjectId;
@@ -35,10 +39,10 @@ export async function createSession(userId: ObjectId, wallet: string): Promise<v
   });
   const jar = await cookies();
   jar.set({
-    name: SESSION_COOKIE,
+    name: sessionCookieName(),
     value: token,
     httpOnly: true,
-    secure: env().NODE_ENV === "production",
+    secure: sessionCookieName().startsWith("__Host-") || env().NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: Math.floor(ttlMs / 1000),
@@ -46,7 +50,7 @@ export async function createSession(userId: ObjectId, wallet: string): Promise<v
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(sessionCookieName())?.value;
   if (!token) return null;
   const { sessions } = await collections();
   // TTL deletion runs about once a minute, so expiry is also checked on read.
@@ -62,10 +66,10 @@ export async function requireUser(): Promise<SessionUser> {
 
 export async function destroySession(): Promise<void> {
   const jar = await cookies();
-  const token = jar.get(SESSION_COOKIE)?.value;
+  const token = jar.get(sessionCookieName())?.value;
   if (token) {
     const { sessions } = await collections();
     await sessions.deleteOne({ _id: hashToken(token) });
   }
-  jar.delete(SESSION_COOKIE);
+  jar.delete(sessionCookieName());
 }
