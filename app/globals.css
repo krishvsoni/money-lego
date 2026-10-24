@@ -56,6 +56,7 @@
   --color-progress-wash: var(--progress-wash);
   --font-sans: var(--font-geist);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
 
 }
 
@@ -89,6 +90,7 @@ dd,
 }
 
 .headline {
+  font-family: var(--font-bricolage), var(--font-geist), system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.025em;
   text-wrap: balance;
@@ -341,4 +343,25 @@ button:active > span > .keycap {
   button:active > span > .keycap {
     transform: none;
   }
+}
+
+/* The landing page moves a section at a time, so its scrollbar is noise: hide it, and clip
+   any stray horizontal overflow so there's never a sideways scroll. */
+html:has(.snap-root) {
+  scrollbar-width: none;
+}
+html:has(.snap-root)::-webkit-scrollbar {
+  display: none;
+}
+html:has(.snap-root) body {
+  overflow-x: clip;
+}
+
+/* Navigation and controls are things you press, not text you copy. */
+nav,
+button,
+[role="tab"],
+[role="tablist"] {
+  -webkit-user-select: none;
+  user-select: none;
 }

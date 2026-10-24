@@ -8,10 +8,10 @@ import { Reveal } from "./reveal";
 export function CenterHeader({ id, title, body }: { id: string; title: string; body?: string }) {
   return (
     <Reveal className="mx-auto max-w-[680px] text-center">
-      <h2 id={id} className="text-2xl font-medium tracking-tight text-ink text-balance sm:text-3xl">
+      <h2 id={id} className="font-display text-4xl font-semibold leading-[1.05] tracking-[-0.025em] text-ink text-balance sm:text-5xl sm:[@media(max-height:860px)]:text-4xl">
         {title}
       </h2>
-      {body && <p className="mt-3 text-base text-ink-2 text-pretty">{body}</p>}
+      {body && <p className="mt-4 text-lg leading-[1.6] text-ink-2 text-pretty [@media(max-height:860px)]:mt-3 [@media(max-height:860px)]:text-base">{body}</p>}
     </Reveal>
   );
 }
@@ -22,7 +22,7 @@ export function Tile({ visual, title, body, badge, delay = 0 }: { visual: ReactN
       <div className="tactile-soft flex min-h-40 flex-1 items-center justify-center rounded-lg p-3 [@media(max-height:860px)]:min-h-32 [@media(max-height:860px)]:p-2">{visual}</div>
       <div className="px-2 pb-2 pt-4 [@media(max-height:860px)]:pt-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <h3 className="font-display text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h3>
           {badge && <span className="tactile-soft rounded-full px-2 py-0.5 text-xs font-medium text-ink-2">{badge}</span>}
         </div>
         <p className="mt-1 text-sm text-ink-2 text-pretty">{body}</p>

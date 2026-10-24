@@ -21,7 +21,7 @@ export function BrickGallery() {
     <div>
       <LayoutGroup id="brick-filter">
         <div className="flex justify-center">
-          <div className="tab-track flex max-w-full gap-0.5 overflow-x-auto rounded-full p-1" role="tablist" aria-label="Filter bricks by category">
+          <div className="tab-track flex max-w-full flex-wrap justify-center gap-0.5 rounded-3xl p-1 sm:rounded-full" role="tablist" aria-label="Filter bricks by category">
             {tabs.map((t) => {
               const active = filter === t.id;
               return (

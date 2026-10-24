@@ -8,7 +8,7 @@ export function PrimaryCta({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/workflows"
-      className={`press inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-base font-semibold text-white shadow-[0_8px_20px_-10px_rgb(9_9_11/0.6)] hover:bg-[#27272a] ${className}`}
+      className={`press inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-base font-medium text-white shadow-[0_8px_20px_-10px_rgb(9_9_11/0.6)] hover:bg-[#27272a] ${className}`}
     >
       Build your first workflow
     </Link>

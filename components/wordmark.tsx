@@ -12,7 +12,7 @@ export function BrickGlyph({ className = "" }: { className?: string }) {
 
 export function Wordmark({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="press inline-flex items-center gap-2 rounded text-[1.0625rem] font-extrabold tracking-[-0.02em] text-ink">
+    <Link href={href} className="press inline-flex items-center gap-2 rounded font-display text-lg font-semibold tracking-[-0.025em] text-ink">
       <BrickGlyph className="h-[18px] w-7" />
       Money Lego
     </Link>

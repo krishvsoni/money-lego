@@ -24,7 +24,7 @@ export function TaglineReveal({ lines, center = false }: { lines: string[]; cent
   }, []);
 
   return (
-    <p ref={root} className={`max-w-[680px] text-4xl font-medium tracking-tight text-balance sm:text-5xl ${center ? "mx-auto text-center" : ""}`}>
+    <p ref={root} className={`max-w-[680px] font-display text-4xl font-semibold leading-[1.05] tracking-[-0.025em] text-balance sm:text-5xl ${center ? "mx-auto text-center" : ""}`}>
       {lines.map((line, li) => (
         <span key={li} className="block">
           {line.split(" ").map((word, wi) => {

@@ -27,23 +27,24 @@ export default function Landing() {
       <main id="main">
         <section className="snap-section relative items-center overflow-hidden" aria-labelledby="hero-title">
           <AsciiField />
-          <div className="relative mx-auto flex w-full max-w-[1080px] flex-col items-center px-6 pb-16 pt-28 text-center">
-            <h1 id="hero-title" className="hero-heading max-w-[680px] text-5xl font-light tracking-tight sm:text-7xl">
+          <div className="relative mx-auto flex w-full max-w-[1080px] flex-col items-center px-6 pb-16 pt-28 text-center [@media(max-height:860px)]:pb-10 [@media(max-height:860px)]:pt-24">
+            <h1 id="hero-title" className="hero-heading max-w-[760px] font-display text-5xl font-semibold leading-[0.96] tracking-[-0.04em] sm:text-7xl lg:text-[84px] lg:[@media(max-height:860px)]:text-7xl">
               Build how your
               <br />
               money moves.
             </h1>
-            <p className="mt-6 max-w-[680px] text-lg text-ink-2 text-pretty">
-              Payout workflows for Solana teams. Connect signed webhooks, approvals and MultiHopper routing on one canvas, and sign
-              every transfer from your own wallet.
+            <p className="mt-6 text-xl leading-[1.55] text-ink-2">
+              Payout workflows for Solana teams.
+              <br />
+              Every transfer signed in your own wallet.
             </p>
-            <div className="mt-10 w-full">
+            <div className="mt-10 w-full [@media(max-height:860px)]:mt-8">
               <div className="flex justify-center">
                 <HeroCard brickCount={brickCount} />
               </div>
             </div>
-            <PrimaryCta className="mt-10" />
-            <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2" aria-label="What you get">
+            <PrimaryCta className="mt-10 [@media(max-height:860px)]:mt-8" />
+            <ul className="mt-6 [@media(max-height:860px)]:mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2" aria-label="What you get">
               {PROOF.map((p, i) => (
                 <li key={p} className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-[2px]" style={{ background: `var(--brick-${[1, 5, 2][i]})` }} aria-hidden />
@@ -76,10 +77,10 @@ export default function Landing() {
           <section id="faq" aria-labelledby="faq-title" className="snap-section dashed-t px-6 pb-12 pt-24 [@media(max-height:860px)]:pb-4 [@media(max-height:860px)]:pt-20">
             <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.5fr]">
               <Reveal className="lg:sticky lg:top-32">
-                <h2 id="faq-title" className="text-2xl font-medium tracking-tight text-ink text-balance sm:text-3xl">
+                <h2 id="faq-title" className="font-display text-4xl font-semibold leading-[1.05] tracking-[-0.025em] text-ink text-balance sm:text-5xl sm:[@media(max-height:860px)]:text-4xl">
                   Questions people ask before they connect a wallet
                 </h2>
-                <p className="mt-3 text-base text-ink-2 text-pretty">Short answers. If yours isn&apos;t here, ask before you send funds.</p>
+                <p className="mt-4 text-lg leading-[1.6] text-ink-2 text-pretty">Short answers. If yours isn&apos;t here, ask before you send funds.</p>
               </Reveal>
               <Reveal delay={80}>
                 <Faq items={FAQ} />
@@ -91,7 +92,7 @@ export default function Landing() {
             <div className="flex flex-1 items-center px-6 pt-24">
               <Reveal className="tactile mx-auto flex w-full max-w-[800px] flex-col items-center rounded-2xl p-2 text-center">
                 <div className="tactile-soft flex w-full flex-col items-center rounded-lg px-6 py-16">
-                  <h2 id="final-title" className="hero-heading max-w-[680px] text-4xl font-light tracking-tight text-balance sm:text-5xl">
+                  <h2 id="final-title" className="hero-heading max-w-[680px] font-display text-4xl font-semibold leading-[1.02] tracking-[-0.03em] text-balance sm:text-6xl">
                     Start with the payout template.
                   </h2>
                   <p className="mt-4 max-w-[520px] text-base text-ink-2 text-pretty">

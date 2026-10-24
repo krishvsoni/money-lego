@@ -2,17 +2,18 @@
 
 import { useEffect } from "react";
 
-// One wheel gesture moves exactly one section. CSS snapping alone snaps small trackpad
-// moves back to where they started, so on desktop the wheel's direction decides and the
-// page glides one screen. The trackpad's momentum tail is ignored until it goes quiet,
+// One wheel gesture moves exactly one section, and in-page links glide rather than jump.
+// CSS snapping alone snaps small trackpad moves back to where they started, so on desktop
+// the wheel's direction decides and the page glides one screen. The trackpad's momentum tail is ignored until it goes quiet,
 // so a single flick never skips two sections. Keyboard and touch keep native snapping.
 
 const THRESHOLD = 24;
-const DURATION = 750;
+const DURATION = 900;
 const QUIET_MS = 220;
 
-// Matches the page's heavy ease, cubic-bezier(0.32, 0.72, 0, 1), closely enough for scrolling.
-const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+// Ease in and out: the page eases away from rest and settles gently, which reads as one
+// smooth movement rather than a jump that brakes hard.
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 export function SectionPager() {
   useEffect(() => {
@@ -69,9 +70,23 @@ export function SectionPager() {
       if (next !== current) glideTo(tops[next]);
     };
 
+    // In-page links (How it works, Bricks, FAQ) glide to their section instead of jumping.
+    const onClick = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+      const id = link?.getAttribute("href")?.slice(1);
+      const target = id ? document.getElementById(id) : null;
+      if (!target || e.metaKey || e.ctrlKey) return;
+      e.preventDefault();
+      const section = target.closest<HTMLElement>(".snap-section") ?? target;
+      glideTo(section.getBoundingClientRect().top + window.scrollY);
+      history.replaceState(null, "", `#${id}`);
+    };
+
     window.addEventListener("wheel", onWheel, { passive: false });
+    document.addEventListener("click", onClick);
     return () => {
       window.removeEventListener("wheel", onWheel);
+      document.removeEventListener("click", onClick);
       cancelAnimationFrame(frame);
       root.style.scrollSnapType = "";
     };

@@ -30,14 +30,14 @@ export function IslandNav() {
     <>
       <nav aria-label="Main" className="fixed inset-x-0 top-0 z-40 flex justify-center px-4">
         <div className="mx-auto mt-6 flex w-max items-center gap-2 rounded-full border border-line bg-white/75 p-1 pl-4 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl">
-          <Link href="/" className="flex items-center gap-2 rounded-full pr-2 text-sm font-semibold text-ink" aria-current="page">
-            <BrickGlyph className="h-3 w-5" />
+          <Link href="/" className="flex items-center gap-2 rounded-full pr-2 font-display text-xl font-semibold tracking-[-0.025em] text-ink" aria-current="page">
+            <BrickGlyph className="h-3.5 w-6" />
             Money Lego
           </Link>
           <ul className="hidden items-center sm:flex">
             {LINKS.map((l) => (
               <li key={l.href}>
-                <a href={l.href} className="fluid rounded-full px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-sunken hover:text-ink">
+                <a href={l.href} className="fluid rounded-full px-3 py-2 text-base text-ink-2 transition-colors hover:bg-sunken hover:text-ink">
                   {l.label}
                 </a>
               </li>
@@ -45,7 +45,7 @@ export function IslandNav() {
           </ul>
           <Link
             href="/workflows"
-            className="press hidden rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white hover:bg-[#27272a] sm:inline-flex"
+            className="press hidden rounded-full bg-ink px-4 py-2 text-base font-medium text-white hover:bg-[#27272a] sm:inline-flex"
           >
             Open builder
           </Link>
