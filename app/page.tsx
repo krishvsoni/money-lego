@@ -4,15 +4,19 @@ import { AsciiField } from "@/features/landing/ascii-field";
 import { FAQ, TAGLINE } from "@/features/landing/content";
 import { Faq } from "@/features/landing/faq";
 import { HeroCard } from "@/features/landing/hero-card";
-import { IslandNav } from "@/features/landing/island-nav";
+import { NavCta, SiteNav } from "@/components/site-nav";
 import { Reveal } from "@/features/landing/reveal";
 import { SectionPager } from "@/features/landing/section-pager";
 import { Benefits, Bricks, HowItWorks, PrimaryCta } from "@/features/landing/sections";
 import { TaglineReveal } from "@/features/landing/tagline-reveal";
-import { AutomationVisual, Tile, WalletVisual } from "@/features/landing/tiles";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { HandoffDemo } from "@/features/landing/handoff-demo";
 
 const PROOF = ["Free on devnet", "Keys stay in your wallet", "Routing by MultiHopper"];
+const LANDING_LINKS = [
+  { href: "#how", label: "How it works" },
+  { href: "#bricks", label: "Bricks" },
+  { href: "#faq", label: "FAQ" },
+];
 
 export default function Landing() {
   const brickCount = allNodeDefinitions().filter((d) => !d.unavailable).length;
@@ -21,7 +25,7 @@ export default function Landing() {
       <a href="#main" className="sr-only z-50 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Skip to content
       </a>
-      <IslandNav />
+      <SiteNav links={LANDING_LINKS} right={<NavCta href="/workflows">Open builder</NavCta>} />
       <SectionPager />
 
       <main id="main">
@@ -44,7 +48,7 @@ export default function Landing() {
               </div>
             </div>
             <PrimaryCta className="mt-10 [@media(max-height:860px)]:mt-8" />
-            <ul className="mt-6 [@media(max-height:860px)]:mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2" aria-label="What you get">
+            <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 rounded-full bg-white/85 px-5 py-2 text-base text-ink-2 backdrop-blur-sm [@media(max-height:860px)]:mt-4" aria-label="What you get">
               {PROOF.map((p, i) => (
                 <li key={p} className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-[2px]" style={{ background: `var(--brick-${[1, 5, 2][i]})` }} aria-hidden />
@@ -58,16 +62,9 @@ export default function Landing() {
         <div className="dashed-x mx-auto w-full max-w-[1200px]">
           <section aria-label="Who decides" className="snap-section dashed-t px-6 pb-12 pt-24 [@media(max-height:860px)]:pb-4 [@media(max-height:860px)]:pt-20">
             <TaglineReveal lines={TAGLINE} center />
-            <div className="relative mx-auto mt-12 w-full max-w-[880px]">
-              <ul className="grid gap-4 md:grid-cols-2">
-                <Tile visual={<AutomationVisual />} title="What automation does" body="Starts on a signed event, splits to the base unit and fetches the live quote. Then it stops and waits." badge="Runs on its own" />
-                <Tile visual={<WalletVisual />} title="What only you can do" body="Review the exact amounts and sign. No schedule, webhook or server can take this step for you." badge="Only you" delay={120} />
-              </ul>
-              <span className="tactile pointer-events-none absolute left-1/2 top-[88px] z-10 hidden -translate-x-1/2 items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-ink-2 md:flex" aria-hidden>
-                hands off to
-                <ArrowRight size={12} weight="bold" />
-              </span>
-            </div>
+            <Reveal className="mx-auto mt-12 w-full max-w-[920px] [@media(max-height:860px)]:mt-8">
+              <HandoffDemo />
+            </Reveal>
           </section>
 
           <Benefits />
@@ -95,15 +92,15 @@ export default function Landing() {
                   <h2 id="final-title" className="hero-heading max-w-[680px] font-display text-4xl font-semibold leading-[1.02] tracking-[-0.03em] text-balance sm:text-6xl">
                     Start with the payout template.
                   </h2>
-                  <p className="mt-4 max-w-[520px] text-base text-ink-2 text-pretty">
+                  <p className="mt-4 max-w-[560px] text-lg leading-[1.6] text-ink-2 text-pretty">
                     It already has the webhook, split, approval and signing steps wired. Add your recipients and a signing secret, then run it on devnet.
                   </p>
                   <PrimaryCta className="mt-8" />
-                  <p className="mt-4 text-sm text-ink-3">Free on devnet. No card, no custody.</p>
+                  <p className="mt-4 text-base text-ink-3">Free on devnet. No card, no custody.</p>
                 </div>
               </Reveal>
             </div>
-          <footer className="dashed-t flex flex-wrap items-center justify-between gap-6 px-6 py-8 text-sm text-ink-3">
+          <footer className="dashed-t flex flex-wrap items-center justify-between gap-6 px-6 py-8 text-base text-ink-3">
             <p>© 2026 Money Lego. Routing by MultiHopper on Solana.</p>
             <nav aria-label="Footer" className="flex flex-wrap gap-6">
               <Link href="/workflows" className="hover:text-ink">Builder</Link>

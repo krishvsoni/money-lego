@@ -16,7 +16,7 @@ const routeFields: Field[] = [
 export const moneyNodes: NodeDefinition[] = [
   {
     type: "mh.estimate",
-    title: "MultiHopper estimate",
+    title: "Fee estimate",
     category: "money",
     description: "Price the allocation from the previous node: fees, SOL needed up front and net delivery. Moves nothing.",
     icon: "Calculator",
@@ -29,7 +29,7 @@ export const moneyNodes: NodeDefinition[] = [
   },
   {
     type: "mh.create_transfer",
-    title: "MultiHopper create transfer",
+    title: "Create transfer",
     category: "money",
     description: "Create a binding quote for the allocation, paid from the workflow owner's wallet. Idempotent per run.",
     icon: "FilePlus2",

@@ -1,6 +1,6 @@
 // Landing copy, kept apart from layout so wording can change without touching markup.
 
-export const TAGLINE = ["Automation gets", "the payout ready.", "Your wallet decides", "whether it moves."];
+export const TAGLINE = ["Automation gets it ready.", "Only your wallet moves it."];
 
 export const BENEFITS = [
   {

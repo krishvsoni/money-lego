@@ -8,7 +8,7 @@ export function PrimaryCta({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/workflows"
-      className={`press inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-base font-medium text-white shadow-[0_8px_20px_-10px_rgb(9_9_11/0.6)] hover:bg-[#27272a] ${className}`}
+      className={`press inline-flex items-center justify-center rounded-full bg-ink px-7 py-3.5 text-lg font-medium text-white shadow-[0_8px_20px_-10px_rgb(9_9_11/0.6)] hover:bg-[#27272a] ${className}`}
     >
       Build your first workflow
     </Link>
@@ -32,7 +32,7 @@ export function FramedSection({ id, title, body, children, className = "" }: { i
 export function Benefits() {
   return (
     <FramedSection id="why" title="Built so the numbers can be trusted" body="Four guarantees the builder keeps on every run, whoever or whatever starts it.">
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {BENEFITS.map((b, i) => (
           <Tile key={b.title} visual={BENEFIT_VISUALS[i]} title={b.title} body={b.body} delay={i * 80} />
         ))}

@@ -39,18 +39,18 @@ export function AsciiField() {
       sim.warm(reduce ? 16 : 10);
     };
 
-    // The content column (headline, card, button) is a calm zone: cells inside it fade to a
+    // The content column (headline, card, button, proof line) is a calm zone: cells inside it fade to a
     // whisper, with a soft 64px edge. On phones the column is the whole width, so the field
     // stays faint everywhere and the copy always reads first.
     const quiet = (x: number, y: number) => {
       const half = Math.min(420, width / 2 - 16);
       const dx = Math.max(0, Math.abs(x - width / 2) - half);
-      const dy = Math.max(0, Math.max(height * 0.12 - y, y - height * 0.86));
+      const dy = Math.max(0, Math.max(height * 0.12 - y, y - height * 0.97));
       const edge = Math.min(1, Math.hypot(dx, dy) / 64);
       const floor = width < 640 ? 0.12 : 0.05;
       return floor + (1 - floor) * edge * edge;
     };
-    const inContent = (x: number, y: number) => Math.abs(x - width / 2) < Math.min(440, width / 2) && y > height * 0.1 && y < height * 0.88;
+    const inContent = (x: number, y: number) => Math.abs(x - width / 2) < Math.min(440, width / 2) && y > height * 0.1 && y < height * 0.98;
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);

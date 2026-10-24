@@ -22,24 +22,24 @@ export function Tile({ visual, title, body, badge, delay = 0 }: { visual: ReactN
       <div className="tactile-soft flex min-h-40 flex-1 items-center justify-center rounded-lg p-3 [@media(max-height:860px)]:min-h-32 [@media(max-height:860px)]:p-2">{visual}</div>
       <div className="px-2 pb-2 pt-4 [@media(max-height:860px)]:pt-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-display text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h3>
-          {badge && <span className="tactile-soft rounded-full px-2 py-0.5 text-xs font-medium text-ink-2">{badge}</span>}
+          <h3 className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">{title}</h3>
+          {badge && <span className="tactile-soft rounded-full px-3 py-0.5 text-sm font-medium text-ink-2">{badge}</span>}
         </div>
-        <p className="mt-1 text-sm text-ink-2 text-pretty">{body}</p>
+        <p className="mt-1 text-base text-ink-2 text-pretty">{body}</p>
       </div>
     </Reveal>
   );
 }
 
 function Panel({ children }: { children: ReactNode }) {
-  return <div className="tactile w-full max-w-[300px] rounded-xl p-3 text-xs">{children}</div>;
+  return <div className="tactile w-full max-w-[340px] rounded-xl p-3 text-sm">{children}</div>;
 }
 
 function Row({ left, right, tone = "text-ink" }: { left: ReactNode; right: ReactNode; tone?: string }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-ink-2">{left}</span>
-      <span className={`num font-medium ${tone}`}>{right}</span>
+      <span className="min-w-0 text-ink-2">{left}</span>
+      <span className={`num shrink-0 whitespace-nowrap font-medium ${tone}`}>{right}</span>
     </div>
   );
 }
@@ -50,11 +50,11 @@ export function ExactVisual() {
   const parts = splitByPercent(100_000_000n, shares);
   return (
     <Panel>
-      {["Design", "Engineering", "Operations"].map((name, i) => (
+      {["Design", "Eng", "Ops"].map((name, i) => (
         <Row key={name} left={`${name} ${(shares[i] / 100).toFixed(2)}%`} right={formatAmount(parts[i], 0)} />
       ))}
       <div className="mt-1 border-t border-dashed border-line-strong pt-1">
-        <Row left="Total in base units" right={`${formatAmount(parts.reduce((a, b) => a + b, 0n), 0)} exact`} tone="text-[var(--brick-6)]" />
+        <Row left="Total" right={`${formatAmount(parts.reduce((a, b) => a + b, 0n), 0)} exact`} tone="text-[var(--brick-6)]" />
       </div>
     </Panel>
   );
@@ -76,10 +76,10 @@ export function ResumeVisual() {
 export function DedupeVisual() {
   return (
     <Panel>
-      <p className="num text-ink-3">idempotency-key: delivery-0417</p>
-      <Row left="First delivery" right="202 run 6adc1f" />
-      <Row left="Retry after 30 s" right="200 run 6adc1f" />
-      <Row left="Retry after 5 min" right="200 run 6adc1f" />
+      <p className="num truncate text-ink-3">key: delivery-0417</p>
+      <Row left="Delivery" right="run 6adc1f" />
+      <Row left="Retry +30 s" right="run 6adc1f" />
+      <Row left="Retry +5 min" right="run 6adc1f" />
       <div className="mt-1 border-t border-dashed border-line-strong pt-1">
         <Row left="Payouts started" right="1" tone="text-[var(--brick-6)]" />
       </div>
@@ -92,9 +92,9 @@ export function QuoteVisual() {
     <Panel>
       <p className="text-ink-3">Example quote</p>
       <Row left="You send" right="2,500.00 USDC" />
-      <Row left="Protocol fee, 0.5%" right="12.50 USDC" />
-      <Row left="Recipients receive" right="2,487.50 USDC" />
-      <Row left="SOL needed up front" right="0.0412 SOL" tone="text-ink-2" />
+      <Row left="Fee 0.5%" right="12.50 USDC" />
+      <Row left="They get" right="2,487.50 USDC" />
+      <Row left="SOL needed" right="0.0412 SOL" tone="text-ink-2" />
     </Panel>
   );
 }
@@ -140,40 +140,6 @@ export function SignaturesVisual() {
       <Row left="Session setup 1" right="7kLm…Qv4b" tone="text-ink-2" />
       <div className="mt-1 border-t border-dashed border-line-strong pt-1">
         <Row left="4 of 4 recipients" right="Paid" tone="text-success" />
-      </div>
-    </Panel>
-  );
-}
-
-const check = <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-success-wash align-middle text-[10px] text-success" aria-hidden>✓</span>;
-
-export function AutomationVisual() {
-  return (
-    <Panel>
-      <Row left={<>{check}Signed webhook received</>} right="09:41:02" tone="text-ink-3" />
-      <Row left={<>{check}Split into 4 exact amounts</>} right="09:41:02" tone="text-ink-3" />
-      <Row left={<>{check}MultiHopper quote ready</>} right="09:41:03" tone="text-ink-3" />
-      <div className="mt-1 border-t border-dashed border-line-strong pt-1">
-        <Row left={<>{dot("var(--attention)")}Waiting for your wallet</>} right="Paused" tone="text-attention" />
-      </div>
-    </Panel>
-  );
-}
-
-// A generic wallet prompt: what the person sees at the one step nothing else can take.
-export function WalletVisual() {
-  return (
-    <Panel>
-      <div className="flex items-center justify-between">
-        <span className="font-semibold text-ink">Approve transfer</span>
-        <span className="tactile-soft rounded-full px-2 py-0.5 text-ink-2">Your wallet</span>
-      </div>
-      <p className="num mt-2 text-2xl font-medium tracking-tight text-ink">2,500.00 USDC</p>
-      <Row left="To" right="4 recipients" />
-      <Row left="Protocol fee" right="12.50 USDC" tone="text-ink-2" />
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <span className="tactile rounded-full py-1 text-center font-semibold text-ink">Reject</span>
-        <span className="tactile-ink rounded-full py-1 text-center font-semibold">Sign</span>
       </div>
     </Panel>
   );

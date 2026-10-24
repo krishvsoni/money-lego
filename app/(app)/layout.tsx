@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { NetworkBadge } from "@/components/network-badge";
-import { Wordmark } from "@/components/wordmark";
+import { SiteNav } from "@/components/site-nav";
 import { AccountControl } from "@/features/auth/account-control";
 import { AuthGate } from "@/features/auth/auth-gate";
 
@@ -9,32 +8,25 @@ import { AuthGate } from "@/features/auth/auth-gate";
 // hatch for session-gated segments) instead of prerendering an empty shell.
 export const instant = false;
 
+const APP_LINKS = [
+  { href: "/workflows", label: "Workflows" },
+  { href: "/transfers", label: "Transfers" },
+  { href: "/credentials", label: "Credentials" },
+];
+
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-20 border-b border-dashed border-line-strong bg-paper/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[1080px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-5">
-            <Wordmark href="/workflows" />
-            <nav className="hidden gap-4 sm:flex">
-              <Link href="/workflows" className="text-sm font-semibold text-ink-2 hover:text-ink">
-                Workflows
-              </Link>
-              <Link href="/transfers" className="text-sm font-semibold text-ink-2 hover:text-ink">
-                Transfers
-              </Link>
-              <Link href="/credentials" className="text-sm font-semibold text-ink-2 hover:text-ink">
-                Credentials
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
+      <SiteNav
+        links={APP_LINKS}
+        right={
+          <>
             <NetworkBadge />
             <AccountControl />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-[1080px] flex-1 px-4 py-8 sm:px-6 sm:py-10">
+          </>
+        }
+      />
+      <main id="main" className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-28 sm:px-6 sm:pt-32">
         <AuthGate>{children}</AuthGate>
       </main>
     </div>

@@ -24,7 +24,7 @@ export function View() {
             </Link>
           </li>
         ))}
-        {data && data.runs.length === 0 && <li className="px-3 py-6 text-sm text-ink-2">No transfers yet. They appear when a workflow reaches MultiHopper create transfer.</li>}
+        {data && data.runs.length === 0 && <li className="px-3 py-6 text-sm text-ink-2">No transfers yet. They appear when a workflow reaches its Create transfer step.</li>}
       </ul>
     </div>
   );

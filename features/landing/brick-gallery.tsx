@@ -30,7 +30,7 @@ export function BrickGallery() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setFilter(t.id)}
-                  className="relative inline-flex h-7 shrink-0 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[var(--brick-1)] focus-visible:ring-offset-1"
+                  className="relative inline-flex h-9 shrink-0 items-center rounded-full px-4 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-[var(--brick-1)] focus-visible:ring-offset-1"
                 >
                   {active && (
                     <motion.span
@@ -68,16 +68,18 @@ export function BrickGallery() {
               >
                 <NodeIcon name={n.icon} className="h-6 w-6" />
                 {n.unavailable && (
-                  <span className="tactile absolute right-1 top-1 rounded-full px-2 text-xs font-medium leading-5 text-ink-2">Soon</span>
+                  <span className="tactile absolute right-1 top-1 rounded-full px-2 text-sm font-medium leading-5 text-ink-2">Soon</span>
                 )}
               </span>
-              <h3 className={`flex min-h-12 items-center justify-center px-1 pt-2 text-center text-sm font-semibold leading-5 ${n.unavailable ? "text-ink-3" : "text-ink"}`}>
-                <span className="line-clamp-2">{n.title}</span>
+              {/* Titles start at the same line under the icon in every card, with room for two
+                  lines, so one-line and two-line names never shift the row's rhythm. */}
+              <h3 className={`mt-3 line-clamp-2 h-10 px-1 text-center text-[15px] font-semibold leading-5 ${n.unavailable ? "text-ink-3" : "text-ink"}`}>
+                {n.title}
               </h3>
               <span
                 id={`brick-${n.type}`}
                 role="tooltip"
-                className="tactile pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 translate-y-1 rounded-xl p-3 text-left text-xs text-ink-2 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+                className="tactile pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 translate-y-1 rounded-xl p-3 text-left text-sm text-ink-2 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
               >
                 {n.description}
               </span>

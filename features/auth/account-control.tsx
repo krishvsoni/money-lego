@@ -86,7 +86,7 @@ export function AccountControl({ compact = false }: { compact?: boolean }) {
         <button
           onClick={() => setMenu((m) => !m)}
           aria-expanded={menu}
-          className="press flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold hover:border-ink-3"
+          className="press tactile flex h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold"
         >
           <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
           <span className="font-mono text-[0.8125rem]">{shortAddress(session.wallet ?? "")}</span>
@@ -118,11 +118,11 @@ export function AccountControl({ compact = false }: { compact?: boolean }) {
         <span className="hidden text-xs text-attention sm:inline">Wallet changed to {shortAddress(publicKey?.toBase58() ?? "")}</span>
       )}
       {step === "connect" ? (
-        <Button onClick={() => setPicking(true)} busy={connecting}>
+        <Button className="h-9" onClick={() => setPicking(true)} busy={connecting}>
           {wallet && connecting ? `Connecting ${wallet.adapter.name}` : "Connect wallet"}
         </Button>
       ) : (
-        <Button onClick={() => session.signIn()} busy={session.signingIn}>
+        <Button className="h-9" onClick={() => session.signIn()} busy={session.signingIn}>
           {session.mismatch ? "Sign in as this wallet" : "Sign in with wallet"}
         </Button>
       )}
