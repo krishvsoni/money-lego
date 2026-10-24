@@ -3,27 +3,33 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, errorMessage } from "./api-client";
 
-export function useResource<T>(path: string | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(Boolean(path));
+interface Loaded<T> {
+  path: string | null;
+  data: T | null;
+  error: string | null;
+}
 
-  const reload = useCallback(async () => {
-    if (!path) return;
-    setLoading(true);
-    try {
-      setData(await api<T>(path));
-      setError(null);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [path]);
+// Fetches a JSON resource. Results are tagged with the path they belong to, so switching
+// paths never shows the previous path's data, and a late response for an old path is
+// dropped by the cancellation flag.
+export function useResource<T>(path: string | null) {
+  const [state, setState] = useState<Loaded<T>>({ path: null, data: null, error: null });
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    if (!path) return;
+    let cancelled = false;
+    api<T>(path)
+      .then((data) => !cancelled && setState({ path, data, error: null }))
+      .catch((e) => !cancelled && setState((s) => ({ path, data: s.path === path ? s.data : null, error: errorMessage(e) })));
+    return () => {
+      cancelled = true;
+    };
+  }, [path, version]);
 
-  return { data, setData, error, loading, reload };
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const setData = useCallback((data: T) => setState((s) => ({ ...s, data })), []);
+  const current = state.path === path;
+
+  return { data: current ? state.data : null, error: current ? state.error : null, loading: !current, setData, reload };
 }

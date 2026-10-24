@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { Collection } from "mongodb";
-import { isDuplicateKeyError } from "./collections";
+import { isDuplicateKeyError } from "./names";
 import type { LockDoc } from "./types";
 
 // A lease lock: whoever holds it may do the work until `expiresAt`. If the holder crashes

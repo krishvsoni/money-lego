@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { fromRaw, splitEvenly, toRaw, tryToRaw } from "@/lib/amounts";
 import type { RecipeDTO } from "@/lib/dto";
 import { MAX_DESTINATIONS, recipeInputSchema, type RecipeInput } from "@/lib/recipe-schema";
@@ -95,7 +95,7 @@ export function useRecipeForm(recipe?: RecipeDTO) {
   const [state, setState] = useState<FormState>(() => initialState(recipe));
   const [touched, setTouched] = useState(false);
   const token = findToken(state.tokenMint);
-  const compiled = useMemo(() => compile(state), [state]);
+  const compiled = compile(state);
 
   const segments = state.rows.map((r) => ({
     key: r.id,

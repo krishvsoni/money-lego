@@ -13,18 +13,9 @@ import type {
   WebhookEventDoc,
 } from "./types";
 
-export const COLLECTIONS = {
-  users: "users",
-  nonces: "auth_nonces",
-  sessions: "sessions",
-  recipes: "recipes",
-  recipeVersions: "recipe_versions",
-  executions: "executions",
-  webhookEvents: "webhook_events",
-  rateLimits: "rate_limits",
-  locks: "locks",
-  migrations: "migrations",
-} as const;
+import { COLLECTIONS } from "./names";
+
+export { COLLECTIONS, isDuplicateKeyError } from "./names";
 
 export interface Collections {
   db: Db;
@@ -56,8 +47,4 @@ export function collectionsOf(db: Db): Collections {
 
 export async function collections(): Promise<Collections> {
   return collectionsOf(await getDb());
-}
-
-export function isDuplicateKeyError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: number }).code === 11000;
 }

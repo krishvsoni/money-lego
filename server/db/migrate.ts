@@ -1,10 +1,10 @@
 import "server-only";
 import type { Db } from "mongodb";
 import { log } from "../log";
-import { COLLECTIONS, collectionsOf } from "./collections";
+import { COLLECTIONS } from "./names";
 import { acquireLease, releaseLease } from "./locks";
 import { migration001 } from "./migrations/001-schema";
-import type { MigrationDoc } from "./types";
+import type { LockDoc, MigrationDoc } from "./types";
 
 // Versioned, forward-only migrations. Every instance calls this on boot; the lease makes
 // sure exactly one runs them while the others wait, and the migrations collection records
@@ -23,7 +23,7 @@ export async function runMigrations(db: Db): Promise<void> {
 
   if ((await pending()).length === 0) return;
 
-  const { locks } = collectionsOf(db);
+  const locks = db.collection<LockDoc>(COLLECTIONS.locks);
   const deadline = Date.now() + LOCK_TTL_MS;
   while (!(await acquireLease(locks, LOCK, LOCK_TTL_MS))) {
     if (Date.now() > deadline) throw new Error("Timed out waiting for another instance to finish migrations");

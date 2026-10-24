@@ -1,5 +1,5 @@
 import type { Db, Document } from "mongodb";
-import { COLLECTIONS } from "../collections";
+import { COLLECTIONS } from "../names";
 
 // Server-side schema validation. The app validates with zod first; these validators are
 // the last line of defence so that no code path, script or manual write can store a
