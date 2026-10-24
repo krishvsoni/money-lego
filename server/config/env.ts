@@ -1,0 +1,71 @@
+import "server-only";
+import { z } from "zod";
+import { errors } from "../errors";
+
+// Environment is validated once, lazily, on first use. The MultiHopper base URL is derived
+// from the environment name instead of being configurable, so a devnet key can never be
+// pointed at production by a typo.
+
+const PROVIDER_BASE_URL = {
+  devnet: "https://devnet.multihopper.com",
+  production: "https://multihopper.com",
+} as const;
+
+const schema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    APP_URL: z.url().default("http://localhost:3000"),
+    MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
+    MONGODB_DB: z.string().min(1).default("money_lego"),
+    SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 30).default(72),
+    MULTIHOPPER_ENV: z.enum(["devnet", "production"]).default("devnet"),
+    MULTIHOPPER_API_KEY: z.string().optional(),
+    MULTIHOPPER_WEBHOOK_SECRET: z.string().optional(),
+    MULTIHOPPER_ALLOW_PRODUCTION: z.enum(["true", "false"]).default("false"),
+    CRON_SECRET: z.string().optional(),
+    NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
+  })
+  .superRefine((env, ctx) => {
+    const key = env.MULTIHOPPER_API_KEY;
+    if (!key) return;
+    const expected = env.MULTIHOPPER_ENV === "devnet" ? "mh_test_" : "mh_live_";
+    if (!key.startsWith(expected)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["MULTIHOPPER_API_KEY"],
+        message: `MULTIHOPPER_ENV=${env.MULTIHOPPER_ENV} needs a key starting with ${expected}`,
+      });
+    }
+    const networkMatches = (env.MULTIHOPPER_ENV === "devnet") === (env.NEXT_PUBLIC_SOLANA_NETWORK === "devnet");
+    if (!networkMatches) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["NEXT_PUBLIC_SOLANA_NETWORK"],
+        message: "Solana network and MultiHopper environment must match",
+      });
+    }
+  });
+
+export type Env = z.infer<typeof schema> & { MULTIHOPPER_BASE_URL: string };
+
+let cached: Env | null = null;
+
+export function env(): Env {
+  if (cached) return cached;
+  const parsed = schema.safeParse(process.env);
+  if (!parsed.success) {
+    const detail = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    throw new Error(`Invalid server environment. ${detail}`);
+  }
+  cached = { ...parsed.data, MULTIHOPPER_BASE_URL: PROVIDER_BASE_URL[parsed.data.MULTIHOPPER_ENV] };
+  return cached;
+}
+
+export function providerCredentials(): { baseUrl: string; apiKey: string } {
+  const e = env();
+  if (!e.MULTIHOPPER_API_KEY) throw errors.notConfigured("The MultiHopper API key");
+  if (e.MULTIHOPPER_ENV === "production" && e.MULTIHOPPER_ALLOW_PRODUCTION !== "true") {
+    throw errors.notConfigured("Production routing");
+  }
+  return { baseUrl: e.MULTIHOPPER_BASE_URL, apiKey: e.MULTIHOPPER_API_KEY };
+}
