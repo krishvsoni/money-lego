@@ -22,9 +22,9 @@ const STEP_VISUALS = [<ChainVisual key="c" />, <ApprovalVisual key="a" />, <Sign
 // top, a centred header, then tiles.
 export function FramedSection({ id, title, body, children, className = "" }: { id: string; title: string; body?: string; children: ReactNode; className?: string }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className={`dashed-t scroll-mt-24 px-6 py-24 ${className}`}>
+    <section id={id} aria-labelledby={`${id}-title`} className={`snap-section dashed-t px-6 pb-12 pt-24 [@media(max-height:860px)]:pb-4 [@media(max-height:860px)]:pt-20 ${className}`}>
       <CenterHeader id={`${id}-title`} title={title} body={body} />
-      <div className="mt-12">{children}</div>
+      <div className="mt-8 [@media(max-height:860px)]:mt-6">{children}</div>
     </section>
   );
 }

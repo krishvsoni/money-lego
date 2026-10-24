@@ -18,7 +18,7 @@ export function Faq({ items }: { items: Array<{ q: string; a: string }> }) {
                 onClick={() => setOpen(isOpen ? null : i)}
                 aria-expanded={isOpen}
                 aria-controls={`faq-${i}`}
-                className="flex w-full items-center justify-between gap-6 px-6 py-6 text-left text-base font-medium text-ink"
+                className="flex w-full items-center justify-between gap-6 px-6 py-6 text-left text-base font-medium text-ink [@media(max-height:860px)]:py-3"
               >
                 {item.q}
                 <span className="tactile-soft flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
@@ -28,7 +28,7 @@ export function Faq({ items }: { items: Array<{ q: string; a: string }> }) {
             </h3>
             <div id={`faq-${i}`} role="region" className={`fluid grid transition-[grid-template-rows] ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
               <div className="overflow-hidden">
-                <p className="max-w-[640px] px-6 pb-6 text-base text-ink-2 text-pretty">{item.a}</p>
+                <p className="max-w-[640px] px-6 pb-6 text-base text-ink-2 text-pretty [@media(max-height:860px)]:pb-4">{item.a}</p>
               </div>
             </div>
           </li>

@@ -19,8 +19,8 @@ export function CenterHeader({ id, title, body }: { id: string; title: string; b
 export function Tile({ visual, title, body, badge, delay = 0 }: { visual: ReactNode; title: string; body: string; badge?: string; delay?: number }) {
   return (
     <Reveal as="li" delay={delay} className="tactile flex flex-col rounded-2xl p-2">
-      <div className="tactile-soft flex min-h-48 flex-1 items-center justify-center rounded-lg p-4">{visual}</div>
-      <div className="px-2 pb-2 pt-4">
+      <div className="tactile-soft flex min-h-40 flex-1 items-center justify-center rounded-lg p-3 [@media(max-height:860px)]:min-h-32 [@media(max-height:860px)]:p-2">{visual}</div>
+      <div className="px-2 pb-2 pt-4 [@media(max-height:860px)]:pt-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold text-ink">{title}</h3>
           {badge && <span className="tactile-soft rounded-full px-2 py-0.5 text-xs font-medium text-ink-2">{badge}</span>}
@@ -140,6 +140,40 @@ export function SignaturesVisual() {
       <Row left="Session setup 1" right="7kLm…Qv4b" tone="text-ink-2" />
       <div className="mt-1 border-t border-dashed border-line-strong pt-1">
         <Row left="4 of 4 recipients" right="Paid" tone="text-success" />
+      </div>
+    </Panel>
+  );
+}
+
+const check = <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-success-wash align-middle text-[10px] text-success" aria-hidden>✓</span>;
+
+export function AutomationVisual() {
+  return (
+    <Panel>
+      <Row left={<>{check}Signed webhook received</>} right="09:41:02" tone="text-ink-3" />
+      <Row left={<>{check}Split into 4 exact amounts</>} right="09:41:02" tone="text-ink-3" />
+      <Row left={<>{check}MultiHopper quote ready</>} right="09:41:03" tone="text-ink-3" />
+      <div className="mt-1 border-t border-dashed border-line-strong pt-1">
+        <Row left={<>{dot("var(--attention)")}Waiting for your wallet</>} right="Paused" tone="text-attention" />
+      </div>
+    </Panel>
+  );
+}
+
+// A generic wallet prompt: what the person sees at the one step nothing else can take.
+export function WalletVisual() {
+  return (
+    <Panel>
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-ink">Approve transfer</span>
+        <span className="tactile-soft rounded-full px-2 py-0.5 text-ink-2">Your wallet</span>
+      </div>
+      <p className="num mt-2 text-2xl font-medium tracking-tight text-ink">2,500.00 USDC</p>
+      <Row left="To" right="4 recipients" />
+      <Row left="Protocol fee" right="12.50 USDC" tone="text-ink-2" />
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <span className="tactile rounded-full py-1 text-center font-semibold text-ink">Reject</span>
+        <span className="tactile-ink rounded-full py-1 text-center font-semibold">Sign</span>
       </div>
     </Panel>
   );

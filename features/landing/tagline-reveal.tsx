@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 // Each word starts muted and turns to full ink as it crosses a line 40% up the viewport,
 // one word at a time in reading order. One observer watches every word.
-export function TaglineReveal({ lines }: { lines: string[] }) {
+export function TaglineReveal({ lines, center = false }: { lines: string[]; center?: boolean }) {
   const root = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function TaglineReveal({ lines }: { lines: string[] }) {
   }, []);
 
   return (
-    <p ref={root} className="max-w-[680px] text-4xl font-medium tracking-tight text-balance sm:text-5xl">
+    <p ref={root} className={`max-w-[680px] text-4xl font-medium tracking-tight text-balance sm:text-5xl ${center ? "mx-auto text-center" : ""}`}>
       {lines.map((line, li) => (
         <span key={li} className="block">
           {line.split(" ").map((word, wi) => {

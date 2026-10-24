@@ -20,49 +20,67 @@ export function BrickGallery() {
   return (
     <div>
       <LayoutGroup id="brick-filter">
-        <div className="flex flex-wrap justify-center gap-2" role="tablist" aria-label="Filter bricks by category">
-          {tabs.map((t) => {
-            const active = filter === t.id;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(t.id)}
-                className={`press relative rounded-full px-3 py-1 text-sm font-medium ${active ? "text-white" : "tactile text-ink-2 hover:text-ink"}`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="brick-filter-pill"
-                    className="tactile-accent absolute inset-0 rounded-full"
-                    transition={reduce ? { duration: 0 } : { type: "spring", duration: 0.3, bounce: 0.12 }}
-                  />
-                )}
-                <span className="relative">{t.label}</span>
-              </button>
-            );
-          })}
+        <div className="flex justify-center">
+          <div className="tab-track flex max-w-full gap-0.5 overflow-x-auto rounded-full p-1" role="tablist" aria-label="Filter bricks by category">
+            {tabs.map((t) => {
+              const active = filter === t.id;
+              return (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilter(t.id)}
+                  className="relative inline-flex h-7 shrink-0 items-center rounded-full px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[var(--brick-1)] focus-visible:ring-offset-1"
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="brick-filter-keycap"
+                      className="absolute inset-0"
+                      transition={reduce ? { duration: 0 } : { type: "spring", duration: 0.32, bounce: 0.14 }}
+                    >
+                      <span className="keycap absolute inset-0 rounded-full" />
+                    </motion.span>
+                  )}
+                  <span className={`relative ${active ? "letterpress-dark text-white" : "letterpress-light text-ink-2 hover:text-ink"}`}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </LayoutGroup>
 
-      <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
+      {/* Uniform cards, centred: "All" is exactly three full rows of seven, and filtered
+          views centre whatever is left so no row ever looks unfinished. The list always
+          reserves three rows, so switching filters never moves the header or the tabs. */}
+      <ul className="mx-auto mt-8 flex min-h-[26rem] max-w-[1080px] flex-wrap content-start justify-center gap-3 [@media(max-height:860px)]:mt-6 [@media(max-height:860px)]:min-h-[23rem]" aria-live="polite">
         {nodes.map((n) => {
           const color = CATEGORY_META[n.category].color;
           return (
-            <li key={n.type} className="reveal tactile flex gap-3 rounded-2xl p-2">
+            <li
+              key={n.type}
+              tabIndex={0}
+              aria-describedby={`brick-${n.type}`}
+              className="reveal tactile group relative flex w-36 flex-col rounded-2xl p-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brick-1)]"
+            >
               <span
-                className="tactile-soft relative flex h-16 w-16 shrink-0 items-center justify-center rounded-lg"
+                className="tactile-soft relative flex h-16 items-center justify-center rounded-lg [@media(max-height:860px)]:h-12"
                 style={{ color: n.unavailable ? "var(--ink-3)" : color }}
               >
                 <NodeIcon name={n.icon} className="h-6 w-6" />
+                {n.unavailable && (
+                  <span className="tactile absolute right-1 top-1 rounded-full px-2 text-xs font-medium leading-5 text-ink-2">Soon</span>
+                )}
               </span>
-              <div className="min-w-0 py-1 pr-2">
-                <div className="flex items-center gap-2">
-                  <h3 className={`text-sm font-semibold ${n.unavailable ? "text-ink-3" : "text-ink"}`}>{n.title}</h3>
-                  {n.unavailable && <span className="tactile-soft rounded-full px-2 py-0.5 text-xs font-medium text-ink-2">Soon</span>}
-                </div>
-                <p className="mt-1 line-clamp-2 text-sm text-ink-2">{n.description}</p>
-              </div>
+              <h3 className={`flex min-h-12 items-center justify-center px-1 pt-2 text-center text-sm font-semibold leading-5 ${n.unavailable ? "text-ink-3" : "text-ink"}`}>
+                <span className="line-clamp-2">{n.title}</span>
+              </h3>
+              <span
+                id={`brick-${n.type}`}
+                role="tooltip"
+                className="tactile pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 translate-y-1 rounded-xl p-3 text-left text-xs text-ink-2 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+              >
+                {n.description}
+              </span>
             </li>
           );
         })}
