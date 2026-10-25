@@ -1,40 +1,39 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowUpRight } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
+import { Archive } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/toast";
 import { api, errorMessage } from "@/lib/api-client";
-import { relativeTime } from "@/lib/format";
-import { nodeDefinition } from "@/lib/nodes/registry";
-import { CATEGORY_META } from "@/lib/nodes/types";
-import { BrickGlyph } from "@/features/workflows/node-icon";
 import type { WorkflowDTO } from "@/lib/workflow/dto";
-import { TEMPLATES } from "@/lib/workflow/templates";
 import { useResource } from "@/lib/use-resource";
+import { FirstWorkflow } from "@/features/workflows/list/first-workflow";
+import { integrationsIn, integrationsOf } from "@/features/workflows/list/integrations";
+import { TemplateGrid } from "@/features/workflows/list/template-grid";
+import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
+import { WorkflowRow } from "@/features/workflows/list/workflow-row";
 
-// A row of node icons in their category colour: the workflow's shape at a glance.
-function BrickStrip({ workflow }: { workflow: WorkflowDTO }) {
-  const nodes = [...workflow.graph.nodes].sort((a, b) => a.position.x - b.position.x).slice(0, 14);
-  if (!nodes.length) return <span className="text-xs text-ink-3">Empty</span>;
-  return (
-    <span className="flex items-center gap-[3px]" aria-hidden>
-      {nodes.map((n) => {
-        const def = nodeDefinition(n.type);
-        return <BrickGlyph key={n.id} name={def?.icon ?? "Package"} color={def ? CATEGORY_META[def.category].color : "var(--ink-3)"} size="xs" />;
-      })}
-    </span>
-  );
-}
+type List = { workflows: WorkflowDTO[] };
 
 export function View() {
-  const [archived, setArchived] = useState(false);
-  const list = useResource<{ workflows: WorkflowDTO[] }>(`/api/workflows${archived ? "?status=archived" : ""}`);
+  const active = useResource<List>("/api/workflows");
+  const archived = useResource<List>("/api/workflows?status=archived");
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+  const [shelf, setShelf] = useState<Shelf>("active");
+  const [query, setQuery] = useState("");
+  const [integration, setIntegration] = useState<string | null>(null);
+
+  const list = shelf === "active" ? active : archived;
+  const all = useMemo(() => list.data?.workflows ?? [], [list.data]);
+  const integrations = useMemo(() => integrationsIn(all), [all]);
+  const q = query.trim().toLowerCase();
+  const shown = all.filter(
+    (w) => (!q || w.name.toLowerCase().includes(q)) && (!integration || integrationsOf(w).some((i) => i.type === integration)),
+  );
+  const firstTime = active.data?.workflows.length === 0 && archived.data !== null;
 
   const create = async (templateId: string) => {
     setBusy(templateId);
@@ -47,12 +46,13 @@ export function View() {
     }
   };
 
-  const act = async (w: WorkflowDTO, path: string, body: unknown, done: string) => {
+  const act = async (w: WorkflowDTO, request: () => Promise<unknown>, done: string) => {
     setBusy(w.id);
     try {
-      await api(path, { body });
+      await request();
       toast(done, "success");
-      list.reload();
+      active.reload();
+      archived.reload();
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
@@ -60,94 +60,101 @@ export function View() {
     }
   };
 
+  const switchShelf = (s: Shelf) => {
+    setShelf(s);
+    setIntegration(null);
+  };
+
+  if (firstTime) {
+    return (
+      <div className="flex flex-col gap-14">
+        <h1 className="headline text-3xl">Workflows</h1>
+        <FirstWorkflow busy={busy} onCreate={create} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-14">
       <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="headline text-3xl">{archived ? "Archived workflows" : "Workflows"}</h1>
-            <button onClick={() => setArchived((a) => !a)} className="mt-1 text-sm text-ink-2 underline underline-offset-2 hover:text-ink">
-              {archived ? "Show active workflows" : "Show archived"}
-            </button>
-          </div>
-          <Button onClick={() => create("blank")} busy={busy === "blank"}>
+          <h1 className="headline text-3xl">Workflows</h1>
+          <Button onClick={() => create("blank")} busy={busy === "blank"} disabled={busy !== null}>
             New workflow
           </Button>
         </div>
         <div className="mt-6">
+          <Toolbar
+            shelf={shelf}
+            counts={{ active: active.data?.workflows.length ?? null, archived: archived.data?.workflows.length ?? null }}
+            onShelf={switchShelf}
+            query={query}
+            onQuery={setQuery}
+            integrations={integrations}
+            integration={integration}
+            onIntegration={setIntegration}
+          />
+        </div>
+
+        {shelf === "archived" && all.length > 0 && (
+          <p className="mt-5 flex items-center gap-2 rounded-xl bg-sunken px-4 py-3 text-sm text-ink-2">
+            <Archive size={16} className="shrink-0" aria-hidden />
+            Archived workflows are off and never run. Restore one to use it again, or delete it for good. Its transfers stay on the Transfers page.
+          </p>
+        )}
+
+        <div className="mt-4">
           {list.loading && !list.data ? (
-            <div className="h-24 animate-pulse rounded-lg bg-sunken" />
+            <div className="flex flex-col gap-2" aria-busy>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-16 animate-pulse rounded-xl bg-sunken" />
+              ))}
+            </div>
           ) : list.error ? (
             <p role="alert" className="text-danger">{list.error}</p>
-          ) : list.data?.workflows.length ? (
+          ) : shown.length ? (
             <ul className="-mx-3 divide-y divide-line">
-              {list.data.workflows.map((w) => (
-                <li key={w.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg px-3 py-4 hover:bg-surface">
-                  <Link href={`/workflows/${w.id}`} className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${w.enabled ? "bg-success" : "bg-line-strong"}`} title={w.enabled ? "On" : "Off"} />
-                      <span className="truncate font-bold hover:text-action">{w.name}</span>
-                    </span>
-                    <span className="mt-0.5 block text-sm text-ink-2">
-                      {w.graph.nodes.length} nodes, {w.triggerType ? nodeDefinition(w.triggerType)?.title.toLowerCase() : "no trigger"}. {w.runCount ? `Ran ${relativeTime(w.lastRunAt)}.` : "Not run yet."}
-                    </span>
-                  </Link>
-                  <BrickStrip workflow={w} />
-                  <span className="flex gap-1">
-                    <Button variant="quiet" className="h-8" onClick={() => act(w, `/api/workflows/${w.id}/duplicate`, {}, "Copy created")} busy={busy === w.id}>
-                      Duplicate
-                    </Button>
-                    <Button variant="quiet" className="h-8" onClick={() => act(w, `/api/workflows/${w.id}/status`, { status: archived ? "active" : "archived" }, archived ? "Restored" : "Archived and turned off")}>
-                      {archived ? "Restore" : "Archive"}
-                    </Button>
-                  </span>
-                </li>
+              {shown.map((w) => (
+                <WorkflowRow
+                  key={w.id}
+                  workflow={w}
+                  busy={busy === w.id}
+                  onDuplicate={() => act(w, () => api(`/api/workflows/${w.id}/duplicate`, { body: {} }), "Copy created")}
+                  onArchive={() => act(w, () => api(`/api/workflows/${w.id}/status`, { body: { status: "archived" } }), "Archived and turned off")}
+                  onRestore={() => act(w, () => api(`/api/workflows/${w.id}/status`, { body: { status: "active" } }), "Restored")}
+                  onDelete={() => act(w, () => api(`/api/workflows/${w.id}`, { method: "DELETE" }), "Deleted")}
+                />
               ))}
             </ul>
           ) : (
-            <p className="rounded-xl border border-dashed border-line-strong px-6 py-8 text-sm text-ink-2">
-              {archived ? "Nothing archived." : "No workflows yet. Start from a template below or a blank canvas."}
-            </p>
+            <EmptyState shelf={shelf} filtered={Boolean(q || integration)} onClear={() => (setQuery(""), setIntegration(null))} />
           )}
         </div>
       </section>
 
-      {!archived && (
-        <section>
-          <h2 className="headline text-2xl">Start from a template</h2>
-          <p className="mt-1 text-sm text-ink-2">Each one opens in the editor, ready to configure.</p>
-          <ul className="mt-5 grid gap-4 md:grid-cols-2">
-            {TEMPLATES.filter((t) => t.id !== "blank").map((t) => {
-              const g = t.graph();
-              return (
-                <li key={t.id} className="tactile flex flex-col rounded-2xl p-2">
-                  <span className="tactile-soft flex h-28 flex-wrap content-center items-center justify-center gap-1.5 rounded-lg px-4" aria-hidden>
-                    {g.nodes.map((n) => {
-                      const def = nodeDefinition(n.type);
-                      return <BrickGlyph key={n.id} name={def?.icon ?? "Package"} color={def ? CATEGORY_META[def.category].color : "var(--ink-3)"} size="md" />;
-                    })}
-                  </span>
-                  <div className="flex flex-1 items-start justify-between gap-4 px-2 pb-2 pt-4">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold">{t.name}</h3>
-                      <p className="mt-1 text-sm text-ink-2">{t.description}</p>
-                    </div>
-                    <button
-                      onClick={() => create(t.id)}
-                      disabled={busy === t.id}
-                      aria-label={`Use the ${t.name} template`}
-                      title="Use this template"
-                      className="press tactile-accent flex h-9 w-9 shrink-0 items-center justify-center self-end rounded-full disabled:opacity-60"
-                    >
-                      {busy === t.id ? <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-white" /> : <ArrowUpRight size={16} weight="bold" aria-hidden />}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+      {shelf === "active" && <TemplateGrid busy={busy} onCreate={create} />}
+    </div>
+  );
+}
+
+function EmptyState({ shelf, filtered, onClear }: { shelf: Shelf; filtered: boolean; onClear: () => void }) {
+  if (filtered) {
+    return (
+      <div className="rounded-xl border border-dashed border-line-strong px-6 py-8 text-sm text-ink-2">
+        No workflow matches that search.{" "}
+        <button onClick={onClear} className="font-medium text-ink underline underline-offset-2">
+          Clear filters
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line-strong px-6 py-12 text-center">
+      <Archive size={24} className="text-ink-3" aria-hidden />
+      <p className="font-semibold">{shelf === "archived" ? "Nothing archived" : "No active workflows"}</p>
+      <p className="max-w-[44ch] text-sm text-ink-2">
+        {shelf === "archived" ? "Workflows you archive land here, turned off, until you restore or delete them." : "Everything is archived. Create a new one or start from a template below."}
+      </p>
     </div>
   );
 }

@@ -86,7 +86,7 @@ export function View() {
             <ShieldCheckIcon size={24} weight="fill" />
           </span>
           <h2 className="mt-4 font-display text-2xl font-semibold text-ink">No credentials yet</h2>
-          <p className="mt-2 max-w-[420px] text-base text-ink-2 text-pretty">Connect Discord or Slack for alerts, verify incoming webhooks, or call your own API. You add each one once and pick it in any workflow.</p>
+          <p className="mt-1 text-sm text-ink-2">Discord, Slack, webhook secrets and API keys. Add once, use in any workflow.</p>
           <Button className="mt-6" onClick={() => setAdding(true)}>
             <PlusIcon size={16} weight="bold" aria-hidden />
             Add your first credential

@@ -178,3 +178,24 @@ export async function setWorkflowStatus(user: SessionUser, id: string, status: "
   if (!next) throw errors.notFound("Workflow");
   return toWorkflowDTO(next);
 }
+
+// Permanent delete is a second step after archiving, so one click never destroys a workflow.
+// It refuses while a run is still live, so no payout loses the workflow it belongs to.
+// Transfers (executions) are kept: they are the money record and stay on the Transfers page.
+export async function deleteWorkflow(user: SessionUser, id: string): Promise<void> {
+  const workflowId = parseId(id, "Workflow");
+  const { workflows, workflowVersions, workflowRuns, nodeRuns } = await collections();
+  const doc = await workflows.findOne({ _id: workflowId, ownerId: user.userId }, { projection: { status: 1 } });
+  if (!doc) throw errors.notFound("Workflow");
+  if (doc.status !== "archived") throw errors.invalidState("Archive the workflow before deleting it.");
+  const live = await workflowRuns.countDocuments({ workflowId, status: { $in: ["queued", "running", "waiting"] } }, { limit: 1 });
+  if (live) throw errors.invalidState("A run of this workflow is still in progress. Cancel it or let it finish, then delete.");
+
+  await inTransaction(async (session) => {
+    const runIds = (await workflowRuns.find({ workflowId }, { projection: { _id: 1 }, session }).toArray()).map((r) => r._id);
+    await nodeRuns.deleteMany({ runId: { $in: runIds } }, { session });
+    await workflowRuns.deleteMany({ workflowId }, { session });
+    await workflowVersions.deleteMany({ workflowId }, { session });
+    await workflows.deleteOne({ _id: workflowId, ownerId: user.userId }, { session });
+  });
+}

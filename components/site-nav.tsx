@@ -93,13 +93,13 @@ function CurrentDesktopLinks({ links }: { links: NavLink[] }) {
 function DesktopLinks({ links, pathname }: { links: NavLink[]; pathname: string | null }) {
   const isCurrent = (href: string) => pathname !== null && !href.startsWith("#") && (pathname === href || pathname.startsWith(`${href}/`));
   return (
-    <ul className="hidden items-center sm:flex">
+    <ul className="hidden items-center gap-2 sm:flex">
       {links.map((l) => (
         <li key={l.href}>
           <Link
             href={l.href}
             aria-current={isCurrent(l.href) ? "page" : undefined}
-            className="fluid rounded-full px-3 py-1.5 text-[15px] text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:text-ink"
+            className="fluid rounded-full px-4 py-1.5 text-[15px] text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:text-ink"
           >
             {l.label}
           </Link>
