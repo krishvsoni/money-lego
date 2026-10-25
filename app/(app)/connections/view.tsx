@@ -64,6 +64,39 @@ export function View() {
 
       {creds.error && <p role="alert" className="rounded-xl bg-danger-wash p-3 text-sm text-danger">{creds.error}</p>}
 
+      <section aria-labelledby="own">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="own" className="flex items-center gap-2 font-display text-xl font-semibold">
+              <LockKeyIcon size={18} aria-hidden /> Your own secrets
+            </h2>
+            <p className="mt-1 text-sm text-ink-2">For your own systems only: a signing secret for events your app sends, or an auth header for your own API.</p>
+          </div>
+          {!adding && (
+            <Button variant="secondary" onClick={() => setAdding(true)}>
+              <PlusIcon size={16} weight="bold" aria-hidden /> Add
+            </Button>
+          )}
+        </div>
+        {adding && (
+          <div className="tactile reveal mt-4 rounded-2xl p-5">
+            <CredentialForm
+              onCancel={() => setAdding(false)}
+              onCreated={(c) => {
+                setAdding(false);
+                reload();
+                toast(`Saved ${c.name}`, "success");
+              }}
+            />
+          </div>
+        )}
+        {manual.length > 0 && (
+          <div className="mt-4">
+            <CredentialList credentials={manual} onDelete={removeManual} onTested={reload} />
+          </div>
+        )}
+      </section>
+
       {connections.length > 0 && (
         <section aria-labelledby="connected">
           <h2 id="connected" className="font-display text-xl font-semibold">Connected</h2>
@@ -106,38 +139,6 @@ export function View() {
         </div>
       </section>
 
-      <section aria-labelledby="own">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 id="own" className="flex items-center gap-2 font-display text-xl font-semibold">
-              <LockKeyIcon size={18} aria-hidden /> Your own secrets
-            </h2>
-            <p className="mt-1 text-sm text-ink-2">For your own systems only: a signing secret for events your app sends, or an auth header for your own API.</p>
-          </div>
-          {!adding && (
-            <Button variant="secondary" onClick={() => setAdding(true)}>
-              <PlusIcon size={16} weight="bold" aria-hidden /> Add
-            </Button>
-          )}
-        </div>
-        {adding && (
-          <div className="tactile reveal mt-4 rounded-2xl p-5">
-            <CredentialForm
-              onCancel={() => setAdding(false)}
-              onCreated={(c) => {
-                setAdding(false);
-                reload();
-                toast(`Saved ${c.name}`, "success");
-              }}
-            />
-          </div>
-        )}
-        {manual.length > 0 && (
-          <div className="mt-4">
-            <CredentialList credentials={manual} onDelete={removeManual} onTested={reload} />
-          </div>
-        )}
-      </section>
     </div>
   );
 }

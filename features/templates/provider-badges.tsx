@@ -1,9 +1,9 @@
-import { CalendarBlankIcon, GlobeIcon, PathIcon, type Icon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, GlobeIcon, type Icon } from "@phosphor-icons/react";
 import { BrandLogo, isBrand } from "@/components/ui/brand-logo";
 import { PROVIDERS } from "@/lib/nodes/providers";
 
-// Services without a third-party brand mark (ours and the generic ones) keep a glyph.
-const MARK: Record<string, Icon> = { multihopper: PathIcon, http: GlobeIcon, schedule: CalendarBlankIcon };
+// Generic building blocks with no brand of their own keep a glyph.
+const MARK: Record<string, Icon> = { http: GlobeIcon, schedule: CalendarBlankIcon };
 
 export function ProviderMark({ id, size = 14 }: { id: string; size?: number }) {
   if (isBrand(id)) return <BrandLogo brand={id} size={size} />;

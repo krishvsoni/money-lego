@@ -1,7 +1,9 @@
-// Official brand marks, served from /public/logos (downloaded once, never hotlinked).
+// Official brand marks, served from /public/logos (downloaded once from each brand's own
+// site or svgl.app, never hotlinked).
 // Plain <img> keeps them out of the JS bundle and lets the browser cache them.
 
 const LOGOS = {
+  multihopper: "MultiHopper",
   slack: "Slack",
   github: "GitHub",
   "google-sheets": "Google Sheets",
@@ -15,13 +17,16 @@ const LOGOS = {
 
 export type Brand = keyof typeof LOGOS;
 
+// MultiHopper publishes its mark only as a bitmap (multihopper.com's touch icon).
+const FILE: Partial<Record<Brand, string>> = { multihopper: "multihopper.png" };
+
 export const isBrand = (value: string | undefined): value is Brand => Boolean(value && value in LOGOS);
 
 export function BrandLogo({ brand, size = 20, className = "", label = false }: { brand: Brand; size?: number; className?: string; label?: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- tiny local SVGs; next/image adds nothing here
     <img
-      src={`/logos/${brand}.svg`}
+      src={`/logos/${FILE[brand] ?? `${brand}.svg`}`}
       width={size}
       height={size}
       alt={label ? LOGOS[brand] : ""}
