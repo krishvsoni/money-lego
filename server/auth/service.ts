@@ -5,7 +5,8 @@ import nacl from "tweetnacl";
 import { buildSignInMessage, type SignInPayload } from "@/lib/auth-message";
 import { isSolanaAddress } from "@/lib/solana-address";
 import { env } from "../config/env";
-import { collections } from "../db/collections";
+import type { ObjectId } from "mongodb";
+import { collections, COLLECTIONS, isDuplicateKeyError } from "../db/collections";
 import { sealWallet, walletIndex } from "../crypto/wallet-vault";
 import { errors } from "../errors";
 import { createSession } from "./session";
@@ -46,6 +47,22 @@ function signatureMatches(message: string, signature: string, wallet: string): b
   }
 }
 
+// Accounts saved before wallets were encrypted sit in the legacy collection in plaintext.
+// The first sign-in copies one across encrypted, keeping its _id so workflows and runs stay
+// attached, then deletes the plaintext copy. A concurrent sign-in hits the unique index.
+async function adoptLegacyAccount(wallet: string, walletHash: string, now: Date): Promise<void> {
+  const { db, users } = await collections();
+  const legacy = db.collection<{ _id: ObjectId; wallet: string; createdAt?: Date }>(COLLECTIONS.legacyUsers);
+  const old = await legacy.findOne({ wallet });
+  if (!old) return;
+  await users
+    .insertOne({ _id: old._id, walletHash, walletEnc: sealWallet(wallet, "users.wallet"), createdAt: old.createdAt ?? now, lastSignedInAt: now })
+    .catch((error) => {
+      if (!isDuplicateKeyError(error)) throw error;
+    });
+  await legacy.deleteOne({ _id: old._id });
+}
+
 export async function verifySignIn(input: { wallet: string; nonce: string; signature: string }) {
   if (!isSolanaAddress(input.wallet)) throw errors.validation("That isn't a valid Solana wallet address.");
   const { nonces, users } = await collections();
@@ -73,6 +90,7 @@ export async function verifySignIn(input: { wallet: string; nonce: string; signa
     throw errors.validation("The wallet signature didn't match. Try signing in again.");
   }
 
+  if (!(await users.findOne({ walletHash }, { projection: { _id: 1 } }))) await adoptLegacyAccount(input.wallet, walletHash, now);
   const user = await users.findOneAndUpdate(
     { walletHash },
     { $set: { lastSignedInAt: now }, $setOnInsert: { walletHash, walletEnc: sealWallet(input.wallet, "users.wallet"), createdAt: now } },

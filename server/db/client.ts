@@ -2,7 +2,7 @@ import "server-only";
 import { MongoClient, type Db } from "mongodb";
 import { env } from "../config/env";
 import { log } from "../log";
-import { runMigrations, SCHEMA_VERSION } from "./migrate";
+import { ensureIndexes } from "./indexes";
 
 // One connection pool per process. Every app instance is stateless and shares nothing but
 // this database, which is what lets the app scale horizontally behind a load balancer.
@@ -14,11 +14,10 @@ import { runMigrations, SCHEMA_VERSION } from "./migrate";
 interface Cache {
   client: MongoClient | null;
   ready: Promise<Db> | null;
-  schema: string | null;
 }
 
 const globalCache = globalThis as unknown as { __mongo?: Cache };
-const cache: Cache = globalCache.__mongo ?? { client: null, ready: null, schema: null };
+const cache: Cache = globalCache.__mongo ?? { client: null, ready: null };
 globalCache.__mongo = cache;
 
 function createClient(): MongoClient {
@@ -46,22 +45,15 @@ export function mongoClient(): MongoClient {
   return cache.client;
 }
 
-// The cache lives on globalThis, so in development it outlives a code reload. Keying it by
-// the schema version makes a reload that ships a new migration apply it before any query.
 export function getDb(): Promise<Db> {
-  if (cache.schema !== SCHEMA_VERSION) {
-    cache.ready = null;
-    cache.schema = SCHEMA_VERSION;
-  }
   cache.ready ??= (async () => {
     const client = mongoClient();
     await client.connect();
     const db = client.db(env().MONGODB_DB);
-    await runMigrations(db);
+    await ensureIndexes(db);
     return db;
   })().catch((error) => {
     cache.ready = null;
-    cache.schema = null;
     log.error("db.connect_failed", { error });
     throw error;
   });

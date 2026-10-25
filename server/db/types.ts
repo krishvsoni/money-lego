@@ -158,11 +158,6 @@ export interface LockDoc {
   expiresAt: Date;
 }
 
-export interface MigrationDoc {
-  _id: string;
-  appliedAt: Date;
-}
-
 export interface WorkflowDoc {
   _id: ObjectId;
   ownerId: ObjectId;

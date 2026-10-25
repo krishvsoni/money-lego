@@ -2,7 +2,10 @@
 // collection names without creating an import cycle through the connection module.
 
 export const COLLECTIONS = {
-  users: "users",
+  // Accounts live in "accounts". The old "users" collection carries a database validator
+  // that requires a plaintext wallet; it is only read to carry legacy accounts over.
+  users: "accounts",
+  legacyUsers: "users",
   nonces: "auth_nonces",
   sessions: "sessions",
   recipes: "recipes",
@@ -11,7 +14,6 @@ export const COLLECTIONS = {
   webhookEvents: "webhook_events",
   rateLimits: "rate_limits",
   locks: "locks",
-  migrations: "migrations",
   workflows: "workflows",
   workflowVersions: "workflow_versions",
   workflowRuns: "workflow_runs",

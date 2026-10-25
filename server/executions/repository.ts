@@ -77,7 +77,8 @@ export function toExecutionDTO(doc: ExecutionDoc): ExecutionDTO {
     recipeName: doc.recipeName,
     recipeVersion: doc.recipeVersion,
     state: doc.state,
-    sourceWallet: openWallet(doc.sourceWalletEnc, "executions.sourceWallet"),
+    // Runs created before wallet encryption still hold the plain field until rewritten.
+    sourceWallet: doc.sourceWalletEnc ? openWallet(doc.sourceWalletEnc, "executions.sourceWallet") : ((doc as { sourceWallet?: string }).sourceWallet ?? ""),
     amountRaw: doc.amountRaw,
     config: doc.snapshot,
     providerTransferId: doc.providerTransferId,

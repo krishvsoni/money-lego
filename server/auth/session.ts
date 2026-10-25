@@ -56,7 +56,9 @@ export async function currentUser(): Promise<SessionUser | null> {
   const { sessions } = await collections();
   // TTL deletion runs about once a minute, so expiry is also checked on read.
   const session = await sessions.findOne({ _id: hashToken(token), expiresAt: { $gt: new Date() } });
-  return session ? { userId: session.userId, wallet: openWallet(session.walletEnc, "sessions.wallet") } : null;
+  // Sessions from before wallet encryption carry no walletEnc; they simply sign in again.
+  if (!session?.walletEnc) return null;
+  return { userId: session.userId, wallet: openWallet(session.walletEnc, "sessions.wallet") };
 }
 
 export async function requireUser(): Promise<SessionUser> {
