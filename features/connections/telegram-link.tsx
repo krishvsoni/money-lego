@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TelegramLogoIcon } from "@phosphor-icons/react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api-client";
 import type { CredentialDTO } from "@/lib/workflow/dto";
@@ -40,7 +40,7 @@ export function TelegramLink({ onLinked, onClose }: { onLinked: () => void; onCl
   return (
     <div className="tactile reveal flex flex-col gap-3 rounded-2xl p-5" role="dialog" aria-label="Link a Telegram chat">
       <p className="flex items-center gap-2 font-semibold">
-        <TelegramLogoIcon size={18} weight="fill" className="text-[#229ED9]" aria-hidden /> Link a Telegram chat
+        <BrandLogo brand="telegram" size={18} /> Link a Telegram chat
       </p>
       {error ? (
         <p className="text-sm text-danger">{error}</p>

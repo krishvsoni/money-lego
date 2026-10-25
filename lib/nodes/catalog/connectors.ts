@@ -12,7 +12,7 @@ export const connectorNodes: NodeDefinition[] = [
     category: "integrations",
     description:
       "Read rows from a sheet tab with your Google sign-in (read-only), keep only rows whose approval column is TRUE and that match an optional filter, and skip rows already marked paid. The first row holds the column names.",
-    icon: "Table",
+    icon: "logo:google-sheets",
     provider: "google-sheets",
     fields: [
       { key: "credentialId", label: "Google account", kind: "credential", credentialType: "google_account", required: true },
@@ -35,7 +35,7 @@ export const connectorNodes: NodeDefinition[] = [
     title: "Airtable lookup",
     category: "integrations",
     description: "Find records in a table where a field equals a value and a status field has the required value. Fails if nothing matches or more records match than allowed.",
-    icon: "Database",
+    icon: "logo:airtable",
     provider: "airtable",
     fields: [
       { key: "credentialId", label: "Airtable account", kind: "credential", credentialType: "airtable_account", required: true },
@@ -59,7 +59,7 @@ export const connectorNodes: NodeDefinition[] = [
     title: "Notion page",
     category: "integrations",
     description: "Read one page you picked, its properties and last edit time, as the policy reference for a payout. It never searches the workspace and nothing interprets the policy for you.",
-    icon: "NotionLogo",
+    icon: "logo:notion",
     provider: "notion",
     fields: [
       { key: "credentialId", label: "Notion workspace", kind: "credential", credentialType: "notion_workspace", required: true },
@@ -77,7 +77,7 @@ export const connectorNodes: NodeDefinition[] = [
     title: "Notion record",
     category: "integrations",
     description: "Add a page to a database you picked with a title and a summary. Keep secrets and customer details out of the summary.",
-    icon: "NotionLogo",
+    icon: "logo:notion",
     provider: "notion",
     fields: [
       { key: "credentialId", label: "Notion workspace", kind: "credential", credentialType: "notion_workspace", required: true },

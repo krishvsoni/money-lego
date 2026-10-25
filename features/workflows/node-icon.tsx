@@ -2,10 +2,9 @@ import {
   Calculator, CalendarClock, Database, FilePlus2, Filter, GitBranch, Globe, Hash, Hourglass, Mail, MessageSquare, MousePointerClick,
   Package, PenLine, Plug, Radar, Receipt, ScrollText, Send, ShieldCheck, Shuffle, Split, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap, type LucideIcon,
 } from "lucide-react";
-import {
-  DiscordLogoIcon, FingerprintIcon, GithubLogoIcon, ListChecksIcon, NotionLogoIcon, StorefrontIcon, StripeLogoIcon, TableIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import { FingerprintIcon, ListChecksIcon } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
+import { BrandLogo, isBrand } from "@/components/ui/brand-logo";
 import type { Category } from "@/lib/nodes/types";
 
 // Explicit map so only the icons nodes use are bundled.
@@ -14,12 +13,9 @@ const ICONS: Record<string, LucideIcon> = {
   Package, PenLine, Plug, Radar, Receipt, ScrollText, Send, ShieldCheck, Shuffle, Split, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap,
 };
 
-// Provider marks lucide doesn't ship. Phosphor draws them at the same optical size; the
-// ssr entry has no React context, so this file still renders inside server components.
-const MARKS: Record<string, Icon> = {
-  DiscordLogo: DiscordLogoIcon, Fingerprint: FingerprintIcon, GithubLogo: GithubLogoIcon, ListChecks: ListChecksIcon,
-  NotionLogo: NotionLogoIcon, Storefront: StorefrontIcon, StripeLogo: StripeLogoIcon, Table: TableIcon,
-};
+// Glyphs lucide doesn't ship. Phosphor's ssr entry has no React context, so this file still
+// renders inside server components.
+const MARKS: Record<string, Icon> = { Fingerprint: FingerprintIcon, ListChecks: ListChecksIcon };
 
 export const CATEGORY_ICON: Record<Category, string> = {
   triggers: "Zap",
@@ -30,7 +26,10 @@ export const CATEGORY_ICON: Record<Category, string> = {
   utilities: "Wrench",
 };
 
+// "logo:<brand>" icons are the service's real mark; sized by the caller's h-/w- classes.
 export function NodeIcon({ name, className }: { name: string; className?: string }) {
+  const brand = name.startsWith("logo:") ? name.slice(5) : "";
+  if (isBrand(brand)) return <BrandLogo brand={brand} size={16} className={className} />;
   const Mark = MARKS[name];
   if (Mark) return <Mark className={className} weight="bold" aria-hidden />;
   const Icon = ICONS[name] ?? Package;

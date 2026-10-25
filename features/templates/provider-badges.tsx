@@ -1,25 +1,12 @@
-import {
-  CalendarBlankIcon, DatabaseIcon, DiscordLogoIcon, GithubLogoIcon, GlobeIcon, NotionLogoIcon, PathIcon, SlackLogoIcon, StorefrontIcon, StripeLogoIcon, TableIcon,
-  TelegramLogoIcon, type Icon,
-} from "@phosphor-icons/react";
+import { CalendarBlankIcon, GlobeIcon, PathIcon, type Icon } from "@phosphor-icons/react";
+import { BrandLogo, isBrand } from "@/components/ui/brand-logo";
 import { PROVIDERS } from "@/lib/nodes/providers";
 
-const MARK: Record<string, Icon> = {
-  multihopper: PathIcon,
-  github: GithubLogoIcon,
-  "google-sheets": TableIcon,
-  discord: DiscordLogoIcon,
-  slack: SlackLogoIcon,
-  stripe: StripeLogoIcon,
-  shopify: StorefrontIcon,
-  telegram: TelegramLogoIcon,
-  notion: NotionLogoIcon,
-  airtable: DatabaseIcon,
-  http: GlobeIcon,
-  schedule: CalendarBlankIcon,
-};
+// Services without a third-party brand mark (ours and the generic ones) keep a glyph.
+const MARK: Record<string, Icon> = { multihopper: PathIcon, http: GlobeIcon, schedule: CalendarBlankIcon };
 
 export function ProviderMark({ id, size = 14 }: { id: string; size?: number }) {
+  if (isBrand(id)) return <BrandLogo brand={id} size={size} />;
   const Mark = MARK[id] ?? GlobeIcon;
   return <Mark size={size} weight="fill" style={{ color: PROVIDERS[id]?.color }} aria-hidden />;
 }

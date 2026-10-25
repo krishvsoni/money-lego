@@ -12,7 +12,7 @@ export const providerTriggerNodes: NodeDefinition[] = [
     title: "GitHub event",
     category: "triggers",
     description: "Start when GitHub delivers a release or pull request event. Turning the workflow on adds a signed webhook to the repository with your GitHub sign-in; turning it off removes it. Other events are ignored.",
-    icon: "GithubLogo",
+    icon: "logo:github",
     provider: "github",
     fields: [
       { key: "credentialId", label: "GitHub account", kind: "credential", credentialType: "github_account", required: true, help: "You need admin access to the repository." },
@@ -40,7 +40,7 @@ export const providerTriggerNodes: NodeDefinition[] = [
     title: "Stripe event",
     category: "triggers",
     description: "Start when your connected Stripe account has an invoice paid. Events come through Money Lego's verified Stripe Connect endpoint with a 5 minute timestamp tolerance. A paid invoice is a business signal; it does not fund a Solana wallet.",
-    icon: "StripeLogo",
+    icon: "logo:stripe",
     provider: "stripe",
     fields: [
       { key: "credentialId", label: "Stripe account", kind: "credential", credentialType: "stripe_account", required: true },
@@ -58,7 +58,7 @@ export const providerTriggerNodes: NodeDefinition[] = [
     title: "Shopify order paid",
     category: "triggers",
     description: "Start when your connected store reports an order paid, verified with Shopify's HMAC over the raw body. Shopify's fiat settlement never reaches a Solana wallet through this event.",
-    icon: "Storefront",
+    icon: "logo:shopify",
     provider: "shopify",
     fields: [
       { key: "credentialId", label: "Store", kind: "credential", credentialType: "shopify_store", required: true },
@@ -75,7 +75,7 @@ export const providerTriggerNodes: NodeDefinition[] = [
     title: "Discord command",
     category: "triggers",
     description: "Start when someone with the allowed role runs the slash command in your server. Turning the workflow on registers the command there. Interactions are verified with Ed25519; only the command's options are read, never chat text.",
-    icon: "DiscordLogo",
+    icon: "logo:discord",
     provider: "discord",
     fields: [
       { key: "credentialId", label: "Discord server", kind: "credential", credentialType: "discord_server", required: true },
