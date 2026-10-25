@@ -13,6 +13,9 @@ import type { LockDoc, MigrationDoc } from "./types";
 // what's applied so a migration never runs twice.
 
 const MIGRATIONS = [migration001, migration002, migration003];
+
+// The newest migration id; a connection opened against an older set must migrate again.
+export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].id;
 const LOCK = "migrations";
 const LOCK_TTL_MS = 60_000;
 
