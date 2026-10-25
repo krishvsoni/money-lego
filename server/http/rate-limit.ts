@@ -20,6 +20,7 @@ export const RATE_RULES = {
   rpc: { name: "rpc", limit: 240, windowSeconds: 60 },
   save: { name: "save", limit: 120, windowSeconds: 60 },
   webhook: { name: "webhook", limit: 600, windowSeconds: 60 },
+  read: { name: "read", limit: 120, windowSeconds: 60 },
 } satisfies Record<string, RateRule>;
 
 export async function enforceRateLimit(rule: RateRule, subject: string): Promise<void> {

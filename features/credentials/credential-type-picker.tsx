@@ -3,13 +3,14 @@
 import { useRef, type KeyboardEvent } from "react";
 import type { CredentialType } from "@/lib/nodes/types";
 import { CredentialIcon } from "./credential-icon";
-import { CREDENTIAL_META, CREDENTIAL_TYPES } from "./credential-types";
+import { CREDENTIAL_META, MANUAL_TYPES as CREDENTIAL_TYPES } from "./credential-types";
 
 // Step one of adding a credential: pick what you're connecting. A real radio group (one
-// tab stop, arrows move between options), drawn as four tiles with the service's mark.
+// tab stop, arrows move between options). Only your own secrets are typed in; services
+// are connected by signing in on the Connections page.
 export function CredentialTypePicker({ value, onChange }: { value: CredentialType | null; onChange: (t: CredentialType) => void }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
-  const current = value ? CREDENTIAL_TYPES.indexOf(value) : -1;
+  const current = value ? CREDENTIAL_TYPES.findIndex((t) => t === value) : -1;
 
   const onKeyDown = (e: KeyboardEvent, i: number) => {
     const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;

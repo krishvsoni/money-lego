@@ -13,7 +13,30 @@ export const CATEGORY_META: Record<Category, { title: string; color: string }> =
   utilities: { title: "Utilities", color: "var(--brick-6)" },
 };
 
-export type CredentialType = "webhook_secret" | "discord_webhook" | "slack_webhook" | "http_header";
+// Two kinds of credential. Connections are made by signing in to the provider and
+// approving specific permissions (or, for Telegram, linking a chat through our bot); no one
+// ever pastes a provider token. Manual ones are secrets that belong to the user's own
+// systems: a signing secret we generate, or a header for their own API.
+export const CONNECTION_TYPES = [
+  "github_account",
+  "google_account",
+  "slack_webhook",
+  "discord_webhook",
+  "discord_server",
+  "stripe_account",
+  "shopify_store",
+  "airtable_account",
+  "notion_workspace",
+  "telegram_chat",
+] as const;
+
+export const MANUAL_CREDENTIAL_TYPES = ["webhook_secret", "http_header"] as const;
+
+export const CREDENTIAL_TYPES = [...MANUAL_CREDENTIAL_TYPES, ...CONNECTION_TYPES] as const;
+
+export type ConnectionType = (typeof CONNECTION_TYPES)[number];
+export type ManualCredentialType = (typeof MANUAL_CREDENTIAL_TYPES)[number];
+export type CredentialType = (typeof CREDENTIAL_TYPES)[number];
 
 interface FieldBase {
   key: string;
@@ -69,6 +92,8 @@ export interface NodeDefinition {
   unavailable?: string;
   // True when re-running the node can't repeat an external side effect.
   retrySafe: boolean;
+  // The outside service this node talks to, for integration badges and setup checklists.
+  provider?: string;
   // Explains what the node outputs, for the inspector.
   outputHint: string;
   validate?: (config: Record<string, unknown>) => ConfigIssue[];

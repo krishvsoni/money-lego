@@ -75,7 +75,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
   const save = useCallback(async () => {
     setSaveState("saving");
     try {
-      const { workflow: saved, disabledBecauseInvalid } = await api<{ workflow: WorkflowDTO; disabledBecauseInvalid: boolean }>(`/api/workflows/${workflow.id}`, {
+      const { workflow: saved, disabledReason } = await api<{ workflow: WorkflowDTO; disabledReason: string | null }>(`/api/workflows/${workflow.id}`, {
         method: "PUT",
         body: { name: latest.current.name.trim() || "Untitled workflow", graph: latest.current.graph, expectedVersion: version.current },
       });
@@ -83,7 +83,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
       setWorkflow(saved);
       const unchanged = latest.current.graph === graph && latest.current.name === name;
       setSaveState(unchanged ? "saved" : "dirty");
-      setSaveError(disabledBecauseInvalid ? "Turned off because the workflow has issues. Fix them and turn it on again." : null);
+      setSaveError(disabledReason);
       return saved;
     } catch (e) {
       const conflict = e instanceof ApiError && e.code === "STALE_WRITE";

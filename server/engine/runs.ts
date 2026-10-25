@@ -2,6 +2,7 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import type { NodeRunStatus, RunStatus, WaitKind } from "@/lib/workflow/types";
+import { nextRunAt } from "@/lib/workflow/schedule";
 import { validateGraph } from "@/lib/workflow/validate";
 import type { SessionUser } from "../auth/session";
 import { collections, isDuplicateKeyError } from "../db/collections";
@@ -196,9 +197,12 @@ export async function runDueWork(limit = 20): Promise<{ scheduled: number; advan
     const due = await workflows.findOne({ enabled: true, status: "active", "schedule.nextAt": { $lte: now } });
     if (!due?.schedule) break;
     const slot = due.schedule.nextAt;
+    const config = due.graph.nodes.find((n) => n.type === "trigger.schedule")?.config ?? {};
+    // A missed slot (every instance was down) fires once, then the schedule moves on from now.
+    const following = nextRunAt(config, new Date(Math.max(slot.getTime(), now.getTime())));
     const claimed = await workflows.findOneAndUpdate(
       { _id: due._id, "schedule.nextAt": slot },
-      { $set: { "schedule.nextAt": new Date(Math.max(slot.getTime(), now.getTime()) + due.schedule.intervalMinutes * 60_000) } },
+      { $set: following ? { "schedule.nextAt": following } : { schedule: null } },
       { returnDocument: "after" },
     );
     if (!claimed) continue;

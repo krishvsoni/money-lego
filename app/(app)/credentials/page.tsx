@@ -1,8 +1,6 @@
-import { View } from "./view";
+import { redirect } from "next/navigation";
 
-// Gated on the signed-in wallet, which is only known in the browser.
-export const instant = false;
-
+// Credentials became Connections: services are now connected by signing in.
 export default function Page() {
-  return <View />;
+  redirect("/connections");
 }

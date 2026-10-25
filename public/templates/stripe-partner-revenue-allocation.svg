@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-label="Stripe Partner Revenue Allocation workflow">
+<title>Stripe Partner Revenue Allocation workflow</title>
+<defs>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#24305c"/></pattern>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121c3d"/><stop offset="1" stop-color="#0b1229"/></linearGradient>
+  <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8ea0d6"/></marker>
+</defs>
+<g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect width="1280" height="720" fill="url(#dots)"/>
+<rect x="60" y="48" width="228" height="30" rx="15" fill="#e3a21a" fill-opacity="0.16"/>
+<text x="74" y="68" font-size="15" font-weight="700" fill="#f2c45a">REVENUE OPERATIONS</text>
+<text x="60" y="124" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="-0.5">Stripe Partner Revenue Allocation</text>
+<g transform="translate(1000 54)"><rect width="220" height="32" rx="16" fill="#17784a" fill-opacity="0.22"/><path d="M18 9 l9 3.5 v6 c0 5 -4 8 -9 9.5 c-5 -1.5 -9 -4.5 -9 -9.5 v-6 z" fill="#4cc38a"/><text x="36" y="21.5" font-size="14" font-weight="700" fill="#9be3bf">Approve + sign each run</text></g>
+<path d="M260 242 C305 242 305 242 350 242" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M560 242 C605 242 605 242 650 242" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M868 242 C909 242 909 242 950 242" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M1070 284 L1070 396" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M960 452 C915 452 915 452 870 452" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/><text x="915" y="442" font-size="14" font-weight="700" fill="#c9d3f5" text-anchor="middle">approved</text>
+<path d="M660 452 C615 452 615 392 570 392" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M660 452 C615 452 615 522 570 522" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<g transform="translate(60 200)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" stroke="#e3a21a" stroke-width="3"/>
+  <rect width="200" height="8" rx="4" fill="#e3a21a"/>
+  <circle cx="34" cy="48" r="17" fill="#e3a21a" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#e3a21a">ST</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Invoice paid</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Stripe · signed</text>
+</g>
+<g transform="translate(360 200)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#3c8dbc"/>
+  <circle cx="34" cy="48" r="17" fill="#3c8dbc" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#3c8dbc">NO</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Payout policy</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Notion page</text>
+</g>
+<g transform="translate(660 200)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/>
+  <rect width="208" height="84" rx="14" fill="#ffffff" />
+  <rect width="208" height="8" rx="4" fill="#3c8dbc"/>
+  <circle cx="34" cy="48" r="17" fill="#3c8dbc" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#3c8dbc">{}</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Allocation API</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">HTTP · allowlisted</text>
+</g>
+<g transform="translate(960 200)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#a066b8"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#a066b8"/>
+  <rect width="220" height="84" rx="14" fill="#ffffff" />
+  <rect width="220" height="8" rx="4" fill="#a066b8"/>
+  <circle cx="34" cy="48" r="17" fill="#a066b8" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#a066b8">✓</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Validate split</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">sum must match</text>
+</g>
+<g transform="translate(960 410)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#4a6af0"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#4a6af0"/>
+  <rect width="220" height="84" rx="14" fill="#ffffff" />
+  <rect width="220" height="8" rx="4" fill="#4a6af0"/>
+  <circle cx="34" cy="48" r="17" fill="#4a6af0" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#4a6af0">MH</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Quote + review</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">MultiHopper</text>
+</g>
+<g transform="translate(660 410)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#4a6af0"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#4a6af0"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#4a6af0"/>
+  <circle cx="34" cy="48" r="17" fill="#4a6af0" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#4a6af0">MH</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Wallet signs</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">your funds</text>
+</g>
+<g transform="translate(360 350)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#d0563f"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#d0563f"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#d0563f"/>
+  <circle cx="34" cy="48" r="17" fill="#d0563f" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#d0563f">SL</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Notify</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Slack</text>
+</g>
+<g transform="translate(360 480)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#d0563f"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#d0563f"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#d0563f"/>
+  <circle cx="34" cy="48" r="17" fill="#d0563f" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#d0563f">NO</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Record</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Notion database</text>
+</g>
+<g transform="translate(60 640)"><rect width="89.19999999999999" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#635BFF"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">Stripe</text></g><g transform="translate(159.2 640)"><rect width="89.19999999999999" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#ffffff"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">Notion</text></g><g transform="translate(258.4 640)"><rect width="144.39999999999998" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#3c8dbc"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">HTTP Request</text></g><g transform="translate(412.79999999999995 640)"><rect width="135.2" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#4a6af0"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">MultiHopper</text></g><g transform="translate(558 640)"><rect width="80" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#e01e5a"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">Slack</text></g>
+</g>
+</svg>

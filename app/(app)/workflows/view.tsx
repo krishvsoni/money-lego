@@ -1,14 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 import { Archive } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/toast";
-import { api, errorMessage } from "@/lib/api-client";
+import { api, errorMessage, newRequestKey } from "@/lib/api-client";
 import type { WorkflowDTO } from "@/lib/workflow/dto";
 import { useResource } from "@/lib/use-resource";
-import { FirstWorkflow } from "@/features/workflows/list/first-workflow";
 import { integrationsIn, integrationsOf } from "@/features/workflows/list/integrations";
 import { TemplateGrid } from "@/features/workflows/list/template-grid";
 import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
@@ -22,9 +21,33 @@ export function View() {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const [shelf, setShelf] = useState<Shelf>("active");
-  const [query, setQuery] = useState("");
-  const [integration, setIntegration] = useState<string | null>(null);
+  // View state lives in the URL. Switching shelves pushes a history entry, so Back from
+  // Archived returns to Active; search and filter replace in place, so they survive opening
+  // a workflow and coming back without flooding history with keystrokes.
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const shelf: Shelf = params.get("shelf") === "archived" ? "archived" : "active";
+  const integration = params.get("integration");
+  const setParams = useCallback(
+    (next: Record<string, string | null>, mode: "push" | "replace") => {
+      const p = new URLSearchParams(params.toString());
+      for (const [k, v] of Object.entries(next)) {
+        if (v) p.set(k, v);
+        else p.delete(k);
+      }
+      const url = p.size ? `${pathname}?${p}` : pathname;
+      if (mode === "push") router.push(url, { scroll: false });
+      else router.replace(url, { scroll: false });
+    },
+    [params, pathname, router],
+  );
+  // The input owns its text so typing never waits on navigation; the URL mirrors it.
+  const [query, setQueryText] = useState(() => params.get("q") ?? "");
+  const setQuery = (q: string) => {
+    setQueryText(q);
+    setParams({ q: q || null }, "replace");
+  };
+  const setIntegration = (type: string | null) => setParams({ integration: type }, "replace");
 
   const list = shelf === "active" ? active : archived;
   const all = useMemo(() => list.data?.workflows ?? [], [list.data]);
@@ -35,10 +58,10 @@ export function View() {
   );
   const firstTime = active.data?.workflows.length === 0 && archived.data !== null;
 
-  const create = async (templateId: string) => {
-    setBusy(templateId);
+  const createBlank = async () => {
+    setBusy("blank");
     try {
-      const { workflow } = await api<{ workflow: WorkflowDTO }>("/api/workflows", { body: { templateId } });
+      const { workflow } = await api<{ workflow: WorkflowDTO }>("/api/workflows", { body: { templateId: "blank", requestKey: newRequestKey() } });
       router.push(`/workflows/${workflow.id}`);
     } catch (e) {
       toast(errorMessage(e), "error");
@@ -61,15 +84,22 @@ export function View() {
   };
 
   const switchShelf = (s: Shelf) => {
-    setShelf(s);
-    setIntegration(null);
+    if (s !== shelf) setParams({ shelf: s === "archived" ? "archived" : null, integration: null }, "push");
   };
 
   if (firstTime) {
     return (
-      <div className="flex flex-col gap-14">
-        <h1 className="headline text-3xl">Workflows</h1>
-        <FirstWorkflow busy={busy} onCreate={create} />
+      <div className="flex flex-col gap-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="headline text-3xl">Workflows</h1>
+            <p className="mt-1 text-ink-2">Start from a complete template, or build one yourself on a blank canvas.</p>
+          </div>
+          <Button variant="secondary" onClick={createBlank} busy={busy === "blank"} disabled={busy !== null}>
+            Blank canvas
+          </Button>
+        </div>
+        <TemplateGrid limit={6} title="Pick a starting point" />
       </div>
     );
   }
@@ -79,7 +109,7 @@ export function View() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="headline text-3xl">Workflows</h1>
-          <Button onClick={() => create("blank")} busy={busy === "blank"} disabled={busy !== null}>
+          <Button onClick={createBlank} busy={busy === "blank"} disabled={busy !== null}>
             New workflow
           </Button>
         </div>
@@ -127,12 +157,12 @@ export function View() {
               ))}
             </ul>
           ) : (
-            <EmptyState shelf={shelf} filtered={Boolean(q || integration)} onClear={() => (setQuery(""), setIntegration(null))} />
+            <EmptyState shelf={shelf} filtered={Boolean(q || integration)} onClear={() => (setQueryText(""), setParams({ q: null, integration: null }, "replace"))} />
           )}
         </div>
       </section>
 
-      {shelf === "active" && <TemplateGrid busy={busy} onCreate={create} />}
+      {shelf === "active" && <TemplateGrid />}
     </div>
   );
 }

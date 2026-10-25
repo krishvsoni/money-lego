@@ -19,6 +19,10 @@ export const COLLECTIONS = {
   workflowRuns: "workflow_runs",
   nodeRuns: "node_runs",
   credentials: "credentials",
+  workflowTemplates: "workflow_templates",
+  onceKeys: "once_keys",
+  oauthStates: "oauth_states",
+  telegramLinks: "telegram_links",
 } as const;
 
 export function isDuplicateKeyError(error: unknown): boolean {

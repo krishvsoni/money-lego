@@ -29,7 +29,32 @@ const schema = z
       .string()
       .refine((v) => Buffer.from(v, "base64").length === 32, "CREDENTIALS_KEY must be 32 bytes, base64 encoded (openssl rand -base64 32)")
       .optional(),
+    CREDENTIALS_KEYRING: z.string().optional(),
+    CREDENTIALS_KEYRING_FILE: z.string().optional(),
     NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
+    // OAuth apps that identify Money Lego to each provider. They can't read anyone's data
+    // by themselves: every call on a user's data uses the token that user granted.
+    GITHUB_CLIENT_ID: z.string().optional(),
+    GITHUB_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    SLACK_CLIENT_ID: z.string().optional(),
+    SLACK_CLIENT_SECRET: z.string().optional(),
+    DISCORD_CLIENT_ID: z.string().regex(/^\d{17,20}$/).optional(),
+    DISCORD_CLIENT_SECRET: z.string().optional(),
+    DISCORD_PUBLIC_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional(),
+    STRIPE_CLIENT_ID: z.string().regex(/^ca_/).optional(),
+    STRIPE_SECRET_KEY: z.string().regex(/^(sk|rk)_(test|live)_/).optional(),
+    STRIPE_CONNECT_WEBHOOK_SECRET: z.string().regex(/^whsec_/).optional(),
+    SHOPIFY_CLIENT_ID: z.string().optional(),
+    SHOPIFY_CLIENT_SECRET: z.string().optional(),
+    AIRTABLE_CLIENT_ID: z.string().optional(),
+    AIRTABLE_CLIENT_SECRET: z.string().optional(),
+    NOTION_CLIENT_ID: z.string().optional(),
+    NOTION_CLIENT_SECRET: z.string().optional(),
+    TELEGRAM_BOT_TOKEN: z.string().regex(/^\d{5,15}:[A-Za-z0-9_-]{30,}$/).optional(),
+    TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/).optional(),
+    TELEGRAM_WEBHOOK_SECRET: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional(),
   })
   .superRefine((env, ctx) => {
     const key = env.MULTIHOPPER_API_KEY;
@@ -76,4 +101,8 @@ export function providerCredentials(): { baseUrl: string; apiKey: string } {
     throw errors.notConfigured("Production routing");
   }
   return { baseUrl: e.MULTIHOPPER_BASE_URL, apiKey: e.MULTIHOPPER_API_KEY };
+}
+
+export function resetEnvForTests(): void {
+  cached = null;
 }

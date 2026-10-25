@@ -10,8 +10,9 @@ export const instant = false;
 
 const APP_LINKS = [
   { href: "/workflows", label: "Workflows" },
+  { href: "/templates", label: "Templates" },
   { href: "/transfers", label: "Transfers" },
-  { href: "/credentials", label: "Credentials" },
+  { href: "/connections", label: "Connections" },
 ];
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     <div className="flex flex-1 flex-col">
       <SiteNav
         links={APP_LINKS}
+        homeHref="/workflows"
         right={
           <>
             <NetworkBadge />

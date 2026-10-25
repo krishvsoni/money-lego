@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { inputClass } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
 import type { Field } from "@/lib/nodes/types";
 import { supportedTokens } from "@/lib/tokens";
 import type { CredentialDTO } from "@/lib/workflow/dto";
+import { connectionInfo } from "@/lib/connections/catalog";
+import { useConnect, type ConnectResult } from "@/features/connections/use-connect";
 import { CredentialForm } from "@/features/credentials/credential-form";
 
 interface Props {
@@ -16,6 +20,7 @@ interface Props {
   credentials: CredentialDTO[];
   onChange: (value: unknown) => void;
   onCredentialCreated: (c: CredentialDTO) => void;
+  onRefreshCredentials: () => Promise<CredentialDTO[]>;
 }
 
 const isExpr = (v: unknown) => typeof v === "string" && v.includes("{{");
@@ -30,13 +35,13 @@ function PairsInput({ field, value, onChange, rowErrors }: Props & { field: Extr
           <div className={`grid gap-1.5 ${field.columns.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
             {field.columns.map((c, ci) =>
               c.kind === "select" ? (
-                <select key={c.key} aria-label={`${c.label} ${i + 1}`} value={row[c.key] ?? ""} onChange={(e) => set(i, c.key, e.target.value)} className={`${inputClass} h-8 text-xs`}>
+                <Select key={c.key} aria-label={`${c.label} ${i + 1}`} value={row[c.key] ?? ""} onChange={(e) => set(i, c.key, e.target.value)} size="sm">
                   {c.options?.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               ) : (
                 <input
                   key={c.key}
@@ -70,10 +75,25 @@ function PairsInput({ field, value, onChange, rowErrors }: Props & { field: Extr
   );
 }
 
-function CredentialInput({ field, value, onChange, credentials, onCredentialCreated }: Props & { field: Extract<Field, { kind: "credential" }> }) {
+function CredentialInput({ field, value, onChange, credentials, onCredentialCreated, onRefreshCredentials }: Props & { field: Extract<Field, { kind: "credential" }> }) {
   const [creating, setCreating] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const options = credentials.filter((c) => c.type === field.credentialType);
-  if (creating) {
+  const info = connectionInfo(field.credentialType);
+  // Connections are made by signing in; the newest one for this kind is picked automatically.
+  const onDone = useCallback(
+    async (r: ConnectResult) => {
+      setNote(r.ok ? null : r.message);
+      if (!r.ok) return;
+      const list = await onRefreshCredentials();
+      const newest = list.filter((c) => c.type === field.credentialType).sort((a, b) => (b.connectedAt ?? "").localeCompare(a.connectedAt ?? ""))[0];
+      if (newest) onChange(newest.id);
+    },
+    [field.credentialType, onChange, onRefreshCredentials],
+  );
+  const { busy, connect } = useConnect(onDone);
+
+  if (creating && !info) {
     return (
       <div className="reveal rounded-lg border border-line bg-paper p-3">
         <CredentialForm
@@ -89,18 +109,34 @@ function CredentialInput({ field, value, onChange, credentials, onCredentialCrea
     );
   }
   return (
-    <div className="flex gap-2">
-      <select id={field.key} value={String(value ?? "")} onChange={(e) => onChange(e.target.value || undefined)} className={inputClass}>
-        <option value="">{options.length ? "Choose…" : "None saved yet"}</option>
-        {options.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name} ({c.hint})
-          </option>
-        ))}
-      </select>
-      <button onClick={() => setCreating(true)} className="press shrink-0 rounded-md border border-line-strong px-2.5 text-xs font-semibold hover:border-ink-3">
-        New
-      </button>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-2">
+        <Select id={field.key} value={String(value ?? "")} onChange={(e) => onChange(e.target.value || undefined)}>
+          <option value="">{options.length ? "Choose…" : info ? "Not connected yet" : "None saved yet"}</option>
+          {options.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.account?.name ?? c.name}
+              {c.account?.detail ? ` (${c.account.detail})` : c.account ? "" : ` (${c.hint})`}
+              {c.check?.ok === false ? " · needs attention" : ""}
+            </option>
+          ))}
+        </Select>
+        {info?.method === "oauth" && !info.asks ? (
+          <button onClick={() => void connect(info.slug)} disabled={busy !== null} className="press shrink-0 rounded-md border border-line-strong px-2.5 text-xs font-semibold hover:border-ink-3 disabled:opacity-50">
+            {busy ? "Waiting…" : "Connect"}
+          </button>
+        ) : info ? (
+          <Link href="/connections" target="_blank" className="press flex shrink-0 items-center rounded-md border border-line-strong px-2.5 text-xs font-semibold hover:border-ink-3">
+            Connect
+          </Link>
+        ) : (
+          <button onClick={() => setCreating(true)} className="press shrink-0 rounded-md border border-line-strong px-2.5 text-xs font-semibold hover:border-ink-3">
+            New
+          </button>
+        )}
+      </div>
+      {note && <p className="text-xs text-danger">{note}</p>}
+      {info && !options.length && <p className="text-xs text-ink-3">{info.action} to approve access. Nothing is pasted.</p>}
     </div>
   );
 }
@@ -126,24 +162,24 @@ export function FieldInput(props: Props) {
       );
     case "select":
       return (
-        <select {...common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <Select {...common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
-        </select>
+        </Select>
       );
     case "token":
       return (
-        <select {...common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <Select {...common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
           <option value="">Choose a token</option>
           {supportedTokens().map((t) => (
             <option key={t.mint} value={t.mint}>
               {t.symbol}, {t.name}
             </option>
           ))}
-        </select>
+        </Select>
       );
     case "number":
       return (

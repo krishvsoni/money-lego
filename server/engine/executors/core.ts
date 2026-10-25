@@ -4,6 +4,7 @@ import { MAX_DESTINATIONS } from "@/lib/recipe-schema";
 import { isSolanaAddress } from "@/lib/solana-address";
 import { findToken } from "@/lib/tokens";
 import { getPath } from "@/lib/workflow/expressions";
+import { payoutHash } from "../payload-hash";
 import { asObject, NodeError, ok, type ExecContext, type ExecResult, type Executor } from "../types";
 
 function parseJson(value: unknown, label: string): unknown {
@@ -111,12 +112,16 @@ const split: Executor = async ({ config }) => {
 
 const approval: Executor = async ({ config, input, waitState }) => {
   const decision = waitState?.decision as string | undefined;
+  const payloadHash = payoutHash(input);
   if (decision === "approved" || decision === "rejected") {
-    return ok({ ...asObject(input), approval: { decision, by: waitState?.by ?? null, at: waitState?.at ?? null } }, decision);
+    if (decision === "approved" && waitState?.payloadHash && waitState.payloadHash !== payloadHash) {
+      throw new NodeError("The payout changed after it was shown for review, so the approval doesn't apply. Nothing was sent.");
+    }
+    return ok({ ...asObject(input), approval: { decision, by: waitState?.by ?? null, at: waitState?.at ?? null, payloadHash } }, decision);
   }
   const until = waitState?.until ? new Date(String(waitState.until)) : new Date(Date.now() + Number(config.timeoutHours ?? 24) * 3_600_000);
   if (until.getTime() <= Date.now()) throw new NodeError("Nobody approved this in time, so the run stopped. Nothing was sent.");
-  return { kind: "wait", wait: { kind: "approval", until, ref: null }, state: { until: until.toISOString(), message: String(config.message ?? "") } };
+  return { kind: "wait", wait: { kind: "approval", until, ref: null }, state: { until: until.toISOString(), message: String(config.message ?? ""), payloadHash } };
 };
 
 const delay: Executor = async ({ config, input, waitState }) => {
@@ -129,6 +134,10 @@ export const coreExecutors: Record<string, Executor> = {
   "trigger.manual": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.webhook": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.schedule": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.github": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.stripe": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.shopify": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.discord": async ({ run }) => ok(run.trigger.payload ?? {}),
   "logic.condition": async ({ config, input }: ExecContext): Promise<ExecResult> =>
     ok(input, compare(config.left, config.operator, config.right) ? "true" : "false"),
   "logic.filter": async ({ config, input, log }) => {
@@ -156,4 +165,4 @@ export const coreExecutors: Record<string, Executor> = {
   },
 };
 
-export { parseJson };
+export { parseJson, typeMatches };

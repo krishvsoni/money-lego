@@ -122,7 +122,10 @@ export async function advanceRun(runId: ObjectId, budgetMs = 20_000): Promise<vo
       const all = await nodeRuns.find({ runId: run._id }).toArray();
       const settled = run.graph.nodes.every((n) => SETTLED.includes(all.find((r) => r.nodeId === n.id)?.status ?? "pending"));
       if (settled) {
-        await finish(run, "succeeded", null, pendingLog);
+        // A failure branch that ran (e.g. to notify someone) doesn't make the run a success.
+        const handled = all.find((r) => r.status === "succeeded" && r.port === "failed");
+        if (handled) await finish(run, "failed", `${nodeDefinition(handled.nodeType)?.title ?? handled.nodeType}: the transfer didn't complete. The failure branch ran.`, pendingLog);
+        else await finish(run, "succeeded", null, pendingLog);
         return;
       }
     }

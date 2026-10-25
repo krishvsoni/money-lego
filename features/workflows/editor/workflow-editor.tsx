@@ -23,6 +23,12 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
   const [credentials, setCredentials] = useState<CredentialDTO[]>([]);
   const [toggling, setToggling] = useState(false);
 
+  const refreshCredentials = useCallback(async () => {
+    const r = await api<{ credentials: CredentialDTO[] }>("/api/credentials").catch(() => null);
+    if (r) setCredentials(r.credentials);
+    return r?.credentials ?? [];
+  }, []);
+
   useEffect(() => {
     api<{ credentials: CredentialDTO[] }>("/api/credentials")
       .then((r) => setCredentials(r.credentials))
@@ -98,7 +104,7 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
           </div>
           <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />
         </div>
-        <Inspector editor={editor} credentials={credentials} onCredentialCreated={(c) => setCredentials((list) => [c, ...list])} nodeRun={nodeRun} />
+        <Inspector editor={editor} credentials={credentials} onCredentialCreated={(c) => setCredentials((list) => [c, ...list])} onRefreshCredentials={refreshCredentials} nodeRun={nodeRun} />
       </div>
     </div>
   );

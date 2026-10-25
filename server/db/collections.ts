@@ -16,6 +16,10 @@ import type {
   SessionDoc,
   UserDoc,
   WebhookEventDoc,
+  WorkflowTemplateDoc,
+  OnceKeyDoc,
+  OAuthStateDoc,
+  TelegramLinkDoc,
 } from "./types";
 
 import { COLLECTIONS } from "./names";
@@ -38,6 +42,10 @@ export interface Collections {
   workflowRuns: Collection<WorkflowRunDoc>;
   nodeRuns: Collection<NodeRunDoc>;
   credentials: Collection<CredentialDoc>;
+  workflowTemplates: Collection<WorkflowTemplateDoc>;
+  onceKeys: Collection<OnceKeyDoc>;
+  oauthStates: Collection<OAuthStateDoc>;
+  telegramLinks: Collection<TelegramLinkDoc>;
 }
 
 export function collectionsOf(db: Db): Collections {
@@ -57,6 +65,10 @@ export function collectionsOf(db: Db): Collections {
     workflowRuns: db.collection<WorkflowRunDoc>(COLLECTIONS.workflowRuns),
     nodeRuns: db.collection<NodeRunDoc>(COLLECTIONS.nodeRuns),
     credentials: db.collection<CredentialDoc>(COLLECTIONS.credentials),
+    workflowTemplates: db.collection<WorkflowTemplateDoc>(COLLECTIONS.workflowTemplates),
+    onceKeys: db.collection<OnceKeyDoc>(COLLECTIONS.onceKeys),
+    oauthStates: db.collection<OAuthStateDoc>(COLLECTIONS.oauthStates),
+    telegramLinks: db.collection<TelegramLinkDoc>(COLLECTIONS.telegramLinks),
   };
 }
 

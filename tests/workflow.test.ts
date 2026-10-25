@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sumRaw } from "@/lib/amounts";
 import { resolveValue, type Scope } from "@/lib/workflow/expressions";
-import { TEMPLATES } from "@/lib/workflow/templates";
 import { emptyGraph, type WorkflowGraph } from "@/lib/workflow/types";
 import { topologicalOrder, validateGraph, wouldCreateCycle } from "@/lib/workflow/validate";
 import { splitByPercent } from "@/lib/amounts";
@@ -69,11 +68,11 @@ describe("graph validation", () => {
     const g: WorkflowGraph = { ...emptyGraph(), nodes: [node("t", "trigger.manual"), node("a", "util.log", { message: "x" })], edges: [{ id: "1", source: "t", sourcePort: "true", target: "a", targetPort: "main" }] };
     expect(validateGraph(g).some((i) => /no "true" output/.test(i.message))).toBe(true);
   });
-  it("flags what the example template still needs, and nothing structural", () => {
-    const g = TEMPLATES.find((t) => t.id === "webhook-payout")!.graph();
-    expect(topologicalOrder(g)).toHaveLength(g.nodes.length);
-    const issues = validateGraph(g);
-    expect(issues.every((i) => i.nodeId !== null)).toBe(true);
-    expect(new Set(issues.map((i) => i.nodeId))).toEqual(new Set(["webhook", "split", "discord"]));
+  it("accepts a connection from Wait for transfer's Failed output", () => {
+    const g: WorkflowGraph = { ...emptyGraph(), nodes: [node("t", "trigger.manual"), node("w", "mh.wait_status", { target: "completed", timeoutHours: 72 }), node("a", "util.log", { message: "x" })], edges: [
+      { id: "1", source: "t", sourcePort: "main", target: "w", targetPort: "main" },
+      { id: "2", source: "w", sourcePort: "failed", target: "a", targetPort: "main" },
+    ] };
+    expect(validateGraph(g).some((i) => /no "failed" output/.test(i.message))).toBe(false);
   });
 });

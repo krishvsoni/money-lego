@@ -2,59 +2,66 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
+import { Field, inputClass, TextInput } from "@/components/ui/field";
 import { api, ApiError, errorMessage } from "@/lib/api-client";
 import type { CredentialType } from "@/lib/nodes/types";
 import type { CredentialDTO } from "@/lib/workflow/dto";
 import { CredentialIcon } from "./credential-icon";
 import { CredentialTypePicker } from "./credential-type-picker";
-import { CREDENTIAL_META, URL_HELP } from "./credential-types";
+import { CREDENTIAL_META } from "./credential-types";
 import { SecretReveal } from "./secret-reveal";
 
 export { CREDENTIAL_LABEL } from "./credential-types";
 
-type Errors = Partial<Record<"name" | "url" | "value", string>>;
+type Values = Record<string, string>;
 
 // Client checks mirror the server's rules so mistakes show up inline before a round
 // trip. The server still validates everything; these only save the person a wait.
-function check(kind: CredentialType, name: string, url: string, value: string): Errors {
-  const errors: Errors = {};
+function check(kind: CredentialType, name: string, values: Values): Record<string, string> {
+  const errors: Record<string, string> = {};
   if (!name.trim()) errors.name = "Give it a name you'll recognise later.";
-  if (kind === "discord_webhook" || kind === "slack_webhook") {
-    if (!url.trim()) errors.url = "Paste the webhook URL.";
-    else if (!/^https:\/\//.test(url.trim())) errors.url = "Webhook URLs start with https://";
+  for (const input of CREDENTIAL_META[kind].inputs) {
+    const value = (values[input.key] ?? "").trim();
+    if (!value) {
+      if (!input.optional) errors[input.key] = `Add the ${input.label.toLowerCase()}.`;
+    } else if (input.pattern && !input.pattern.test(value)) errors[input.key] = input.patternMessage ?? `${input.label} looks wrong.`;
   }
-  if (kind === "http_header" && !value.trim()) errors.value = "Add the header value, for example a bearer token.";
   return errors;
 }
 
+const initialValues = (kind: CredentialType | null): Values => (kind === "http_header" ? { header: "Authorization" } : {});
+
 // Creates one credential. Pick what you're connecting, then fill in only the fields that
 // kind needs. Secrets go straight to the server and are never shown again, except a
-// generated signing secret, which is revealed exactly once.
+// secret we generate, which is revealed exactly once.
 export function CredentialForm({ type, onCreated, onCancel }: { type?: CredentialType; onCreated: (c: CredentialDTO) => void; onCancel?: () => void }) {
-  const [kind, setKind] = useState<CredentialType | null>(type ?? null);
+  const [kind, setKindState] = useState<CredentialType | null>(type ?? null);
   const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [header, setHeader] = useState("Authorization");
-  const [value, setValue] = useState("");
+  const [values, setValues] = useState<Values>(() => initialValues(type ?? null));
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<{ credential: CredentialDTO; secret: string } | null>(null);
 
-  const errors = kind && touched ? check(kind, name, url, value) : {};
+  const setKind = (k: CredentialType) => {
+    setKindState(k);
+    setValues(initialValues(k));
+    setTouched(false);
+  };
+  const errors = kind && touched ? check(kind, name, values) : {};
+  const meta = kind ? CREDENTIAL_META[kind] : null;
+  const generating = Boolean(meta?.generates && !meta.inputs.some((i) => (values[i.key] ?? "").trim()));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!kind) return;
+    if (!kind || !meta) return;
     setTouched(true);
-    if (Object.keys(check(kind, name, url, value)).length) return;
+    if (Object.keys(check(kind, name, values)).length) return;
     setBusy(true);
     setError(null);
-    const body =
-      kind === "webhook_secret" ? { type: kind, name: name.trim() } : kind === "http_header" ? { type: kind, name: name.trim(), header, value } : { type: kind, name: name.trim(), url: url.trim() };
+    const fields = Object.fromEntries(meta.inputs.map((i) => [i.key, (values[i.key] ?? "").trim()]).filter(([, v]) => v));
     try {
-      const res = await api<{ credential: CredentialDTO; revealOnce?: string }>("/api/credentials", { body });
+      const res = await api<{ credential: CredentialDTO; revealOnce?: string }>("/api/credentials", { body: { type: kind, name: name.trim(), ...fields } });
       if (res.revealOnce) setRevealed({ credential: res.credential, secret: res.revealOnce });
       else onCreated(res.credential);
     } catch (err) {
@@ -97,22 +104,35 @@ export function CredentialForm({ type, onCreated, onCancel }: { type?: Credentia
           <Field label="Name" htmlFor="cred-name" hint="Only you see this. It's how you'll pick it in a workflow." error={errors.name}>
             <TextInput id="cred-name" value={name} invalid={!!errors.name} onChange={(e) => setName(e.target.value)} placeholder={`${CREDENTIAL_META[kind].label} for payouts`} maxLength={60} autoFocus={!type} />
           </Field>
-          {(kind === "discord_webhook" || kind === "slack_webhook") && (
-            <Field label="Webhook URL" htmlFor="cred-url" hint={URL_HELP[kind]} error={errors.url}>
-              <TextInput id="cred-url" value={url} invalid={!!errors.url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" autoComplete="off" spellCheck={false} />
+          {meta?.inputs.map((input) => (
+            <Field key={input.key} label={input.optional ? `${input.label} (optional)` : input.label} htmlFor={`cred-${input.key}`} hint={input.hint} error={errors[input.key]}>
+              {input.kind === "textarea" ? (
+                <textarea
+                  id={`cred-${input.key}`}
+                  value={values[input.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [input.key]: e.target.value }))}
+                  placeholder={input.placeholder}
+                  rows={5}
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-invalid={Boolean(errors[input.key]) || undefined}
+                  className={`${inputClass} h-auto py-2 font-mono text-xs`}
+                />
+              ) : (
+                <TextInput
+                  id={`cred-${input.key}`}
+                  type={input.kind === "secret" ? "password" : "text"}
+                  value={values[input.key] ?? ""}
+                  invalid={!!errors[input.key]}
+                  onChange={(e) => setValues((v) => ({ ...v, [input.key]: e.target.value }))}
+                  placeholder={input.placeholder}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              )}
             </Field>
-          )}
-          {kind === "http_header" && (
-            <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
-              <Field label="Header" htmlFor="cred-header">
-                <TextInput id="cred-header" value={header} onChange={(e) => setHeader(e.target.value)} spellCheck={false} />
-              </Field>
-              <Field label="Value" htmlFor="cred-value" hint="Stored encrypted. Never sent back to the browser." error={errors.value}>
-                <TextInput id="cred-value" type="password" value={value} invalid={!!errors.value} onChange={(e) => setValue(e.target.value)} placeholder="Bearer …" autoComplete="off" />
-              </Field>
-            </div>
-          )}
-          {kind === "webhook_secret" && <p className="rounded-xl bg-sunken p-3 text-sm text-ink-2">We generate a strong secret when you save and show it to you once.</p>}
+          ))}
+          {generating && <p className="rounded-xl bg-sunken p-3 text-sm text-ink-2">We generate a strong secret when you save and show it to you once.</p>}
         </section>
       )}
 
@@ -129,7 +149,7 @@ export function CredentialForm({ type, onCreated, onCancel }: { type?: Credentia
           </Button>
         )}
         <Button type="submit" busy={busy} disabled={!kind}>
-          {kind === "webhook_secret" ? "Generate secret" : "Save credential"}
+          {generating ? "Generate secret" : "Save credential"}
         </Button>
       </div>
     </form>

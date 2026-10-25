@@ -11,6 +11,7 @@ import { isAppError } from "../../errors";
 import { providerToAppError } from "../../executions/provider-errors";
 import { quoteTransfer } from "../../executions/service";
 import { estimateTransfer } from "../../multihopper/transfers";
+import { payoutHash } from "../payload-hash";
 import { asObject, NodeError, ok, type ExecContext, type Executor } from "../types";
 
 // MultiHopper nodes. They read the allocation produced by Split allocation (or any node
@@ -46,7 +47,14 @@ async function transferOf(ctx: ExecContext): Promise<ExecutionDoc> {
 const FAILED: ExecutionState[] = ["failed", "expired", "refunded"];
 
 function waitFor(ctx: ExecContext, doc: ExecutionDoc, reached: boolean, kind: "wallet" | "transfer", hours: number) {
-  if (FAILED.includes(doc.state)) throw new NodeError(`The transfer ${STATE_META[doc.state].label.toLowerCase()}. ${doc.lastError?.message ?? STATE_META[doc.state].help}`);
+  if (FAILED.includes(doc.state)) {
+    const failure = `The transfer ${STATE_META[doc.state].label.toLowerCase()}. ${doc.lastError?.message ?? STATE_META[doc.state].help}`;
+    // A connected Failed branch turns the failure into data for a notification; without
+    // one, the run fails loudly as before.
+    const handled = kind === "transfer" && ctx.run.graph.edges.some((e) => e.source === ctx.node.id && e.sourcePort === "failed");
+    if (handled) return ok({ ...asObject(ctx.input), state: doc.state, providerStatus: doc.providerStatus, failure }, "failed");
+    throw new NodeError(failure);
+  }
   if (reached) return ok({ ...asObject(ctx.input), state: doc.state, providerStatus: doc.providerStatus, destinations: doc.destinations.length ? doc.destinations : asObject(ctx.input).destinations });
   const until = ctx.waitState?.until ? new Date(String(ctx.waitState.until)) : new Date(Date.now() + hours * 3_600_000);
   if (until.getTime() <= Date.now()) {
@@ -76,6 +84,10 @@ export const moneyExecutors: Record<string, Executor> = {
 
   "mh.create_transfer": async (ctx) => {
     const config = allocation(ctx);
+    const approved = asObject(asObject(ctx.input).approval).payloadHash;
+    if (typeof approved === "string" && approved !== payoutHash(ctx.input)) {
+      throw new NodeError("This payout differs from the one that was approved, so no quote was created. Nothing was sent.");
+    }
     const doc = await quoteTransfer({
       ownerId: ctx.ownerId,
       sourceWallet: ctx.ownerWallet,

@@ -3,6 +3,7 @@ import type { RecipeConfig } from "@/lib/recipe-schema";
 import type { ExecutionState } from "@/lib/execution-states";
 import type { CredentialType } from "@/lib/nodes/types";
 import type { NodeRunStatus, RunStatus, WaitKind, WorkflowGraph } from "@/lib/workflow/types";
+import type { TemplateChecklistItem, TemplateDefinition } from "@/lib/templates/types";
 
 // Document shapes as stored. Token amounts are base-unit integer strings; Mongo's numeric
 // types either lose precision (double) or cap at 2^63 (long), and u64 token supplies can
@@ -169,7 +170,17 @@ export interface WorkflowDoc {
   triggerType: string | null;
   // Webhook triggers are addressed by an unguessable key, never by the workflow id.
   webhookKey: string;
-  schedule: { intervalMinutes: number; nextAt: Date } | null;
+  schedule: { key: string; nextAt: Date } | null;
+  description?: string;
+  // Set when the workflow was imported from a template. A snapshot, not a live link.
+  sourceTemplate?: { id: ObjectId; slug: string; revision: number; setupChecklist: TemplateChecklistItem[] } | null;
+  createRequestKey?: string;
+  // Where provider events for this workflow arrive, e.g. "stripe:acct_123". Set while it's
+  // enabled so one indexed lookup finds every workflow subscribed to an event.
+  inboundRoute?: string | null;
+  // Provider-side hooks this workflow registered (GitHub repo webhook, Discord command),
+  // with the signing secret sealed, so turning it off can remove them.
+  remoteHook?: { provider: string; id: string; secretEnc?: string; target: string } | null;
   runCount: number;
   lastRunAt: Date | null;
   createdAt: Date;
@@ -237,5 +248,55 @@ export interface CredentialDoc {
   // AES-256-GCM: base64 of iv(12) | tag(16) | ciphertext. Never returned by any API.
   secret: string;
   hint: string;
+  // Older credentials have no check yet; absent and null mean the same thing.
+  check?: { ok: boolean; at: Date; message: string } | null;
+  // Connections only: who the user signed in as (or the store, server, chat they linked),
+  // the scopes the provider actually granted, and when they connected. None of it secret.
+  account?: { id: string; name: string; detail?: string };
+  scopes?: string[];
+  connectedAt?: Date;
   createdAt: Date;
+}
+
+export interface OAuthStateDoc {
+  _id: string;
+  userId: ObjectId;
+  type: string;
+  verifierEnc: string;
+  returnTo: string;
+  popup: boolean;
+  shop?: string;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+// A one-time code a user sends to the Telegram bot to link a chat to their account.
+export interface TelegramLinkDoc {
+  _id: string;
+  userId: ObjectId;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+// A published, shared starting point. The graph here is the executable source of truth;
+// importing deep-copies it into a WorkflowDoc owned by the importer and never edits this.
+export interface WorkflowTemplateDoc extends TemplateDefinition {
+  _id: ObjectId;
+  thumbnailUrl: string;
+  graphSchemaVersion: number;
+  isPublished: boolean;
+  // Hash of the seeded definition, so re-seeding only writes when content changed.
+  contentHash: string;
+  revision: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// One business key per workflow, claimed by the run that pays it (see logic.once).
+export interface OnceKeyDoc {
+  _id: ObjectId;
+  workflowId: ObjectId;
+  key: string;
+  runId: ObjectId;
+  claimedAt: Date;
 }

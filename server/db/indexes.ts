@@ -37,6 +37,9 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { ownerId: 1, status: 1, updatedAt: -1 }, name: "owner_status_recent" },
     { key: { webhookKey: 1 }, name: "webhook_key_unique", unique: true },
     { key: { "schedule.nextAt": 1 }, name: "schedule_queue", partialFilterExpression: { enabled: true, "schedule.nextAt": { $type: "date" } } },
+    { key: { inboundRoute: 1 }, name: "inbound_route", partialFilterExpression: { enabled: true, inboundRoute: { $type: "string" } } },
+    // A double-clicked "Use template" with the same request key creates one workflow.
+    { key: { ownerId: 1, createRequestKey: 1 }, name: "owner_create_request_unique", unique: true, partialFilterExpression: { createRequestKey: { $type: "string" } } },
   ],
   [COLLECTIONS.workflowVersions]: [{ key: { workflowId: 1, version: 1 }, name: "workflow_version_unique", unique: true }],
   [COLLECTIONS.workflowRuns]: [
@@ -47,7 +50,20 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { nextWakeAt: 1 }, name: "wake_queue", partialFilterExpression: { nextWakeAt: { $type: "date" } } },
   ],
   [COLLECTIONS.nodeRuns]: [{ key: { runId: 1, nodeId: 1 }, name: "run_node_unique", unique: true }],
-  [COLLECTIONS.credentials]: [{ key: { ownerId: 1, type: 1 }, name: "owner_type" }],
+  [COLLECTIONS.credentials]: [
+    { key: { ownerId: 1, type: 1 }, name: "owner_type" },
+    // Reconnecting the same account updates its connection instead of adding a second one.
+    { key: { ownerId: 1, type: 1, "account.id": 1 }, name: "owner_account_unique", unique: true, partialFilterExpression: { "account.id": { $type: "string" } } },
+    // Platform webhooks find the connections for a Stripe account, store or Discord server.
+    { key: { type: 1, "account.id": 1 }, name: "type_account" },
+  ],
+  [COLLECTIONS.oauthStates]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
+  [COLLECTIONS.telegramLinks]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
+  [COLLECTIONS.workflowTemplates]: [
+    { key: { slug: 1 }, name: "slug_unique", unique: true },
+    { key: { isPublished: 1, category: 1 }, name: "published_category" },
+  ],
+  [COLLECTIONS.onceKeys]: [{ key: { workflowId: 1, key: 1 }, name: "workflow_key_unique", unique: true }],
 };
 
 export async function ensureIndexes(db: Db): Promise<void> {

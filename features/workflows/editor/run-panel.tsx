@@ -9,6 +9,7 @@ import { relativeTime } from "@/lib/format";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import type { RunDTO } from "@/lib/workflow/dto";
 import type { WorkflowGraph } from "@/lib/workflow/types";
+import { ApprovalReview } from "./approval-review";
 import type { Runs } from "./use-workflow-runs";
 
 const RUN_TONE: Record<string, string> = {
@@ -66,6 +67,7 @@ function WaitingCard({ run, runs, workflowId, graph }: { run: RunDTO; runs: Runs
           {w.until ? `${typeof message === "string" && /[.?!]$/.test(message) ? "" : "."} Expires ${relativeTime(w.until)}.` : ""}
         </p>
       </div>
+      {w.kind === "approval" && <ApprovalReview run={run} nodeId={w.nodeId} />}
       {w.kind === "approval" && (
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => runs.decide(w.nodeId, "rejected")} busy={runs.busy === "approve"}>

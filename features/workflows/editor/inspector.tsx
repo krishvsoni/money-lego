@@ -10,13 +10,22 @@ import type { CredentialDTO, NodeRunDTO, WorkflowDTO } from "@/lib/workflow/dto"
 import type { GraphIssue } from "@/lib/workflow/validate";
 import { NodeIcon } from "../node-icon";
 import { FieldInput } from "./field-input";
+import { SetupChecklist } from "./setup-checklist";
 import type { Editor } from "./use-workflow-editor";
 
 function Json({ value }: { value: unknown }) {
   return <pre className="max-h-72 overflow-auto rounded-md bg-sunken p-2.5 font-mono text-[0.6875rem] leading-relaxed text-ink-2">{JSON.stringify(value ?? null, null, 2)}</pre>;
 }
 
-function WebhookHelp({ workflow }: { workflow: WorkflowDTO }) {
+// How each inbound trigger's sender should call the endpoint.
+const ENDPOINT_HELP: Record<string, string> = {
+  "trigger.github": "In the repository: Settings, Webhooks, Add webhook. Paste this URL, content type application/json, the same secret, and pick Releases or Pull requests.",
+  "trigger.stripe": "In Stripe: Developers, Webhooks, Add endpoint. Paste this URL and select invoice.paid, then save the signing secret as a credential.",
+  "trigger.shopify": "In Shopify: Settings, Notifications, Webhooks, Create webhook. Event Order payment, format JSON, this URL.",
+  "trigger.discord": "In the Developer Portal: your app, General Information, Interactions Endpoint URL. Discord checks it with a signed ping, which works while the workflow is off.",
+};
+
+function WebhookHelp({ workflow, type }: { workflow: WorkflowDTO; type: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window === "undefined" ? workflow.webhookPath : `${window.location.origin}${workflow.webhookPath}`;
   return (
@@ -35,7 +44,11 @@ function WebhookHelp({ workflow }: { workflow: WorkflowDTO }) {
           {copied ? "Copied" : <Copy className="h-3.5 w-3.5" aria-label="Copy URL" />}
         </button>
       </div>
-      <p className="mt-2">POST JSON with header <code className="font-mono">x-money-lego-signature: sha256=&lt;HMAC of the raw body&gt;</code>. Add an <code className="font-mono">idempotency-key</code> header so retries never start a second run.</p>
+      {ENDPOINT_HELP[type] ? (
+        <p className="mt-2">{ENDPOINT_HELP[type]} Redeliveries of the same event never start a second run.</p>
+      ) : (
+        <p className="mt-2">POST JSON with header <code className="font-mono">x-money-lego-signature: sha256=&lt;HMAC of the raw body&gt;</code>. Add an <code className="font-mono">idempotency-key</code> header so retries never start a second run.</p>
+      )}
     </div>
   );
 }
@@ -44,11 +57,13 @@ export function Inspector({
   editor,
   credentials,
   onCredentialCreated,
+  onRefreshCredentials,
   nodeRun,
 }: {
   editor: Editor;
   credentials: CredentialDTO[];
   onCredentialCreated: (c: CredentialDTO) => void;
+  onRefreshCredentials: () => Promise<CredentialDTO[]>;
   nodeRun: NodeRunDTO | null;
 }) {
   const [tab, setTab] = useState<"settings" | "data">("settings");
@@ -57,9 +72,10 @@ export function Inspector({
   if (!node) {
     const general = editor.issues.filter((i) => !i.nodeId);
     return (
-      <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-line bg-surface p-5" aria-label="Inspector">
+      <aside className="flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l border-line bg-surface p-5" aria-label="Inspector">
         <h2 className="text-sm font-bold">Workflow</h2>
         <p className="mt-1 text-sm text-ink-2">Select a node to configure it. Drag from a node&apos;s right edge to another node to connect them.</p>
+        <SetupChecklist editor={editor} />
         {editor.issues.length > 0 ? (
           <div className="mt-5">
             <p className="text-sm font-semibold">{editor.issues.length} to fix before it can run</p>
@@ -127,7 +143,7 @@ export function Inspector({
       <div className="flex-1 overflow-y-auto p-4">
         {tab === "settings" ? (
           <div className="flex flex-col gap-4">
-            {node.type === "trigger.webhook" && <WebhookHelp workflow={editor.workflow} />}
+            {(node.type === "trigger.webhook" || ENDPOINT_HELP[node.type]) && <WebhookHelp workflow={editor.workflow} type={node.type} />}
             {def?.fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-1.5">
                 <label htmlFor={f.key} className="flex items-center justify-between text-xs font-semibold">
@@ -145,6 +161,7 @@ export function Inspector({
                   credentials={credentials}
                   onChange={(v) => setConfig(f.key, v)}
                   onCredentialCreated={onCredentialCreated}
+                  onRefreshCredentials={onRefreshCredentials}
                 />
                 {byField[f.key] ? <p className="text-xs text-danger">{byField[f.key]}</p> : f.help ? <p className="text-xs text-ink-3">{f.help}</p> : null}
               </div>

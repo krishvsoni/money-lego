@@ -7,8 +7,9 @@ export const GET = route({ auth: true }, async ({ req, user }) => ({
   workflows: await listWorkflows(user, req.nextUrl.searchParams.get("status") === "archived" ? "archived" : "active"),
 }));
 
-const body = z.object({ templateId: z.string().max(40), name: z.string().trim().max(80).optional() });
+const common = { name: z.string().trim().max(80).optional(), requestKey: z.string().uuid().optional() };
+const body = z.union([z.object({ templateId: z.literal("blank"), ...common }), z.object({ templateSlug: z.string().regex(/^[a-z0-9-]{3,60}$/), ...common })]);
 
 export const POST = route({ auth: true, rate: RATE_RULES.write, body }, async ({ user, body }) => ({
-  workflow: await createWorkflow(user, body.templateId, body.name),
+  workflow: await createWorkflow(user, body),
 }));

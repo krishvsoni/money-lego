@@ -1,13 +1,28 @@
+import { connectorNodes } from "./catalog/connectors";
 import { dataNodes } from "./catalog/data";
 import { integrationNodes } from "./catalog/integrations";
 import { logicNodes } from "./catalog/logic";
 import { moneyNodes } from "./catalog/money";
+import { payoutNodes } from "./catalog/payout";
+import { providerTriggerNodes } from "./catalog/provider-triggers";
 import { triggerNodes } from "./catalog/triggers";
 import { utilityNodes } from "./catalog/utilities";
 import type { Category, NodeDefinition } from "./types";
 
 // Plugin packages register here. Order within a category is the catalog order.
-const ALL: NodeDefinition[] = [...triggerNodes, ...logicNodes, ...dataNodes, ...moneyNodes, ...integrationNodes, ...utilityNodes];
+const ALL: NodeDefinition[] = [
+  ...triggerNodes,
+  ...providerTriggerNodes,
+  ...logicNodes,
+  ...payoutNodes.filter((d) => d.category === "logic"),
+  ...dataNodes,
+  ...payoutNodes.filter((d) => d.category === "data"),
+  ...moneyNodes,
+  ...integrationNodes.slice(0, 1),
+  ...connectorNodes,
+  ...integrationNodes.slice(1),
+  ...utilityNodes,
+];
 
 const BY_TYPE = new Map(ALL.map((d) => [d.type, d]));
 
