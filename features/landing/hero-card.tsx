@@ -5,19 +5,20 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { ArrowUpRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { allNodeDefinitions } from "@/lib/nodes/registry";
 import { CATEGORY_META } from "@/lib/nodes/types";
-import { NodeIcon } from "@/features/workflows/node-icon";
+import { BrickGlyph, NodeIcon } from "@/features/workflows/node-icon";
 
 interface Chip {
   key: string;
   label: string;
   color: string;
+  icon: string;
 }
 
 const START: Chip[] = [
-  { key: "webhook", label: "Signed webhook", color: "var(--brick-2)" },
-  { key: "split", label: "Split 60/40", color: "var(--brick-5)" },
-  { key: "approve", label: "Approve", color: "var(--brick-4)" },
-  { key: "sign", label: "Sign", color: "var(--brick-1)" },
+  { key: "webhook", label: "Signed webhook", color: "var(--brick-2)", icon: "Webhook" },
+  { key: "split", label: "Split 60/40", color: "var(--brick-5)", icon: "Split" },
+  { key: "approve", label: "Approve", color: "var(--brick-4)", icon: "UserCheck" },
+  { key: "sign", label: "Sign", color: "var(--brick-1)", icon: "PenLine" },
 ];
 const IDLE_WORDS = ["Discord message", "Wait for transfer", "Delay", "Slack message", "Execution log"];
 const MAX_CHIPS = 8;
@@ -91,7 +92,7 @@ export function HeroCard({ brickCount }: { brickCount: number }) {
   const add = (index: number) => {
     const def = matches[index];
     if (!def || full) return;
-    setChips((c) => [...c, { key: `${def.type}-${Date.now()}`, label: def.title, color: CATEGORY_META[def.category].color }]);
+    setChips((c) => [...c, { key: `${def.type}-${Date.now()}`, label: def.title, color: CATEGORY_META[def.category].color, icon: def.icon }]);
     setQuery("");
     setActive(0);
     requestAnimationFrame(() => row.current?.scrollTo({ left: row.current.scrollWidth, behavior: "smooth" }));
@@ -131,8 +132,8 @@ export function HeroCard({ brickCount }: { brickCount: number }) {
         >
           {chips.map((c, i) => (
             <li key={c.key} className={`flex shrink-0 items-center gap-2 ${i >= START.length ? "brick-snap" : ""}`}>
-              <span className="tactile inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium text-ink">
-                <span className="h-2 w-3 rounded-[2px]" style={{ background: c.color }} aria-hidden />
+              <span className="tactile inline-flex items-center gap-2 whitespace-nowrap rounded-full py-1 pl-1 pr-3 text-sm font-medium text-ink">
+                <BrickGlyph name={c.icon} color={c.color} size="xs" />
                 {c.label}
               </span>
               {i < chips.length - 1 && <span className="hidden h-px w-3 bg-line-strong sm:block" aria-hidden />}

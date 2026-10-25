@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrickGlyph } from "@/features/workflows/node-icon";
 import { Reveal } from "./reveal";
 
 // Tiles: a visual on top, then a title and a short description. Each visual is a small,
@@ -44,18 +45,18 @@ function Row({ left, right, tone = "text-ink" }: { left: ReactNode; right: React
 }
 
 const CHAIN = [
-  { label: "Webhook", color: "var(--brick-2)" },
-  { label: "Split", color: "var(--brick-5)" },
-  { label: "Approve", color: "var(--brick-4)" },
-  { label: "Sign", color: "var(--brick-1)" },
+  { label: "Webhook", color: "var(--brick-2)", icon: "Webhook" },
+  { label: "Split", color: "var(--brick-5)", icon: "Split" },
+  { label: "Approve", color: "var(--brick-4)", icon: "UserCheck" },
+  { label: "Sign", color: "var(--brick-1)", icon: "PenLine" },
 ];
 
 export function ChainVisual() {
   return (
     <ol className="flex flex-col items-center gap-2">
       {CHAIN.map((c) => (
-        <li key={c.label} className="tactile flex w-40 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink">
-          <span className="h-3 w-4 rounded-[3px]" style={{ background: c.color }} aria-hidden />
+        <li key={c.label} className="tactile flex w-40 items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-3 text-xs font-medium text-ink">
+          <BrickGlyph name={c.icon} color={c.color} size="xs" />
           {c.label}
         </li>
       ))}

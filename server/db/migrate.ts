@@ -5,13 +5,14 @@ import { COLLECTIONS } from "./names";
 import { acquireLease, releaseLease } from "./locks";
 import { migration001 } from "./migrations/001-schema";
 import { migration002 } from "./migrations/002-workflows";
+import { migration003 } from "./migrations/003-encrypt-wallets";
 import type { LockDoc, MigrationDoc } from "./types";
 
 // Versioned, forward-only migrations. Every instance calls this on boot; the lease makes
 // sure exactly one runs them while the others wait, and the migrations collection records
 // what's applied so a migration never runs twice.
 
-const MIGRATIONS = [migration001, migration002];
+const MIGRATIONS = [migration001, migration002, migration003];
 const LOCK = "migrations";
 const LOCK_TTL_MS = 60_000;
 

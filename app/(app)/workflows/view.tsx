@@ -10,19 +10,20 @@ import { api, errorMessage } from "@/lib/api-client";
 import { relativeTime } from "@/lib/format";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import { CATEGORY_META } from "@/lib/nodes/types";
+import { BrickGlyph } from "@/features/workflows/node-icon";
 import type { WorkflowDTO } from "@/lib/workflow/dto";
 import { TEMPLATES } from "@/lib/workflow/templates";
 import { useResource } from "@/lib/use-resource";
 
-// A row of bricks in each node's category colour: the workflow's shape at a glance.
+// A row of node icons in their category colour: the workflow's shape at a glance.
 function BrickStrip({ workflow }: { workflow: WorkflowDTO }) {
   const nodes = [...workflow.graph.nodes].sort((a, b) => a.position.x - b.position.x).slice(0, 14);
   if (!nodes.length) return <span className="text-xs text-ink-3">Empty</span>;
   return (
-    <span className="flex items-end gap-[3px]" aria-hidden>
+    <span className="flex items-center gap-[3px]" aria-hidden>
       {nodes.map((n) => {
         const def = nodeDefinition(n.type);
-        return <span key={n.id} className="h-3 w-4 rounded-[3px]" style={{ background: def ? CATEGORY_META[def.category].color : "var(--line-strong)" }} />;
+        return <BrickGlyph key={n.id} name={def?.icon ?? "Package"} color={def ? CATEGORY_META[def.category].color : "var(--ink-3)"} size="xs" />;
       })}
     </span>
   );
@@ -120,10 +121,10 @@ export function View() {
               const g = t.graph();
               return (
                 <li key={t.id} className="tactile flex flex-col rounded-2xl p-2">
-                  <span className="tactile-soft flex h-28 flex-wrap content-center items-center justify-center gap-1 rounded-lg px-4" aria-hidden>
+                  <span className="tactile-soft flex h-28 flex-wrap content-center items-center justify-center gap-1.5 rounded-lg px-4" aria-hidden>
                     {g.nodes.map((n) => {
                       const def = nodeDefinition(n.type);
-                      return <span key={n.id} className="h-5 w-7 rounded-[4px]" style={{ background: def ? CATEGORY_META[def.category].color : "var(--line)" }} />;
+                      return <BrickGlyph key={n.id} name={def?.icon ?? "Package"} color={def ? CATEGORY_META[def.category].color : "var(--ink-3)"} size="md" />;
                     })}
                   </span>
                   <div className="flex flex-1 items-start justify-between gap-4 px-2 pb-2 pt-4">

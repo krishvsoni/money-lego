@@ -20,6 +20,7 @@ const comparison: Field[] = [
 export const logicNodes: NodeDefinition[] = [
   {
     type: "logic.condition",
+    summary: "Go one way if true, another if false.",
     title: "Condition",
     category: "logic",
     description: "Send the data down the true or false branch.",
@@ -36,6 +37,7 @@ export const logicNodes: NodeDefinition[] = [
   },
   {
     type: "logic.filter",
+    summary: "Continue only when a check passes.",
     title: "Filter",
     category: "logic",
     description: "Continue only when the check passes. Otherwise the branch stops quietly.",
@@ -49,6 +51,7 @@ export const logicNodes: NodeDefinition[] = [
   },
   {
     type: "logic.approval",
+    summary: "Wait for you to approve.",
     title: "Human approval",
     category: "logic",
     description: "Pause until the workflow owner approves or rejects in the run panel.",

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { env } from "../config/env";
 import { collections } from "../db/collections";
+import { openWallet, sealWallet } from "../crypto/wallet-vault";
 import { errors } from "../errors";
 
 // Opaque session tokens. The browser holds the token in an httpOnly cookie; the database
@@ -33,7 +34,7 @@ export async function createSession(userId: ObjectId, wallet: string): Promise<v
   await sessions.insertOne({
     _id: hashToken(token),
     userId,
-    wallet,
+    walletEnc: sealWallet(wallet, "sessions.wallet"),
     createdAt: now,
     expiresAt: new Date(now.getTime() + ttlMs),
   });
@@ -55,7 +56,7 @@ export async function currentUser(): Promise<SessionUser | null> {
   const { sessions } = await collections();
   // TTL deletion runs about once a minute, so expiry is also checked on read.
   const session = await sessions.findOne({ _id: hashToken(token), expiresAt: { $gt: new Date() } });
-  return session ? { userId: session.userId, wallet: session.wallet } : null;
+  return session ? { userId: session.userId, wallet: openWallet(session.walletEnc, "sessions.wallet") } : null;
 }
 
 export async function requireUser(): Promise<SessionUser> {

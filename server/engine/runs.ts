@@ -9,6 +9,7 @@ import { parseId } from "../db/ids";
 import { inTransaction } from "../db/transaction";
 import type { WorkflowDoc, WorkflowRunDoc } from "../db/types";
 import { errors } from "../errors";
+import { maskWallet } from "../crypto/wallet-vault";
 import { advanceRun } from "./advance";
 
 export interface NodeRunDTO {
@@ -138,7 +139,7 @@ export async function decideApproval(user: SessionUser, runId: string, nodeId: s
   const { nodeRuns, workflowRuns } = await collections();
   const result = await nodeRuns.updateOne(
     { runId: run._id, nodeId, status: "waiting", nodeType: "logic.approval", "waitState.decision": { $exists: false } },
-    { $set: { "waitState.decision": decision, "waitState.by": user.wallet, "waitState.at": new Date().toISOString() } },
+    { $set: { "waitState.decision": decision, "waitState.by": maskWallet(user.wallet), "waitState.at": new Date().toISOString() } },
   );
   if (!result.modifiedCount) throw errors.invalidState("This approval was already decided or isn't waiting anymore.");
   await workflowRuns.updateOne({ _id: run._id }, { $set: { nextWakeAt: new Date() } });

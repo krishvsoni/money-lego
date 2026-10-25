@@ -6,6 +6,7 @@ import type { SessionUser } from "../auth/session";
 import { collections } from "../db/collections";
 import type { ExecutionDoc, TimelineEvent } from "../db/types";
 import { errors } from "../errors";
+import { openWallet } from "../crypto/wallet-vault";
 import { parseId } from "../db/ids";
 
 const TIMELINE_LIMIT = 50;
@@ -76,7 +77,7 @@ export function toExecutionDTO(doc: ExecutionDoc): ExecutionDTO {
     recipeName: doc.recipeName,
     recipeVersion: doc.recipeVersion,
     state: doc.state,
-    sourceWallet: doc.sourceWallet,
+    sourceWallet: openWallet(doc.sourceWalletEnc, "executions.sourceWallet"),
     amountRaw: doc.amountRaw,
     config: doc.snapshot,
     providerTransferId: doc.providerTransferId,

@@ -8,16 +8,19 @@ import type { NodeRunStatus, RunStatus, WaitKind, WorkflowGraph } from "@/lib/wo
 // types either lose precision (double) or cap at 2^63 (long), and u64 token supplies can
 // exceed that, so strings plus a $jsonSchema digit pattern is the exact representation.
 
+// Wallets are never stored in plaintext: walletHash is a keyed HMAC used for lookups and
+// uniqueness, walletEnc is the AES-GCM ciphertext (see server/crypto/wallet-vault.ts).
 export interface UserDoc {
   _id: ObjectId;
-  wallet: string;
+  walletHash: string;
+  walletEnc: string;
   createdAt: Date;
   lastSignedInAt: Date;
 }
 
 export interface NonceDoc {
   _id: string;
-  wallet: string;
+  walletHash: string;
   domain: string;
   issuedAt: Date;
   expiresAt: Date;
@@ -27,7 +30,7 @@ export interface NonceDoc {
 export interface SessionDoc {
   _id: string;
   userId: ObjectId;
-  wallet: string;
+  walletEnc: string;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -106,7 +109,7 @@ export interface ExecutionDoc {
   recipeName: string;
   requestKey: string;
   externalId: string;
-  sourceWallet: string;
+  sourceWalletEnc: string;
   snapshot: RecipeConfig;
   amountRaw: string;
   state: ExecutionState;

@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { RotateCcw, UserCheck, type LucideIcon } from "lucide-react";
 import { formatAmount, splitByPercent } from "@/lib/amounts";
 import { BENEFITS } from "./content";
 import { Reveal } from "./reveal";
@@ -9,7 +10,7 @@ import { Reveal } from "./reveal";
 
 interface Chip {
   text: string;
-  dot?: string;
+  icon?: { Icon: LucideIcon; color: string };
 }
 
 interface Equation {
@@ -32,8 +33,8 @@ const EQUATIONS: Equation[] = [
   },
   {
     parts: [
-      { text: "Approval", dot: "var(--attention)" },
-      { text: "Restart", dot: "var(--line-strong)" },
+      { text: "Approval", icon: { Icon: UserCheck, color: "var(--attention)" } },
+      { text: "Restart", icon: { Icon: RotateCcw, color: "var(--ink-3)" } },
     ],
     op: "→",
     last: "→",
@@ -74,7 +75,7 @@ function EquationStrip({ eq }: { eq: Equation }) {
         <Fragment key={i}>
           {i > 0 && <Op>{eq.op}</Op>}
           <span className="tactile num inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 text-sm font-medium text-ink">
-            {c.dot && <span className="h-2 w-2 rounded-full" style={{ background: c.dot }} aria-hidden />}
+            {c.icon && <c.icon.Icon className="h-4 w-4" style={{ color: c.icon.color }} strokeWidth={2} aria-hidden />}
             {c.text}
           </span>
         </Fragment>

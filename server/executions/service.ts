@@ -15,6 +15,7 @@ import { confirmBroadcast, createTransfer, estimateTransfer, prepareTransfer } f
 import { providerCode, providerToAppError } from "./provider-errors";
 import { syncFromProvider } from "./reconcile";
 import { findOwnedExecution, toExecutionDTO, updateWithRetry } from "./repository";
+import { sealWallet } from "../crypto/wallet-vault";
 
 function quoteFrom(t: ProviderTransfer, estimate: Estimate | null): QuoteSnapshot {
   return {
@@ -73,7 +74,7 @@ export async function quoteTransfer(req: QuoteRequest): Promise<ExecutionDoc> {
     recipeName: req.label.slice(0, 80),
     requestKey: req.requestKey,
     externalId: `ml_${id.toHexString()}`,
-    sourceWallet: req.sourceWallet,
+    sourceWalletEnc: sealWallet(req.sourceWallet, "executions.sourceWallet"),
     snapshot: config,
     amountRaw,
     state: "quoting",

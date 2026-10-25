@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FlaskConical, KeyRound, Route } from "lucide-react";
 import { allNodeDefinitions } from "@/lib/nodes/registry";
 import { AsciiField } from "@/features/landing/ascii-field";
 import { FAQ, TAGLINE } from "@/features/landing/content";
@@ -11,7 +12,11 @@ import { Benefits, Bricks, HowItWorks, PrimaryCta } from "@/features/landing/sec
 import { TaglineReveal } from "@/features/landing/tagline-reveal";
 import { HandoffDemo } from "@/features/landing/handoff-demo";
 
-const PROOF = ["Free on devnet", "Keys stay in your wallet", "Routing by MultiHopper"];
+const PROOF = [
+  { label: "Free on devnet", Icon: FlaskConical, color: "var(--brick-1)" },
+  { label: "Keys stay in your wallet", Icon: KeyRound, color: "var(--brick-5)" },
+  { label: "Routing by MultiHopper", Icon: Route, color: "var(--brick-2)" },
+];
 const LANDING_LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#bricks", label: "Bricks" },
@@ -49,10 +54,10 @@ export default function Landing() {
             </div>
             <PrimaryCta className="mt-10 [@media(max-height:860px)]:mt-8" />
             <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 rounded-full bg-white/85 px-5 py-2 text-base text-ink-2 backdrop-blur-sm [@media(max-height:860px)]:mt-4" aria-label="What you get">
-              {PROOF.map((p, i) => (
-                <li key={p} className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-[2px]" style={{ background: `var(--brick-${[1, 5, 2][i]})` }} aria-hidden />
-                  {p}
+              {PROOF.map(({ label, Icon, color }) => (
+                <li key={label} className="flex items-center gap-2">
+                  <Icon className="h-4 w-4" style={{ color }} strokeWidth={2} aria-hidden />
+                  {label}
                 </li>
               ))}
             </ul>

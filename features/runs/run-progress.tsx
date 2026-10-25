@@ -4,7 +4,7 @@ import { Address } from "@/components/ui/address";
 import type { ExecutionDTO } from "@/lib/dto";
 import { STATE_META } from "@/lib/execution-states";
 import { formatToken, relativeTime } from "@/lib/format";
-import { brickColor } from "@/features/recipes/allocation-bar";
+import { RecipientGlyph } from "@/features/recipes/recipient-glyph";
 
 const SIGNATURE_LABEL: Record<string, string> = {
   keeper_funding: "Funding",
@@ -45,8 +45,8 @@ export function RecipientOutcomes({ run }: { run: ExecutionDTO }) {
         const o = outcome(d.wallet);
         const paid = o?.status === "paid" || (run.state === "completed" && run.config.destinations.length === 1);
         return (
-          <li key={d.wallet} className="grid grid-cols-[12px_1fr_auto] items-center gap-3 py-3">
-            <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: brickColor(i) }} aria-hidden />
+          <li key={d.wallet} className="grid grid-cols-[24px_1fr_auto] items-center gap-3 py-3">
+            <RecipientGlyph index={i} />
             <span className="min-w-0">
               {d.label && <span className="mr-2 text-sm font-semibold">{d.label}</span>}
               <Address value={d.wallet} />

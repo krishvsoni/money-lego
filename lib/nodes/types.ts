@@ -58,6 +58,8 @@ export interface NodeDefinition {
   title: string;
   category: Category;
   description: string;
+  // One short line for hover cards; the full description stays in the editor.
+  summary: string;
   icon: string;
   fields: Field[];
   inputs: Port[];

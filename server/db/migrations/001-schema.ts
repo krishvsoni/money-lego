@@ -8,7 +8,7 @@ import { COLLECTIONS } from "../names";
 const rawAmount = { bsonType: "string", pattern: "^[0-9]+$" };
 const wallet = { bsonType: "string", minLength: 32, maxLength: 44 };
 
-const validators: Record<string, Document> = {
+export const validators: Record<string, Document> = {
   [COLLECTIONS.users]: {
     $jsonSchema: {
       bsonType: "object",

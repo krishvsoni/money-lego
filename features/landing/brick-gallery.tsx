@@ -79,9 +79,9 @@ export function BrickGallery() {
               <span
                 id={`brick-${n.type}`}
                 role="tooltip"
-                className="tactile pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 translate-y-1 rounded-xl p-3 text-left text-sm text-ink-2 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+                className="tactile pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-52 -translate-x-1/2 translate-y-1 rounded-lg px-3 py-2 text-center text-sm text-ink-2 text-balance opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
               >
-                {n.description}
+                {n.summary}
               </span>
             </li>
           );

@@ -3,6 +3,7 @@ import { MAIN_OUT, type NodeDefinition } from "../types";
 export const triggerNodes: NodeDefinition[] = [
   {
     type: "trigger.manual",
+    summary: "Run it yourself with one click.",
     title: "Manual trigger",
     category: "triggers",
     description: "Start the workflow from the editor with an optional test payload.",
@@ -16,6 +17,7 @@ export const triggerNodes: NodeDefinition[] = [
   },
   {
     type: "trigger.webhook",
+    summary: "Start when your app sends a signed request.",
     title: "Webhook trigger",
     category: "triggers",
     description: "Start the workflow when a signed HTTP POST arrives. Unsigned requests are refused.",
@@ -38,6 +40,7 @@ export const triggerNodes: NodeDefinition[] = [
   },
   {
     type: "trigger.schedule",
+    summary: "Run on a repeating timer.",
     title: "Schedule trigger",
     category: "triggers",
     description: "Start the workflow on a fixed interval while it's enabled. Money steps still wait for your wallet.",

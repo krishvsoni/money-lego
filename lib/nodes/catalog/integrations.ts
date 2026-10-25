@@ -5,6 +5,7 @@ const messageField = { key: "message", label: "Message", kind: "textarea" as con
 export const integrationNodes: NodeDefinition[] = [
   {
     type: "http.request",
+    summary: "Call any HTTPS API.",
     title: "HTTP request",
     category: "integrations",
     description: "Call an HTTPS API. Private and internal addresses are blocked.",
@@ -30,6 +31,7 @@ export const integrationNodes: NodeDefinition[] = [
   },
   {
     type: "notify.discord",
+    summary: "Post to a Discord channel.",
     title: "Discord message",
     category: "integrations",
     description: "Post a message to a Discord channel through an incoming webhook.",
@@ -43,6 +45,7 @@ export const integrationNodes: NodeDefinition[] = [
   },
   {
     type: "notify.slack",
+    summary: "Post to a Slack channel.",
     title: "Slack message",
     category: "integrations",
     description: "Post a message to a Slack channel through an incoming webhook.",
@@ -56,6 +59,7 @@ export const integrationNodes: NodeDefinition[] = [
   },
   {
     type: "notify.telegram",
+    summary: "Message a Telegram chat.",
     title: "Telegram message",
     category: "integrations",
     description: "Send a message through a Telegram bot.",
@@ -70,6 +74,7 @@ export const integrationNodes: NodeDefinition[] = [
   },
   {
     type: "notify.email",
+    summary: "Send an email.",
     title: "Email",
     category: "integrations",
     description: "Send an email through an SMTP provider.",

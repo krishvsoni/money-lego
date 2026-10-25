@@ -4,7 +4,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type Keyboa
 import { Search } from "lucide-react";
 import { definitionsByCategory } from "@/lib/nodes/registry";
 import { CATEGORY_META, type NodeDefinition } from "@/lib/nodes/types";
-import { NodeIcon } from "../node-icon";
+import { CATEGORY_ICON, NodeIcon } from "../node-icon";
 import { DRAG_MIME } from "./canvas";
 
 export interface CatalogHandle {
@@ -69,7 +69,9 @@ export const Catalog = forwardRef<CatalogHandle, { onAdd: (type: string) => void
         {groups.map((g) => (
           <section key={g.category} className="pt-3">
             <h3 className="flex items-center gap-2 px-2 pb-1 text-xs font-bold text-ink-2">
-              <span className="h-2 w-2 rounded-[2px]" style={{ background: CATEGORY_META[g.category].color }} aria-hidden />
+              <span className="inline-flex" style={{ color: CATEGORY_META[g.category].color }} aria-hidden>
+                <NodeIcon name={CATEGORY_ICON[g.category]} className="h-3.5 w-3.5" />
+              </span>
               {CATEGORY_META[g.category].title}
             </h3>
             <ul>

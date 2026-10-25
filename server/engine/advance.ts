@@ -9,6 +9,7 @@ import { INSTANCE_ID } from "../db/locks";
 import type { NodeRunDoc, RunLogEntry, WorkflowRunDoc } from "../db/types";
 import { isAppError } from "../errors";
 import { log } from "../log";
+import { openWallet } from "../crypto/wallet-vault";
 import { executorFor } from "./executors";
 import { NodeError, type ExecResult } from "./types";
 
@@ -102,7 +103,7 @@ export async function advanceRun(runId: ObjectId, budgetMs = 20_000): Promise<vo
       const outputs = Object.fromEntries(runs.filter((r) => r.status === "succeeded").map((r) => [r.nodeId, r.output]));
       const scope: Scope = { input, trigger: run.trigger.payload, nodes: outputs, run: { id: run._id.toHexString(), workflowId: run.workflowId.toHexString() } };
 
-      const result = await runNode(run, node, def?.title ?? node.type, input, scope, current ?? null, owner.wallet, addLog);
+      const result = await runNode(run, node, def?.title ?? node.type, input, scope, current ?? null, openWallet(owner.walletEnc, "users.wallet"), addLog);
       if (result.kind === "failed") {
         status = "failed";
         error = `${def?.title ?? node.type}: ${result.message}`;

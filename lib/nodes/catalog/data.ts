@@ -13,6 +13,7 @@ export const VALUE_TYPES = [
 export const dataNodes: NodeDefinition[] = [
   {
     type: "data.validate",
+    summary: "Check data before it's used.",
     title: "Validate data",
     category: "data",
     description: "Check that fields exist and have the right type. Fails the run with a clear list if not.",
@@ -39,6 +40,7 @@ export const dataNodes: NodeDefinition[] = [
   },
   {
     type: "data.map",
+    summary: "Reshape data from earlier steps.",
     title: "Map data",
     category: "data",
     description: "Build a new object from fields earlier in the run.",
@@ -67,6 +69,7 @@ export const dataNodes: NodeDefinition[] = [
   },
   {
     type: "data.split",
+    summary: "Divide a total into exact shares.",
     title: "Split allocation",
     category: "data",
     description: "Turn a total into exact per-recipient token amounts. Shares always add up to the last base unit.",

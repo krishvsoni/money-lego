@@ -16,6 +16,7 @@ const routeFields: Field[] = [
 export const moneyNodes: NodeDefinition[] = [
   {
     type: "mh.estimate",
+    summary: "See fees before anything moves.",
     title: "Fee estimate",
     category: "money",
     description: "Price the allocation from the previous node: fees, SOL needed up front and net delivery. Moves nothing.",
@@ -29,6 +30,7 @@ export const moneyNodes: NodeDefinition[] = [
   },
   {
     type: "mh.create_transfer",
+    summary: "Lock in a quote for the payout.",
     title: "Create transfer",
     category: "money",
     description: "Create a binding quote for the allocation, paid from the workflow owner's wallet. Idempotent per run.",
@@ -42,6 +44,7 @@ export const moneyNodes: NodeDefinition[] = [
   },
   {
     type: "mh.wallet_sign",
+    summary: "You sign in your wallet. Keys stay with you.",
     title: "Sign & broadcast",
     category: "money",
     description:
@@ -56,6 +59,7 @@ export const moneyNodes: NodeDefinition[] = [
   },
   {
     type: "mh.wait_status",
+    summary: "Wait until the transfer lands.",
     title: "Wait for transfer",
     category: "money",
     description: "Wait until MultiHopper reports the transfer reached a state. Fails if it fails, expires or is refunded.",
@@ -81,6 +85,7 @@ export const moneyNodes: NodeDefinition[] = [
   },
   {
     type: "mh.result",
+    summary: "A summary of who got paid.",
     title: "Transfer result",
     category: "money",
     description: "Summarise the transfer for notifications and logs: amounts, recipients and signatures.",

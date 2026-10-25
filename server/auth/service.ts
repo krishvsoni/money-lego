@@ -6,6 +6,7 @@ import { buildSignInMessage, type SignInPayload } from "@/lib/auth-message";
 import { isSolanaAddress } from "@/lib/solana-address";
 import { env } from "../config/env";
 import { collections } from "../db/collections";
+import { sealWallet, walletIndex } from "../crypto/wallet-vault";
 import { errors } from "../errors";
 import { createSession } from "./session";
 
@@ -20,7 +21,7 @@ export async function issueNonce(wallet: string): Promise<SignInPayload> {
   const now = new Date();
   const doc = {
     _id: randomBytes(16).toString("hex"),
-    wallet,
+    walletHash: walletIndex(wallet),
     domain: appDomain(),
     issuedAt: now,
     expiresAt: new Date(now.getTime() + NONCE_TTL_MS),
@@ -46,13 +47,16 @@ function signatureMatches(message: string, signature: string, wallet: string): b
 }
 
 export async function verifySignIn(input: { wallet: string; nonce: string; signature: string }) {
+  if (!isSolanaAddress(input.wallet)) throw errors.validation("That isn't a valid Solana wallet address.");
   const { nonces, users } = await collections();
   const now = new Date();
+  const walletHash = walletIndex(input.wallet);
 
   // Consuming before verifying is deliberate: the nonce is single-use whether or not the
-  // signature checks out, so a captured nonce can't be replayed or brute-forced.
+  // signature checks out, so a captured nonce can't be replayed or brute-forced. The nonce
+  // matched on the wallet's index, so input.wallet is the wallet it was issued to.
   const nonce = await nonces.findOneAndUpdate(
-    { _id: input.nonce, wallet: input.wallet, consumedAt: null, expiresAt: { $gt: now } },
+    { _id: input.nonce, walletHash, consumedAt: null, expiresAt: { $gt: now } },
     { $set: { consumedAt: now } },
     { returnDocument: "before" },
   );
@@ -60,21 +64,21 @@ export async function verifySignIn(input: { wallet: string; nonce: string; signa
 
   const message = buildSignInMessage({
     domain: nonce.domain,
-    wallet: nonce.wallet,
+    wallet: input.wallet,
     nonce: nonce._id,
     issuedAt: nonce.issuedAt.toISOString(),
     expiresAt: nonce.expiresAt.toISOString(),
   });
-  if (!signatureMatches(message, input.signature, nonce.wallet)) {
+  if (!signatureMatches(message, input.signature, input.wallet)) {
     throw errors.validation("The wallet signature didn't match. Try signing in again.");
   }
 
   const user = await users.findOneAndUpdate(
-    { wallet: nonce.wallet },
-    { $set: { lastSignedInAt: now }, $setOnInsert: { wallet: nonce.wallet, createdAt: now } },
+    { walletHash },
+    { $set: { lastSignedInAt: now }, $setOnInsert: { walletHash, walletEnc: sealWallet(input.wallet, "users.wallet"), createdAt: now } },
     { upsert: true, returnDocument: "after" },
   );
   if (!user) throw errors.internal();
-  await createSession(user._id, user.wallet);
-  return { wallet: user.wallet };
+  await createSession(user._id, input.wallet);
+  return { wallet: input.wallet };
 }

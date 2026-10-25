@@ -3,6 +3,7 @@ import { MAIN_IN, MAIN_OUT, type NodeDefinition } from "../types";
 export const utilityNodes: NodeDefinition[] = [
   {
     type: "util.delay",
+    summary: "Pause for a set time.",
     title: "Delay",
     category: "utilities",
     description: "Wait before continuing. Durable: the run resumes even if no one has the editor open.",
@@ -16,6 +17,7 @@ export const utilityNodes: NodeDefinition[] = [
   },
   {
     type: "util.log",
+    summary: "Write a note to the run log.",
     title: "Execution log",
     category: "utilities",
     description: "Write a line to this run's log.",

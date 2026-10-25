@@ -1,10 +1,10 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import type { CredentialType } from "@/lib/nodes/types";
 import type { SessionUser } from "../auth/session";
-import { env } from "../config/env";
+import { masterKey, open, seal } from "../crypto/aead";
 import { collections } from "../db/collections";
 import { parseId } from "../db/ids";
 import type { CredentialDoc } from "../db/types";
@@ -14,25 +14,9 @@ import { errors } from "../errors";
 // environment. A database dump alone yields nothing usable. No API ever returns a secret;
 // the UI only sees a name and a short hint.
 
-function key(): Buffer {
-  const k = env().CREDENTIALS_KEY;
-  if (!k) throw errors.notConfigured("Credential encryption (CREDENTIALS_KEY)");
-  return Buffer.from(k, "base64");
-}
-
-function encrypt(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key(), iv);
-  const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), body]).toString("base64");
-}
-
-function decrypt(packed: string): string {
-  const raw = Buffer.from(packed, "base64");
-  const decipher = createDecipheriv("aes-256-gcm", key(), raw.subarray(0, 12));
-  decipher.setAuthTag(raw.subarray(12, 28));
-  return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString("utf8");
-}
+// Stored credentials predate subkeys, so they stay under the master key with no AAD.
+const encrypt = (plain: string) => seal(masterKey(), plain);
+const decrypt = (packed: string) => open(masterKey(), packed);
 
 const discordUrl = z.url().refine((u) => /^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\//.test(u), "Use a Discord webhook URL (https://discord.com/api/webhooks/…)");
 const slackUrl = z.url().refine((u) => u.startsWith("https://hooks.slack.com/services/"), "Use a Slack incoming webhook URL (https://hooks.slack.com/services/…)");

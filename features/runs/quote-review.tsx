@@ -5,7 +5,8 @@ import { Address } from "@/components/ui/address";
 import { Button } from "@/components/ui/button";
 import type { ExecutionDTO } from "@/lib/dto";
 import { formatDuration, formatSol, formatToken } from "@/lib/format";
-import { AllocationBar, brickColor } from "@/features/recipes/allocation-bar";
+import { AllocationBar } from "@/features/recipes/allocation-bar";
+import { RecipientGlyph } from "@/features/recipes/recipient-glyph";
 
 function useCountdown(iso: string | null): number | null {
   const [now, setNow] = useState(() => Date.now());
@@ -70,7 +71,7 @@ export function QuoteReview({ run, onSign, signing, onRequote }: { run: Executio
                 <tr key={d.wallet}>
                   <td className="py-3 pr-3">
                     <span className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: brickColor(i) }} aria-hidden />
+                      <RecipientGlyph index={i} />
                       <span className="min-w-0">
                         {d.label && <span className="block font-semibold">{d.label}</span>}
                         <Address value={d.wallet} />
