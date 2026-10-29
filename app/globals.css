@@ -636,3 +636,49 @@ button,
     opacity: 0;
   }
 }
+
+/* The crew walks onto the editor once when it opens: each member rises into place with a
+   small overshoot, one after another. It plays on mount only, never on re-render. */
+.crew-arrive {
+  display: inline-flex;
+  animation: crew-arrive 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+@keyframes crew-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crew-arrive {
+    animation: fade-in 150ms ease both;
+  }
+}
+
+/* The select menu opens out of its trigger: a quick scale and fade from the edge it's
+   attached to. Closing is instant, since the choice is already made. */
+.select-pop {
+  transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .select-pop {
+    transition: opacity 120ms ease;
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+
+/* No native scrollbars anywhere: every page, panel and list still scrolls by wheel, touch,
+   trackpad and keyboard; the raw OS bar just isn't drawn. */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}

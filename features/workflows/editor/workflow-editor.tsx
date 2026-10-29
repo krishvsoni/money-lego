@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast";
 import { api, errorMessage } from "@/lib/api-client";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import type { CredentialDTO, WorkflowDTO } from "@/lib/workflow/dto";
+import { SageDock } from "@/features/agent/editor/sage-dock";
 import { Canvas } from "./canvas";
 import { Catalog, type CatalogHandle } from "./catalog";
 import { Inspector } from "./inspector";
@@ -99,8 +100,9 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
       <div className="flex min-h-0 flex-1">
         <Catalog ref={catalog} onAdd={addFromCatalog} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1">
             <Canvas editor={editor} statuses={runs.statuses} onRefuse={(m) => toast(m, "error")} />
+            <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo }} />
           </div>
           <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />
         </div>

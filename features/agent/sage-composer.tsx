@@ -6,6 +6,7 @@ import { BlurSwap } from "@/components/ui/blur-swap";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/lib/use-resource";
 import { BuildResult } from "./build-result";
+import { ActivityLog } from "./activity-log";
 import { BuildStage } from "./build-stage";
 import { CrewList } from "./crew-list";
 import { Sage, type SageMood } from "./sage";
@@ -44,7 +45,7 @@ const PANEL = "rounded-[24px] border border-line bg-surface";
 
 export function SageComposer({ onManual, manualBusy }: { onManual: () => void; manualBusy: boolean }) {
   const config = useResource<{ agentReady: boolean }>("/api/config");
-  const { state, crew, plan, sent, build, reset } = useSage();
+  const { state, crew, plan, sketch, logs, sent, build, reset } = useSage();
   const { focused, reaction, react, focus, blur } = useReaction();
   const [prompt, setPrompt] = useState("");
 
@@ -94,8 +95,9 @@ export function SageComposer({ onManual, manualBusy }: { onManual: () => void; m
       {working ? (
         <div className="flex flex-col gap-5">
           <p className="reveal ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-ink px-3.5 py-2.5 text-sm leading-relaxed text-paper">{sent}</p>
-          <BuildStage nodes={plan} />
+          <BuildStage nodes={plan} sketch={sketch} />
           <CrewList crew={crew} />
+          <ActivityLog lines={logs} running={busy} />
           {state.phase === "done" && (
             <div className="reveal border-t border-line pt-4">
               <BuildResult

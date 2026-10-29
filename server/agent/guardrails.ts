@@ -3,15 +3,14 @@ import { nodeDefinition } from "@/lib/nodes/registry";
 import { moneySafetyIssues } from "@/lib/templates/validate";
 import { supportedTokens } from "@/lib/tokens";
 import { WORKFLOW_SCHEMA_VERSION, type WorkflowGraph, type WorkflowNode } from "@/lib/workflow/types";
-import { topologicalOrder, validateGraph, type GraphIssue } from "@/lib/workflow/validate";
+import { validateGraph, type GraphIssue } from "@/lib/workflow/validate";
+import { layoutGraph } from "@/lib/workflow/layout";
 import type { AgentDraft } from "./schema";
 
 // Turns a model's draft into a graph we are willing to save. The model is untrusted: every
 // node and field is checked against the registry, credentials are blanked, and the money
 // path must contain a human approval and a wallet signature before it can be saved.
 
-const COL = 290;
-const ROW = 170;
 
 function cleanConfig(type: string, config: Record<string, unknown>): Record<string, unknown> {
   const def = nodeDefinition(type)!;
@@ -24,6 +23,13 @@ function cleanConfig(type: string, config: Record<string, unknown>): Record<stri
       out[field.key] = supportedTokens()[0]?.mint ?? "";
       continue;
     }
+    // Pair rows are edited as text in the inspector, so a model's numbers become strings.
+    if (field.kind === "pairs" && Array.isArray(value)) {
+      out[field.key] = value
+        .filter((row) => row && typeof row === "object")
+        .map((row) => Object.fromEntries(Object.entries(row as Record<string, unknown>).map(([k, v]) => [k, v === null || v === undefined ? "" : String(v)])));
+      continue;
+    }
     if (typeof value === "object" && field.kind !== "pairs") {
       out[field.key] = JSON.stringify(value);
       continue;
@@ -31,23 +37,6 @@ function cleanConfig(type: string, config: Record<string, unknown>): Record<stri
     out[field.key] = value;
   }
   return out;
-}
-
-// Columns follow the longest path from the trigger so the canvas reads left to right.
-function layout(nodes: WorkflowNode[], edges: WorkflowGraph["edges"]): void {
-  const order = topologicalOrder({ schemaVersion: WORKFLOW_SCHEMA_VERSION, nodes, edges }) ?? nodes.map((n) => n.id);
-  const depth = new Map<string, number>();
-  for (const id of order) {
-    const parents = edges.filter((e) => e.target === id).map((e) => depth.get(e.source) ?? 0);
-    depth.set(id, parents.length ? Math.max(...parents) + 1 : 0);
-  }
-  const rows = new Map<number, number>();
-  for (const n of nodes) {
-    const col = depth.get(n.id) ?? 0;
-    const row = rows.get(col) ?? 0;
-    rows.set(col, row + 1);
-    n.position = { x: col * COL, y: row * ROW };
-  }
 }
 
 export function toGraph(draft: AgentDraft): WorkflowGraph {
@@ -64,8 +53,7 @@ export function toGraph(draft: AgentDraft): WorkflowGraph {
   const edges = draft.edges
     .filter((e) => ids.has(e.from) && ids.has(e.to))
     .map((e, i) => ({ id: `e${i + 1}`, source: e.from, sourcePort: e.port || "main", target: e.to, targetPort: "main" }));
-  layout(nodes, edges);
-  return { schemaVersion: WORKFLOW_SCHEMA_VERSION, nodes, edges };
+  return layoutGraph({ schemaVersion: WORKFLOW_SCHEMA_VERSION, nodes, edges });
 }
 
 // Template rules (approval before any transfer, a transfer before any signature) plus one

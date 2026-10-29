@@ -4,10 +4,14 @@ import { AppError, errors } from "../errors";
 import { log } from "../log";
 
 // The only code that talks to OpenRouter. The key stays server-side and the provider's
-// error bodies never reach the browser: callers see one of three plain app errors.
+// error bodies never reach the browser: callers see one of a few plain app errors. Replies
+// stream, so the crew can show a plan taking shape while the model is still writing it.
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const TIMEOUT_MS = 45_000;
+// A model that goes quiet for this long is treated as stalled; one that keeps streaming may
+// take up to the hard cap, since reasoning models think for a while before they write.
+const IDLE_MS = 30_000;
+const CAP_MS = 120_000;
 // Free models that support JSON output, strongest first. Free models come and go, so
 // OPENROUTER_MODELS overrides this with up to nine of your own.
 const DEFAULT_MODELS = [
@@ -28,6 +32,13 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface CompletionHooks {
+  // The reply so far, called as chunks arrive; used to sketch the plan early.
+  onText?: (soFar: string) => void;
+  // Plain-language progress for the activity log.
+  onLog?: (line: string) => void;
+}
+
 function modelGroups(): string[][] {
   const configured = env().OPENROUTER_MODELS?.split(",").map((m) => m.trim()).filter(Boolean);
   const list = (configured?.length ? configured : DEFAULT_MODELS).slice(0, MAX_MODELS);
@@ -35,6 +46,7 @@ function modelGroups(): string[][] {
   for (let i = 0; i < list.length; i += GROUP_SIZE) groups.push(list.slice(i, i + GROUP_SIZE));
   return groups;
 }
+
 
 // Models wrap JSON in prose or code fences often enough that we take the outermost object.
 function extractJson(text: string): unknown {
@@ -44,9 +56,75 @@ function extractJson(text: string): unknown {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-async function completeOnce(messages: ChatMessage[], userTag: string, models: string[]): Promise<unknown> {
+const unavailable = () => new AppError("AGENT_UNAVAILABLE", 503, "The AI models are busy right now. Try again shortly, or start from a template.");
+const badOutput = () => new AppError("AGENT_BAD_OUTPUT", 502, "The agent's answer wasn't usable. Try rephrasing with the trigger, the data source and who gets paid.");
+
+// Reads OpenRouter's server-sent events: `data: {json}` lines, `: comment` keep-alives and a
+// final `data: [DONE]`. An error can also arrive mid-stream as a chunk with `error` set.
+async function readStream(res: Response, hooks: CompletionHooks, alive: () => void): Promise<{ text: string; model: string | null }> {
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  let text = "";
+  let model: string | null = null;
+  let reasoning = false;
+  let writing = false;
+  for (;;) {
+    const { value, done } = await reader.read();
+    alive();
+    if (done) break;
+    buffer += value;
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const data = line.slice(6).trim();
+      if (data === "[DONE]") return { text, model };
+      let chunk: { model?: string; error?: unknown; choices?: Array<{ delta?: { content?: string; reasoning?: string } }> };
+      try {
+        chunk = JSON.parse(data);
+      } catch {
+        continue;
+      }
+      if (chunk.error) throw unavailable();
+      if (chunk.model && !model) {
+        model = chunk.model;
+        // Which model answered is an operator detail: it goes to the server log only.
+        log.info("agent.model", { model: chunk.model });
+      }
+      if (chunk.choices?.[0]?.delta?.reasoning && !reasoning) {
+        reasoning = true;
+        hooks.onLog?.("Reasoning it through before writing the plan");
+      }
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) {
+        if (!writing) {
+          writing = true;
+          hooks.onLog?.("Writing the plan");
+        }
+        text += delta;
+        hooks.onText?.(text);
+      }
+    }
+  }
+  return { text, model };
+}
+
+async function completeOnce(messages: ChatMessage[], userTag: string, models: string[], hooks: CompletionHooks): Promise<unknown> {
   const e = env();
   if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The workflow agent");
+  hooks.onLog?.("Thinking about how to build it");
+
+  const abort = new AbortController();
+  const cap = setTimeout(() => abort.abort(), CAP_MS);
+  let idle = setTimeout(() => abort.abort(), IDLE_MS);
+  const alive = () => {
+    clearTimeout(idle);
+    idle = setTimeout(() => abort.abort(), IDLE_MS);
+  };
+  const stop = () => {
+    clearTimeout(cap);
+    clearTimeout(idle);
+  };
 
   let res: Response;
   try {
@@ -61,36 +139,48 @@ async function completeOnce(messages: ChatMessage[], userTag: string, models: st
       body: JSON.stringify({
         models,
         messages,
+        stream: true,
         temperature: 0.2,
         // Free models are often reasoning models whose thinking counts against this limit;
         // low effort keeps them fast and leaves room for the full plan.
         max_tokens: 8_000,
-        reasoning: { effort: "low", exclude: true },
+        // Reasoning is streamed but never shown; its arrival is only a sign of life.
+        reasoning: { effort: "low" },
         response_format: { type: "json_object" },
         // A hashed, opaque tag lets OpenRouter attribute abuse without learning who the user is.
         user: userTag,
       }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: abort.signal,
       cache: "no-store",
     });
   } catch (error) {
+    stop();
     log.warn("agent.network", { error: error instanceof Error ? error.name : "unknown" });
-    throw new AppError("AGENT_UNAVAILABLE", 503, "The drafting agent didn't answer in time. Try again in a moment.");
+    throw unavailable();
   }
 
+  if (!res.ok || !res.body) stop();
   if (res.status === 429) throw errors.rateLimited(Number(res.headers.get("retry-after")) || 20);
-  if (!res.ok) {
+  if (!res.ok || !res.body) {
     log.warn("agent.http", { status: res.status });
-    throw new AppError("AGENT_UNAVAILABLE", 503, "The drafting agent is unavailable right now. Try again shortly, or start from a template.");
+    throw unavailable();
   }
 
-  const body = (await res.json().catch(() => null)) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; model?: string } | null;
-  const content = body?.choices?.[0]?.message?.content ?? "";
+  let reply: { text: string; model: string | null };
   try {
-    return extractJson(content);
+    reply = await readStream(res, hooks, alive);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    log.warn("agent.stream", { error: error instanceof Error ? error.name : "unknown" });
+    throw unavailable();
+  } finally {
+    stop();
+  }
+  try {
+    return extractJson(reply.text);
   } catch {
-    log.warn("agent.unparseable", { model: body?.model, length: content.length, finish: body?.choices?.[0]?.finish_reason });
-    throw new AppError("AGENT_BAD_OUTPUT", 502, "The agent's answer wasn't usable. Try rephrasing with the trigger, the data source and who gets paid.");
+    log.warn("agent.unparseable", { model: reply.model, length: reply.text.length });
+    throw badOutput();
   }
 }
 
@@ -99,14 +189,16 @@ async function completeOnce(messages: ChatMessage[], userTag: string, models: st
 // key) is the same for every model, so it stops at once.
 const FALL_THROUGH = new Set(["AGENT_UNAVAILABLE", "AGENT_BAD_OUTPUT", "RATE_LIMITED"]);
 
-export async function completeJson(messages: ChatMessage[], userTag: string): Promise<unknown> {
+export async function completeJson(messages: ChatMessage[], userTag: string, hooks: CompletionHooks = {}): Promise<unknown> {
   let last: unknown;
-  for (const group of modelGroups()) {
+  const groups = modelGroups();
+  for (const [i, group] of groups.entries()) {
     try {
-      return await completeOnce(messages, userTag, group);
+      return await completeOnce(messages, userTag, group, hooks);
     } catch (error) {
       if (!(error instanceof AppError) || !FALL_THROUGH.has(error.code)) throw error;
       log.warn("agent.group_failed", { models: group, code: error.code });
+      if (i < groups.length - 1) hooks.onLog?.(error.code === "AGENT_BAD_OUTPUT" ? "That answer didn't make sense, trying again" : "Busy right now, trying again");
       last = error;
     }
   }

@@ -49,19 +49,21 @@ function checkField(field: Field, value: unknown): string | null {
 
 function splitIssues(config: Record<string, unknown>): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
-  const rows = Array.isArray(config.recipients) ? (config.recipients as Array<Record<string, string>>) : [];
+  // Rows can hold numbers (imported JSON, a model's draft), so every cell is read as text.
+  const rows = Array.isArray(config.recipients) ? (config.recipients as Array<Record<string, unknown>>) : [];
   const seen = new Set<string>();
   rows.forEach((row, i) => {
-    const wallet = (row.wallet ?? "").trim();
+    const wallet = String(row.wallet ?? "").trim();
+    const share = String(row.share ?? "").trim();
     if (!hasExpression(wallet) && !isSolanaAddress(wallet)) issues.push({ field: `recipients.${i}.wallet`, message: `Recipient ${i + 1}: not a valid Solana address` });
     else if (seen.has(wallet)) issues.push({ field: `recipients.${i}.wallet`, message: `Recipient ${i + 1}: same wallet as an earlier row` });
     seen.add(wallet);
-    if (config.mode !== "even" && !hasExpression(row.share) && !/^\d+(\.\d+)?$/.test((row.share ?? "").trim())) {
+    if (config.mode !== "even" && !hasExpression(share) && !/^\d+(\.\d+)?$/.test(share)) {
       issues.push({ field: `recipients.${i}.share`, message: `Recipient ${i + 1}: enter a number` });
     }
   });
   if (config.mode === "percent") {
-    const shares = rows.map((r) => r.share);
+    const shares = rows.map((r) => String(r.share ?? ""));
     if (!shares.some(hasExpression)) {
       const hundredths = shares.reduce((acc, s) => acc + Math.round(Number(s) * 100), 0);
       if (hundredths !== 10_000) issues.push({ field: "recipients", message: `Percentages add up to ${hundredths / 100}%, not 100%` });

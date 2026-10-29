@@ -31,7 +31,8 @@ export function CrewList({ crew }: { crew: CrewState }) {
   return (
     <div>
       <ol className="relative grid grid-cols-5" aria-label="Sage's crew">
-        <span aria-hidden className="absolute top-5 right-[10%] left-[10%] h-0.5 rounded-full bg-line">
+        {/* The floor the crew stands on; it fills left to right as work passes along. */}
+        <span aria-hidden className="absolute top-[38px] right-[10%] left-[10%] h-0.5 rounded-full bg-line">
           <span
             className="block h-full origin-left rounded-full bg-ink-3 transition-transform duration-500 ease-[var(--ease-out)]"
             style={{ transform: `scaleX(${Math.min(passed, CREW.length - 1) / (CREW.length - 1)})` }}
@@ -41,9 +42,7 @@ export function CrewList({ crew }: { crew: CrewState }) {
           const { status } = crew[member.id];
           return (
             <li key={member.id} className="relative flex flex-col items-center gap-1">
-              <span className="rounded-full bg-paper px-0.5">
-                <Sage mood={MOOD[status]} tint={member.tint} label={`${member.name}, ${status}`} className="h-10 w-10" />
-              </span>
+              <Sage mood={MOOD[status]} tint={member.tint} label={`${member.name}, ${status}`} className="relative h-11 w-11" />
               <span className={`text-[11px] font-semibold transition-colors duration-200 ${status === "waiting" || status === "skipped" ? "text-ink-3" : "text-ink"}`}>
                 {member.name}
               </span>

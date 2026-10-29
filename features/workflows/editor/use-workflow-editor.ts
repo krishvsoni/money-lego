@@ -195,6 +195,8 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
     connect,
     moveNodes,
     rename,
+    // Replaces the whole graph as one undoable step; how Sage's crew hands back its work.
+    applyGraph: commit,
   };
 }
 

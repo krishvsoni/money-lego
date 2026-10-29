@@ -44,7 +44,7 @@ export function Sage({
   const off = mood === "offline";
   const accent = off ? "var(--ink-3)" : tint;
   return (
-    <svg ref={svgRef} viewBox="0 0 64 64" className={`sage ${className}`} data-mood={mood} role="img" aria-label={label}>
+    <svg ref={svgRef} viewBox="-4 -7 72 72" className={`sage ${className}`} data-mood={mood} role="img" aria-label={label}>
       <defs>
         <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffffff" />
