@@ -24,6 +24,12 @@ const MESSAGES: Record<string, string> = {
   MH_039: "The funding transaction must be confirmed first.",
   MH_040: "Fees changed since this quote. Get a new quote to continue.",
   MH_041: "Recipients aren't bound on chain yet. Continue signing to finish setup.",
+  MH_050: "MultiHopper couldn't reach the webhook URL. It must be public HTTPS.",
+  MH_051: "This integration already has the maximum number of webhook endpoints.",
+  MH_080: "Recovery isn't possible while the transfer is in this phase. Recheck its status.",
+  MH_081: "There is nothing left to rescue from this transfer.",
+  MH_082: "There is no rent left to refund for this transfer.",
+  MH_083: "The signed rescue transactions didn't match what MultiHopper prepared. Start the recovery again.",
   MH_091: "MultiHopper is temporarily unavailable. Nothing was sent. Try again shortly.",
 };
 

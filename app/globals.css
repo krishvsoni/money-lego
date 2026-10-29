@@ -284,20 +284,13 @@ dd,
   border-top: 1px dashed var(--line-strong);
 }
 
-/* One section per screen on the landing page. `stop: always` means one scroll gesture moves
-   exactly one section. Short or narrow screens fall back to proximity so content that
-   can't fit is never trapped. */
-html:has(.snap-root) {
-  scroll-snap-type: y mandatory;
-}
-@media (max-height: 699px), (max-width: 767px) {
+/* The landing page scrolls natively. In-page links glide, unless motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
   html:has(.snap-root) {
-    scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
   }
 }
 .snap-section {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -345,14 +338,7 @@ button:active > span > .keycap {
   }
 }
 
-/* The landing page moves a section at a time, so its scrollbar is noise: hide it, and clip
-   any stray horizontal overflow so there's never a sideways scroll. */
-html:has(.snap-root) {
-  scrollbar-width: none;
-}
-html:has(.snap-root)::-webkit-scrollbar {
-  display: none;
-}
+/* Clip any stray horizontal overflow so there's never a sideways scroll. */
 html:has(.snap-root) body {
   overflow-x: clip;
 }

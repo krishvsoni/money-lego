@@ -77,7 +77,21 @@ export interface QuoteSnapshot {
   expiresAt: Date | null;
 }
 
-export type SignatureKind = "keeper_funding" | "route_init" | "orchestrator_init" | "session_init" | "dispersion_init";
+export type SignatureKind =
+  | "keeper_funding"
+  | "route_init"
+  | "orchestrator_init"
+  | "session_init"
+  | "dispersion_init"
+  | "rescue"
+  | "reclaim_rent";
+
+export interface RecoverySnapshot {
+  canRescue: boolean;
+  rescuableLamports: number;
+  canReclaimRent: boolean;
+  reclaimableLamports: number;
+}
 
 export interface SignatureRecord {
   kind: SignatureKind;
@@ -120,6 +134,9 @@ export interface ExecutionDoc {
   providerPhase: string | null;
   progress: { hopsCompleted: number; hopsTotal: number } | null;
   quote: QuoteSnapshot | null;
+  // Absent on runs written before recovery was tracked.
+  recovery?: RecoverySnapshot | null;
+  recoveryAttempts?: number;
   signatures: SignatureRecord[];
   destinations: DestinationOutcome[];
   timeline: TimelineEvent[];

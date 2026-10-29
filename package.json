@@ -15,7 +15,8 @@
     "thumbnails": "bun scripts/thumbnails.ts",
     "test:db": "TEST_MONGODB_URI=\"mongodb://localhost:27017/?replicaSet=rs0&directConnection=true\" vitest run tests/templates-db.test.ts tests/connections-db.test.ts",
     "keys:rotate": "bun --conditions=react-server scripts/rotate-credential-keys.ts",
-    "telegram:webhook": "bun --conditions=react-server scripts/telegram-webhook.ts"
+    "telegram:webhook": "bun --conditions=react-server scripts/telegram-webhook.ts",
+    "mh": "bun --conditions=react-server scripts/multihopper.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

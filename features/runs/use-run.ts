@@ -6,7 +6,8 @@ import type { Transaction, VersionedTransaction } from "@solana/web3.js";
 import { api, errorMessage } from "@/lib/api-client";
 import type { ExecutionDTO, PreparedBundleDTO } from "@/lib/dto";
 import { isTerminal } from "@/lib/execution-states";
-import { runSigner, SignerError } from "./signer";
+import { waitForSignature } from "./chain";
+import { runSigner } from "./signer";
 
 const POLL_MS: Partial<Record<ExecutionDTO["state"], number>> = {
   quoting: 3_000,
@@ -103,19 +104,7 @@ export function useRun(id: string) {
             ? signAllTransactions(txs as Array<Transaction & VersionedTransaction>)
             : Promise.all(txs.map((tx) => signTransaction(tx as Transaction & VersionedTransaction))),
         send: (raw) => connection.sendRawTransaction(raw, { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 5 }),
-        // Polls through the RPC proxy instead of a websocket subscription, which would
-        // need a direct connection to the upstream RPC from the browser.
-        waitConfirmed: async (signature, _blockhash, lastValidBlockHeight) => {
-          const deadline = lastValidBlockHeight ?? (await connection.getLatestBlockhash("confirmed")).lastValidBlockHeight;
-          for (;;) {
-            const { value } = await connection.getSignatureStatuses([signature]);
-            const status = value[0];
-            if (status?.err) throw new SignerError("onchain_failed", "A transaction failed on chain. Nothing after it was sent. Recheck the status, then continue.");
-            if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") return;
-            if ((await connection.getBlockHeight("confirmed")) > deadline) throw new Error("Transaction expired: block height exceeded");
-            await sleep(1_500);
-          }
-        },
+        waitConfirmed: (signature, _blockhash, lastValidBlockHeight) => waitForSignature(connection, signature, lastValidBlockHeight),
         sleep,
         progress: setProgress,
       });
@@ -131,5 +120,5 @@ export function useRun(id: string) {
     }
   }, [run, wallet, id, connection, load]);
 
-  return { run, loadError, signing, progress, signError, refreshing, sign, recheck };
+  return { run, loadError, signing, progress, signError, refreshing, sign, recheck, replace: setRun };
 }

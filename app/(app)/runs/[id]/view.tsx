@@ -8,6 +8,7 @@ import { useToast } from "@/components/toast";
 import { isTerminal, STATE_META } from "@/lib/execution-states";
 import { formatToken, relativeTime } from "@/lib/format";
 import { QuoteReview } from "@/features/runs/quote-review";
+import { RecoveryPanel } from "@/features/runs/recovery-panel";
 import { HopProgress, RecipientOutcomes, SignatureList, Timeline } from "@/features/runs/run-progress";
 import { useRun } from "@/features/runs/use-run";
 
@@ -17,7 +18,7 @@ export function View() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
-  const { run, loadError, signing, progress, signError, refreshing, sign, recheck } = useRun(id);
+  const { run, loadError, signing, progress, signError, refreshing, sign, recheck, replace } = useRun(id);
 
   if (loadError && !run) return <p role="alert" className="text-danger">{loadError}</p>;
   if (!run) return <div className="h-72 animate-pulse rounded-xl bg-sunken" />;
@@ -99,6 +100,8 @@ export function View() {
           </Button>
         </section>
       )}
+
+      {!signing && <RecoveryPanel run={run} onUpdated={replace} />}
 
       {run.lastError && !isTerminal(run.state) && !signError && (
         <p className="text-sm text-attention">Last reported issue: {run.lastError.message}</p>

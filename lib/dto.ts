@@ -19,6 +19,20 @@ export interface QuoteDTO {
   expiresAt: string | null;
 }
 
+export interface RecoveryDTO {
+  canRescue: boolean;
+  rescuableLamports: number;
+  canReclaimRent: boolean;
+  reclaimableLamports: number;
+}
+
+export interface RecoveryBundleDTO {
+  kind: "rescue" | "reclaim";
+  txs: string[];
+  lastValidBlockHeight: number | null;
+  totalLamports: number;
+}
+
 export interface ExecutionDTO {
   id: string;
   workflowRunId: string | null;
@@ -35,6 +49,7 @@ export interface ExecutionDTO {
   providerPhase: string | null;
   progress: { hopsCompleted: number; hopsTotal: number } | null;
   quote: QuoteDTO | null;
+  recovery: RecoveryDTO | null;
   signatures: Array<{ kind: string; signature: string; index: number; recordedAt: string }>;
   destinations: Array<{ wallet: string; amountRaw: string; status: string; payoutSignature: string | null; paidAt: string | null }>;
   timeline: Array<{ at: string; state: ExecutionState; note: string; source: string }>;

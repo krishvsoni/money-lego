@@ -87,6 +87,7 @@ export function toExecutionDTO(doc: ExecutionDoc): ExecutionDTO {
     providerPhase: doc.providerPhase,
     progress: doc.progress,
     quote: doc.quote ? { ...doc.quote, quotedAt: doc.quote.quotedAt.toISOString(), expiresAt: iso(doc.quote.expiresAt) } : null,
+    recovery: doc.recovery ?? null,
     signatures: doc.signatures.map((s) => ({ ...s, recordedAt: s.recordedAt.toISOString() })),
     destinations: doc.destinations.map((d) => ({ ...d, paidAt: iso(d.paidAt) })),
     timeline: doc.timeline.map((e) => ({ ...e, at: e.at.toISOString() })),

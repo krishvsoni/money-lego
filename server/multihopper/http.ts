@@ -54,7 +54,9 @@ interface RequestOptions {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function once(method: "GET" | "POST", path: string, opts: RequestOptions): Promise<unknown> {
+type Method = "GET" | "POST" | "DELETE";
+
+async function once(method: Method, path: string, opts: RequestOptions): Promise<unknown> {
   if (Date.now() < breaker.openUntil) throw new ProviderAmbiguous("Circuit open; provider recently unreachable");
   const { baseUrl, apiKey } = providerCredentials();
   const headers: Record<string, string> = { "x-api-key": apiKey, accept: "application/json" };
@@ -99,7 +101,7 @@ async function once(method: "GET" | "POST", path: string, opts: RequestOptions):
 
 // GETs are safe to retry. POSTs are retried only when the caller passes `retries` and an
 // idempotency key, which makes a repeat land on the same server-side result.
-export async function providerRequest(method: "GET" | "POST", path: string, opts: RequestOptions = {}): Promise<unknown> {
+export async function providerRequest(method: Method, path: string, opts: RequestOptions = {}): Promise<unknown> {
   const retries = method === "GET" ? (opts.retries ?? 2) : opts.idempotencyKey ? (opts.retries ?? 0) : 0;
   for (let attempt = 0; ; attempt++) {
     try {

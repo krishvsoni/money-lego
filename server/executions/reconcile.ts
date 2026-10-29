@@ -47,6 +47,14 @@ export function applyProviderTransfer(doc: ExecutionDoc, t: ProviderTransfer, so
       providerStatus: t.status,
       providerPhase: t.phase,
       progress: t.progress,
+      recovery: t.recovery
+        ? {
+            canRescue: t.recovery.canRescue,
+            rescuableLamports: t.recovery.rescuableLamports,
+            canReclaimRent: t.recovery.canReclaimRent,
+            reclaimableLamports: t.recovery.reclaimableLamports,
+          }
+        : null,
       destinations: t.destinations.length ? destinationsFrom(t) : doc.destinations,
       lastError: t.lastError ? { code: t.lastError.code, message: t.lastError.message, at: now } : doc.lastError,
       lastCheckedAt: now,

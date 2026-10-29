@@ -52,10 +52,62 @@ export const transferSchema = z.looseObject({
     .nullable()
     .optional()
     .transform((v) => v ?? null),
+  recovery: z
+    .looseObject({
+      canRescue: z.boolean().optional().default(false),
+      rescuableLamports: z.number().optional().default(0),
+      canReclaimRent: z.boolean().optional().default(false),
+      reclaimableLamports: z.number().optional().default(0),
+    })
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
   quotedAt: nullableString,
   expiresAt: nullableString,
   completedAt: nullableString,
 });
+
+// Rescue and reclaim bundles share a shape; only the array and summary names differ.
+const recoveryTx = z.union([z.string(), z.looseObject({ base64: z.string() })]).transform((t) => (typeof t === "string" ? t : t.base64));
+
+export const rescueBundleSchema = z.looseObject({
+  rescueTxs: z.array(recoveryTx),
+  lastValidBlockHeight: nullableInt,
+  rescuable: z.looseObject({ totalLamports: z.number().optional().default(0) }).optional(),
+});
+
+export const reclaimBundleSchema = z.looseObject({
+  reclaimTxs: z.array(recoveryTx),
+  lastValidBlockHeight: nullableInt,
+  reclaimable: z.looseObject({ totalLamports: z.number().optional().default(0) }).optional(),
+});
+
+export const reclaimConfirmSchema = z.looseObject({
+  confirmed: z.array(z.string()).optional().default([]),
+  failed: z.array(z.looseObject({ signature: z.string(), error: z.string().optional() })).optional().default([]),
+});
+
+export const usageSchema = z.looseObject({
+  totalTransfers: z.number(),
+  completedTransfers: z.number(),
+  failedTransfers: z.number(),
+  totalVolumeRaw: z.string(),
+  totalFlatFeeEarned: z.number(),
+  totalPayouts: z.number().optional().default(0),
+  tokenFeesEarned: z.array(z.looseObject({ tokenMint: z.string(), tokenDecimals: z.number().optional(), amountRaw: z.string() })).optional().default([]),
+  isTestMode: z.boolean().optional(),
+});
+
+export const webhookEndpointSchema = z.looseObject({
+  id: z.number().int(),
+  url: z.string(),
+  events: z.array(z.string()).optional().default([]),
+  secret: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+export const listOf = <T extends z.ZodType>(item: T) =>
+  z.union([z.array(item), z.looseObject({ items: z.array(item) }).transform((v) => v.items)]);
 
 const base64Array = z
   .array(z.union([z.string(), z.object({ base64: z.string() })]))
@@ -83,3 +135,5 @@ export const confirmSchema = z.looseObject({
 export type Estimate = z.infer<typeof estimateSchema>;
 export type ProviderTransfer = z.infer<typeof transferSchema>;
 export type PrepareResult = z.infer<typeof prepareSchema>;
+export type Usage = z.infer<typeof usageSchema>;
+export type WebhookEndpoint = z.infer<typeof webhookEndpointSchema>;

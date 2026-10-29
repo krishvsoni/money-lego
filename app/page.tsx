@@ -7,7 +7,6 @@ import { Faq } from "@/features/landing/faq";
 import { HeroCard } from "@/features/landing/hero-card";
 import { NavCta, SiteNav } from "@/components/site-nav";
 import { Reveal } from "@/features/landing/reveal";
-import { SectionPager } from "@/features/landing/section-pager";
 import { Benefits, Bricks, HowItWorks, PrimaryCta } from "@/features/landing/sections";
 import { TaglineReveal } from "@/features/landing/tagline-reveal";
 import { HandoffDemo } from "@/features/landing/handoff-demo";
@@ -31,7 +30,6 @@ export default function Landing() {
         Skip to content
       </a>
       <SiteNav links={LANDING_LINKS} right={<NavCta href="/workflows">Open builder</NavCta>} />
-      <SectionPager />
 
       <main id="main">
         <section className="snap-section relative items-center overflow-hidden" aria-labelledby="hero-title">

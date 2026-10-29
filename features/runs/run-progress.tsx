@@ -12,6 +12,8 @@ const SIGNATURE_LABEL: Record<string, string> = {
   orchestrator_init: "Orchestrator setup",
   session_init: "Session setup",
   dispersion_init: "Recipient binding",
+  rescue: "SOL rescue",
+  reclaim_rent: "Rent refund",
 };
 
 export function HopProgress({ run }: { run: ExecutionDTO }) {
