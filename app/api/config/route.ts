@@ -7,6 +7,7 @@ export const GET = route({ auth: false }, async () => {
   return {
     network: currentNetwork(),
     tokens: supportedTokens(),
+    agentReady: Boolean(e.OPENROUTER_API_KEY),
     providerReady: Boolean(e.MULTIHOPPER_API_KEY) && (e.MULTIHOPPER_ENV === "devnet" || e.MULTIHOPPER_ALLOW_PRODUCTION === "true"),
   };
 });

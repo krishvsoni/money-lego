@@ -1,6 +1,9 @@
 import type { TemplateDefinition } from "@/lib/templates/types";
+import { agentServicePayment } from "./agent-service-payment";
 import { discordCommunityBountyReward } from "./discord-community-bounty-reward";
+import { launchDistribution } from "./launch-distribution";
 import { opensourceContributorPayout } from "./opensource-contributor-payout";
+import { otcSettlement } from "./otc-settlement";
 import { shopifyApprovedSupplierPayout } from "./shopify-approved-supplier-payout";
 import { stripePartnerRevenueAllocation } from "./stripe-partner-revenue-allocation";
 import { weeklyGrantDistribution } from "./weekly-grant-distribution";
@@ -13,4 +16,7 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
   stripePartnerRevenueAllocation,
   discordCommunityBountyReward,
   weeklyGrantDistribution,
+  agentServicePayment,
+  otcSettlement,
+  launchDistribution,
 ];

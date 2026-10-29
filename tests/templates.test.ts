@@ -15,10 +15,13 @@ const SLUGS = [
   "stripe-partner-revenue-allocation",
   "discord-community-bounty-reward",
   "weekly-grant-distribution",
+  "agent-service-payment",
+  "otc-settlement",
+  "launch-distribution",
 ];
 
 describe("template definitions", () => {
-  it("are exactly the five specified templates", () => {
+  it("are exactly the specified templates", () => {
     expect(TEMPLATE_DEFINITIONS.map((t) => t.slug)).toEqual(SLUGS);
   });
 

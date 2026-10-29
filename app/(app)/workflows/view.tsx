@@ -9,6 +9,7 @@ import { api, errorMessage, newRequestKey } from "@/lib/api-client";
 import type { WorkflowDTO } from "@/lib/workflow/dto";
 import { useResource } from "@/lib/use-resource";
 import { integrationsIn, integrationsOf } from "@/features/workflows/list/integrations";
+import { DraftBox } from "@/features/agent/draft-box";
 import { TemplateGrid } from "@/features/workflows/list/template-grid";
 import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
 import { WorkflowRow } from "@/features/workflows/list/workflow-row";
@@ -99,6 +100,7 @@ export function View() {
             Blank canvas
           </Button>
         </div>
+        <DraftBox />
         <TemplateGrid limit={6} title="Pick a starting point" />
       </div>
     );
@@ -112,6 +114,9 @@ export function View() {
           <Button onClick={createBlank} busy={busy === "blank"} disabled={busy !== null}>
             New workflow
           </Button>
+        </div>
+        <div className="mt-6">
+          <DraftBox />
         </div>
         <div className="mt-6">
           <Toolbar

@@ -30,8 +30,10 @@ function createClient(): MongoClient {
     maxPoolSize: 20,
     minPoolSize: 0,
     maxIdleTimeMS: 60_000,
-    serverSelectionTimeoutMS: 5_000,
-    connectTimeoutMS: 5_000,
+    // Long enough to ride out an Atlas primary election (up to ~12 s) and a cold TLS
+    // handshake to a distant region, short enough that a real outage still fails fast.
+    serverSelectionTimeoutMS: 15_000,
+    connectTimeoutMS: 10_000,
     retryWrites: true,
     retryReads: true,
     writeConcern: { w: "majority", wtimeoutMS: 5_000 },

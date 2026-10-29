@@ -151,6 +151,14 @@ export async function createWorkflow(user: SessionUser, input: CreateInput): Pro
   return toWorkflowDTO(doc);
 }
 
+// Drafts from the agent are validated by the caller and land off, like every new workflow.
+export async function createDraftWorkflow(
+  user: SessionUser,
+  input: { name: string; description: string; graph: WorkflowGraph; requestKey?: string },
+): Promise<WorkflowDTO> {
+  return toWorkflowDTO(await insertWorkflow(user, input));
+}
+
 export async function saveWorkflow(
   user: SessionUser,
   id: string,

@@ -31,6 +31,9 @@ const schema = z
       .optional(),
     CREDENTIALS_KEYRING: z.string().optional(),
     CREDENTIALS_KEYRING_FILE: z.string().optional(),
+    // The drafting agent. Comma-separated models are tried in order by OpenRouter's router.
+    OPENROUTER_API_KEY: z.string().regex(/^sk-or-/, "OPENROUTER_API_KEY should start with sk-or-").optional(),
+    OPENROUTER_MODELS: z.string().regex(/^[\w./:-]+(,[\w./:-]+)*$/).optional(),
     NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
     // OAuth apps that identify Money Lego to each provider. They can't read anyone's data
     // by themselves: every call on a user's data uses the token that user granted.

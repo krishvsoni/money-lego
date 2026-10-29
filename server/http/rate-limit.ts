@@ -21,6 +21,7 @@ export const RATE_RULES = {
   save: { name: "save", limit: 120, windowSeconds: 60 },
   webhook: { name: "webhook", limit: 600, windowSeconds: 60 },
   read: { name: "read", limit: 120, windowSeconds: 60 },
+  agent: { name: "agent", limit: 6, windowSeconds: 60 },
 } satisfies Record<string, RateRule>;
 
 export async function enforceRateLimit(rule: RateRule, subject: string): Promise<void> {

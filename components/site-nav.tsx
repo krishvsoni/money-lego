@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { BrickGlyph } from "./wordmark";
+import { LogoMark } from "./wordmark";
 
 export interface NavLink {
   href: string;
@@ -35,8 +35,8 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/" }: { links: 
     <>
       <nav aria-label="Main" className="fixed inset-x-0 top-0 z-40 flex justify-center px-4">
         <div className="mx-auto mt-5 flex h-14 w-full max-w-[1080px] items-center justify-between gap-2 rounded-full border border-line bg-white/80 py-1.5 pl-5 pr-2 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl sm:grid sm:grid-cols-[1fr_auto_1fr]">
-          <Link href={homeHref} className="flex items-center gap-2 justify-self-start whitespace-nowrap rounded-full font-display text-lg font-semibold tracking-[-0.025em] text-ink">
-            <BrickGlyph className="h-3 w-5" />
+          <Link href={homeHref} className="flex items-center gap-2.5 justify-self-start whitespace-nowrap rounded-full font-display text-lg font-semibold tracking-[-0.025em] text-ink">
+            <LogoMark className="h-7 w-7" />
             Money Lego
           </Link>
           <Suspense fallback={<DesktopLinks links={links} pathname={null} />}>

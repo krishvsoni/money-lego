@@ -13,6 +13,8 @@ export type ErrorCode =
   | "PROVIDER_ERROR"
   | "PROVIDER_UNAVAILABLE"
   | "NOT_CONFIGURED"
+  | "AGENT_UNAVAILABLE"
+  | "AGENT_BAD_OUTPUT"
   | "INTERNAL";
 
 export interface FieldIssue {

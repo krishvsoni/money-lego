@@ -227,6 +227,48 @@ const THUMBS: Thumb[] = [
     edges: [["sched", "rows"], ["rows", "policy"], ["policy", "ok"], ["ok", "stop", "no"], ["ok", "review", "yes"], ["review", "sign", "approved"], ["sign", "notify"]],
     badges: [B.schedule, B.sheets, B.notion, B.http, B.mh, B.slack],
   },
+  {
+    slug: "agent-service-payment",
+    title: "AI Agent Service Payments",
+    category: "AI Agents",
+    cards: [
+      { id: "inv", x: 60, y: 300, label: "Agent invoice", sub: "signed webhook", kind: "trigger", mono: "AI" },
+      { id: "once", x: 320, y: 300, label: "Once per invoice", sub: "no replays", kind: "logic", mono: "1x" },
+      { id: "cap", x: 580, y: 300, label: "Budget cap", sub: "≤ 50 USDC", kind: "logic", mono: "$" },
+      { id: "sign", x: 840, y: 300, label: "Review + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
+      { id: "tg", x: 1060, y: 300, label: "Receipt", sub: "Telegram", kind: "notify", mono: "TG", w: 170 },
+    ],
+    edges: [["inv", "once"], ["once", "cap"], ["cap", "sign", "within"], ["sign", "tg"]],
+    badges: [B.mh, B.telegram],
+  },
+  {
+    slug: "otc-settlement",
+    title: "OTC Deal Settlement",
+    category: "Settlement",
+    cards: [
+      { id: "deal", x: 60, y: 300, label: "Deal booked", sub: "signed ticket", kind: "trigger", mono: "⚡" },
+      { id: "once", x: 320, y: 300, label: "Once per deal", sub: "no double settle", kind: "logic", mono: "1x" },
+      { id: "match", x: 580, y: 300, label: "Match total", sub: "legs = ticket", kind: "data", mono: "=" },
+      { id: "sign", x: 840, y: 300, label: "Review + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
+      { id: "tg", x: 1060, y: 300, label: "Desk receipt", sub: "Telegram", kind: "notify", mono: "TG", w: 170 },
+    ],
+    edges: [["deal", "once"], ["once", "match"], ["match", "sign"], ["sign", "tg"]],
+    badges: [B.mh, B.telegram],
+  },
+  {
+    slug: "launch-distribution",
+    title: "Launch Tranche Distribution",
+    category: "Launches",
+    cards: [
+      { id: "run", x: 60, y: 300, label: "Release tranche", sub: "manual run", kind: "trigger", mono: "▶" },
+      { id: "rows", x: 320, y: 300, label: "Allocations", sub: "Google Sheets", kind: "data", mono: "GS" },
+      { id: "check", x: 580, y: 300, label: "Validate", sub: "once per tranche", kind: "logic", mono: "✓" },
+      { id: "sign", x: 840, y: 300, label: "One Multi-Send", sub: "MultiHopper", kind: "money", mono: "MH" },
+      { id: "dc", x: 1060, y: 300, label: "Announce", sub: "Discord", kind: "notify", mono: "DC", w: 170 },
+    ],
+    edges: [["run", "rows"], ["rows", "check"], ["check", "sign"], ["sign", "dc"]],
+    badges: [B.sheets, B.mh, B.discord],
+  },
 ];
 
 const FALLBACK: Thumb = {
