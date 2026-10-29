@@ -21,7 +21,7 @@ export const POST = route({ auth: true, rate: RATE_RULES.agent, body: draftReque
       } catch (error) {
         if (!isAppError(error)) log.error("agent.crew_failed", { requestId, error });
         // AppError messages are written for users; anything else stays in the logs.
-        send({ type: "error", message: isAppError(error) ? error.message : "Mason hit a problem on our side. Nothing was saved." });
+        send({ type: "error", message: isAppError(error) ? error.message : "Sage hit a problem on our side. Nothing was saved." });
       } finally {
         controller.close();
       }

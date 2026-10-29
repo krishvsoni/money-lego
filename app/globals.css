@@ -76,9 +76,13 @@ body {
   color: var(--ink);
 }
 
-:focus-visible {
-  outline: 2px solid var(--action);
-  outline-offset: 2px;
+/* In the base layer so a component that draws its own focus ring (the Sage composer) can
+   switch this one off with a utility; unlayered, it would beat every utility. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--action);
+    outline-offset: 2px;
+  }
 }
 
 /* Tabular figures only where numbers line up in columns; applied globally they give
@@ -352,52 +356,154 @@ button,
   user-select: none;
 }
 
-/* Mason, the drafting agent. SVG parts pivot on their own boxes. Idle motion is rare and
-   small because this page is opened often; the bigger beats are kept for done and error. */
-.mason .mason-head,
-.mason .mason-gaze,
-.mason .mason-face,
-.mason .mason-eye {
+/* Sage, the drafting agent. Poses are transitions, not keyframes, so a mood change while
+   another is mid-flight retargets from where the face is (interruptible, never a snap).
+   Looping motion is kept for idle, which is slow and small, and for building. Units are in
+   the 64-unit viewBox. */
+.sage .sage-float,
+.sage .sage-shadow,
+.sage .sage-head,
+.sage .sage-gaze,
+.sage .sage-eye,
+.sage .sage-antenna,
+.sage .sage-ear,
+.sage .sage-lid-top,
+.sage .sage-lid-bottom {
   transform-box: fill-box;
   transform-origin: center;
+  transition: transform 260ms var(--ease-out);
 }
-.mason .mason-head {
+.sage .sage-head {
   transform-origin: center bottom;
 }
-.mason .mason-gaze {
-  transition: transform 200ms var(--ease-out);
+/* Ears hinge at the top, where they meet the head, so a droop hangs them outward. */
+.sage .sage-ear {
+  transform-origin: 50% 15%;
 }
-.mason .mason-face {
-  animation: mason-eyes-in 180ms var(--ease-out) both;
+.sage .sage-blush {
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out);
 }
-.mason[data-mood="idle"] .mason-eye {
-  animation: mason-blink 6s ease-in-out infinite;
+
+.sage[data-mood="idle"] .sage-float {
+  animation: sage-float 3.4s var(--ease-in-out) infinite;
 }
-.mason[data-mood="idle"] .mason-gaze {
-  animation: mason-glance 9s var(--ease-in-out) infinite;
+.sage[data-mood="idle"] .sage-shadow {
+  animation: sage-shadow 3.4s var(--ease-in-out) infinite;
 }
-.mason[data-mood="listening"] .mason-gaze {
-  transform: translateY(0.7px) scale(1.08);
+.sage[data-mood="idle"] .sage-eye {
+  animation: sage-blink 6s ease-in-out infinite;
 }
-.mason[data-mood="building"] .mason-head {
-  animation: mason-stack 900ms var(--ease-in-out) infinite;
+.sage[data-mood="idle"] .sage-gaze {
+  animation: sage-glance 9s var(--ease-in-out) infinite;
 }
-.mason[data-mood="building"] .mason-gaze {
-  animation: mason-scan 1.8s var(--ease-in-out) infinite;
+.sage[data-follow] .sage-gaze {
+  animation-name: none;
 }
-.mason[data-mood="done"] .mason-face {
-  animation: mason-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+.sage[data-mood="listening"] .sage-gaze {
+  transform: translateY(1.4px);
 }
-.mason[data-mood="error"] .mason-head {
-  animation: mason-wiggle 320ms var(--ease-out) both;
+
+.sage[data-mood="excited"] .sage-lid-bottom,
+.sage[data-mood="done"] .sage-lid-bottom {
+  transform: translateY(-7px);
 }
-@keyframes mason-eyes-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
+.sage[data-mood="excited"] .sage-eye,
+.sage[data-mood="done"] .sage-eye {
+  transform: scale(1.06);
+}
+.sage[data-mood="excited"] .sage-antenna,
+.sage[data-mood="done"] .sage-antenna {
+  transform: translateY(-1.4px);
+}
+.sage[data-mood="excited"] .sage-ear,
+.sage[data-mood="done"] .sage-ear {
+  transform: translateY(-2.4px) rotate(var(--perk, 0deg));
+}
+.sage[data-mood="excited"] .sage-blush,
+.sage[data-mood="done"] .sage-blush {
+  opacity: 0.6;
+}
+
+.sage[data-mood="sad"] .sage-gaze {
+  transform: translateY(1.8px);
+}
+.sage[data-mood="sad"] .sage-eye {
+  transform: scaleY(0.92);
+}
+.sage[data-mood="sad"] .sage-lid-l {
+  transform: translateY(5.8px) rotate(-22deg);
+}
+.sage[data-mood="sad"] .sage-lid-r {
+  transform: translateY(5.8px) rotate(22deg);
+}
+.sage[data-mood="sad"] .sage-antenna {
+  transform: translateY(1.2px);
+}
+.sage .sage-ear-l {
+  --perk: -8deg;
+}
+.sage .sage-ear-r {
+  --perk: 8deg;
+}
+.sage[data-mood="sad"] .sage-ear-l,
+.sage[data-mood="offline"] .sage-ear-l {
+  transform: translateY(1.5px) rotate(28deg);
+}
+.sage[data-mood="sad"] .sage-ear-r,
+.sage[data-mood="offline"] .sage-ear-r {
+  transform: translateY(1.5px) rotate(-28deg);
+}
+
+.sage[data-mood="surprised"] .sage-eye,
+.sage[data-mood="surprised"] .sage-antenna,
+.sage[data-mood="surprised"] .sage-ear {
+  transition-duration: 320ms;
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sage[data-mood="surprised"] .sage-eye {
+  transform: scale(1.22, 1.16);
+}
+.sage[data-mood="surprised"] .sage-antenna {
+  transform: translateY(-2.2px);
+}
+.sage[data-mood="surprised"] .sage-ear {
+  transform: translateY(-2.6px);
+}
+
+.sage[data-mood="error"] .sage-lid-l {
+  transform: translateY(5.6px) rotate(18deg);
+}
+.sage[data-mood="error"] .sage-lid-r {
+  transform: translateY(5.6px) rotate(-18deg);
+}
+.sage[data-mood="error"] .sage-head {
+  animation: sage-wiggle 320ms var(--ease-out) both;
+}
+
+.sage[data-mood="offline"] .sage-eye {
+  transform: scaleY(0.18);
+}
+
+.sage[data-mood="building"] .sage-head {
+  animation: sage-stack 900ms var(--ease-in-out) infinite;
+}
+.sage[data-mood="building"] .sage-gaze {
+  animation: sage-scan 1.8s var(--ease-in-out) infinite;
+}
+
+@keyframes sage-float {
+  50% {
+    transform: translateY(-1.4px);
   }
 }
-@keyframes mason-blink {
+@keyframes sage-shadow {
+  50% {
+    transform: scaleX(0.88);
+  }
+}
+@keyframes sage-blink {
   0%, 95%, 100% {
     transform: scaleY(1);
   }
@@ -405,62 +511,128 @@ button,
     transform: scaleY(0.1);
   }
 }
-@keyframes mason-glance {
+@keyframes sage-glance {
   0%, 40%, 100% {
     transform: translateX(0);
   }
   46%, 60% {
-    transform: translateX(1px);
+    transform: translateX(2px);
   }
   66%, 80% {
-    transform: translateX(-1px);
+    transform: translateX(-2px);
   }
   86% {
     transform: translateX(0);
   }
 }
-@keyframes mason-stack {
+@keyframes sage-stack {
   0%, 100% {
     transform: translateY(0);
   }
   45% {
-    transform: translateY(-1.6px);
+    transform: translateY(-3px);
   }
 }
-@keyframes mason-scan {
+@keyframes sage-scan {
   0%, 100% {
-    transform: translateX(-1px);
+    transform: translateX(-2px);
   }
   50% {
-    transform: translateX(1px);
+    transform: translateX(2px);
   }
 }
-@keyframes mason-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-}
-@keyframes mason-wiggle {
+@keyframes sage-wiggle {
   25% {
-    transform: translateX(-0.8px) rotate(-3deg);
+    transform: translateX(-1.6px) rotate(-3deg);
   }
   50% {
-    transform: translateX(0.8px) rotate(3deg);
+    transform: translateX(1.6px) rotate(3deg);
   }
   75% {
-    transform: translateX(-0.4px) rotate(-1deg);
+    transform: translateX(-0.8px) rotate(-1deg);
+  }
+}
+/* Reduced motion keeps the expressions, since they carry meaning, but drops the travel:
+   poses change quickly and nothing floats, loops or wiggles. */
+@media (prefers-reduced-motion: reduce) {
+  .sage .sage-float,
+  .sage .sage-shadow,
+  .sage .sage-head,
+  .sage .sage-gaze,
+  .sage .sage-eye,
+  .sage .sage-antenna,
+  .sage .sage-ear,
+  .sage .sage-lid-top,
+  .sage .sage-lid-bottom {
+    animation: none !important;
+    transition-duration: 120ms !important;
+    transition-timing-function: ease !important;
+  }
+}
+
+/* Sage's build stage: ghost bricks shimmer while the plan is drafted, then each real
+   block's wire draws down just before the block seats onto it. */
+.build-ghost {
+  background: linear-gradient(100deg, var(--sunken) 30%, #fbfbfc 50%, var(--sunken) 70%) 0 0 / 300% 100%;
+  animation: build-shimmer 1.6s linear infinite;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
+.build-wire {
+  transform-origin: top;
+  animation: build-wire 220ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 90ms);
+}
+@keyframes build-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@keyframes build-wire {
+  from {
+    transform: scaleY(0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mason .mason-head,
-  .mason .mason-gaze,
-  .mason .mason-face,
-  .mason .mason-eye {
-    animation: none !important;
-    transition: none;
+  .build-ghost {
+    animation: none;
   }
-  .mason .mason-face {
-    animation: fade-in 150ms ease both !important;
+  .build-wire {
+    animation: none;
+  }
+}
+
+/* Text that changes in place blurs out and sharpens in, Apple style. The exit is a little
+   faster than the entrance so the new line is never fighting the old one for attention. */
+.blur-swap-in {
+  animation: blur-swap-in 280ms var(--ease-out) both;
+}
+.blur-swap-out {
+  animation: blur-swap-out 220ms var(--ease-out) both;
+  pointer-events: none;
+}
+@keyframes blur-swap-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(3px);
+  }
+}
+@keyframes blur-swap-out {
+  to {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blur-swap-in {
+    animation: fade-in 150ms ease both;
+  }
+  .blur-swap-out {
+    animation: none;
+    opacity: 0;
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ExecutionDTO } from "@/lib/dto";
@@ -10,8 +11,7 @@ export function View() {
   const { data, error } = useResource<{ runs: ExecutionDTO[] }>("/api/runs");
   return (
     <div>
-      <h1 className="headline text-3xl">Transfers</h1>
-      <p className="mt-2 text-ink-2">Every MultiHopper transfer your workflows created, newest first.</p>
+      <PageHeader title="Transfers" description="Every MultiHopper transfer your workflows created, newest first." />
       {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
       <ul className="-mx-3 mt-6 divide-y divide-line">
         {data?.runs.map((r) => (

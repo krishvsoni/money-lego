@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
 import { useCallback, useState } from "react";
 import { LockKeyIcon, PlusIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -53,14 +54,16 @@ export function View() {
   };
 
   return (
-    <div className="mx-auto flex max-w-[820px] flex-col gap-12">
-      <header>
-        <h1 className="font-display text-4xl font-semibold tracking-[-0.025em] text-ink">Connections</h1>
-        <p className="mt-2 flex items-start gap-2 text-ink-2">
-          <ShieldCheckIcon size={18} weight="fill" className="mt-0.5 shrink-0 text-success" aria-hidden />
-          Sign in with your own accounts and approve exactly what Money Lego may do. Access is encrypted on the server, never shown back, and you can revoke it here at any time.
-        </p>
-      </header>
+    <div className="flex max-w-[820px] flex-col gap-12">
+      <PageHeader
+        title="Connections"
+        description={
+          <span className="flex items-start gap-2">
+            <ShieldCheckIcon size={18} weight="fill" className="mt-0.5 shrink-0 text-success" aria-hidden />
+            Sign in with your own accounts and approve exactly what Money Lego may do. Access is encrypted on the server, never shown back, and you can revoke it here at any time.
+          </span>
+        }
+      />
 
       {creds.error && <p role="alert" className="rounded-xl bg-danger-wash p-3 text-sm text-danger">{creds.error}</p>}
 

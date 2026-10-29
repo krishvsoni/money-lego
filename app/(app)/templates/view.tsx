@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
@@ -46,12 +47,10 @@ export function View() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="headline text-3xl">Templates</h1>
-        <p className="max-w-[62ch] text-ink-2">
-          Complete payout workflows you can copy and make your own. Each opens in the editor turned off, with a checklist of what to connect. Every one waits for your approval and wallet signature before money moves.
-        </p>
-      </header>
+      <PageHeader
+        title="Templates"
+        description="Complete payout workflows you can copy and make your own. Each opens in the editor turned off, with a checklist of what to connect. Every one waits for your approval and wallet signature before money moves."
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <label className="relative flex-1">

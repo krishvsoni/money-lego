@@ -1,4 +1,4 @@
-// Mason's crew as the panel shows it. Ids and order match server/agent/draft.ts, which
+// Sage's crew as the panel shows it. Ids and order match server/agent/draft.ts, which
 // runs them; the colours come from the brick palette so each one is easy to tell apart.
 
 export type CrewId = "planner" | "guard" | "fixer" | "connector" | "builder";

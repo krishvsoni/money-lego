@@ -28,7 +28,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           </>
         }
       />
-      <main id="main" className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-28 sm:px-6 sm:pt-32">
+      <main id="main" className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-28 sm:px-5 sm:pt-32">
         <AuthGate>{children}</AuthGate>
       </main>
     </div>

@@ -4,12 +4,12 @@ import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import type { TemplateCardDTO } from "@/lib/workflow/dto";
 import { useResource } from "@/lib/use-resource";
-import { TemplateCard } from "@/features/templates/template-card";
+import { TemplateTile } from "@/features/templates/template-tile";
 import { useTemplateImport } from "@/features/templates/use-template";
 
 // Published templates from the database, shown under the workflow list. The full gallery
 // with search and filters lives at /templates.
-export function TemplateGrid({ limit = 4, title = "Start from a template" }: { limit?: number; title?: string }) {
+export function TemplateGrid({ limit = 6, title = "Start from a template" }: { limit?: number; title?: string }) {
   const { data, error } = useResource<{ templates: TemplateCardDTO[] }>("/api/templates");
   const { busy, importTemplate } = useTemplateImport();
   if (error) return null;
@@ -26,15 +26,15 @@ export function TemplateGrid({ limit = 4, title = "Start from a template" }: { l
         </Link>
       </div>
       {!data ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-2" aria-busy>
-          {[0, 1].map((i) => (
-            <div key={i} className="aspect-video animate-pulse rounded-2xl bg-sunken" />
+        <div className="mt-5 grid gap-2.5" aria-busy>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-[92px] animate-pulse rounded-2xl bg-sunken" />
           ))}
         </div>
       ) : (
-        <ul className="mt-5 grid gap-5 md:grid-cols-2">
+        <ul className="mt-5 grid gap-2.5">
           {templates.map((t) => (
-            <TemplateCard key={t.slug} template={t} busy={busy === t.slug} onUse={() => importTemplate(t.slug)} />
+            <TemplateTile key={t.slug} template={t} busy={busy === t.slug} onUse={() => importTemplate(t.slug)} />
           ))}
         </ul>
       )}

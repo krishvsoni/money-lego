@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { Archive } from "@phosphor-icons/react";
@@ -9,7 +10,7 @@ import { api, errorMessage, newRequestKey } from "@/lib/api-client";
 import type { WorkflowDTO } from "@/lib/workflow/dto";
 import { useResource } from "@/lib/use-resource";
 import { integrationsIn, integrationsOf } from "@/features/workflows/list/integrations";
-import { MasonComposer } from "@/features/agent/mason-composer";
+import { SageComposer } from "@/features/agent/sage-composer";
 import { TemplateGrid } from "@/features/workflows/list/template-grid";
 import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
 import { WorkflowRow } from "@/features/workflows/list/workflow-row";
@@ -86,34 +87,31 @@ export function View() {
     if (s !== shelf) setParams({ shelf: s === "archived" ? "archived" : null, integration: null }, "push");
   };
 
-  const mason = <MasonComposer onManual={createBlank} manualBusy={busy === "blank"} />;
+  const sage = <SageComposer onManual={createBlank} manualBusy={busy === "blank"} />;
 
   if (firstTime) {
     return (
-      <WithMason mason={mason}>
+      <WithSage sage={sage}>
         <div className="flex flex-col gap-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="headline text-3xl">Workflows</h1>
-              <p className="mt-1 text-ink-2">Ask Mason to build one, start from a template, or build it yourself.</p>
-            </div>
-          </div>
+          <PageHeader title="Workflows" description="Ask Sage to build one, start from a template, or build it yourself." />
           <TemplateGrid limit={6} title="Pick a starting point" />
         </div>
-      </WithMason>
+      </WithSage>
     );
   }
 
   return (
-    <WithMason mason={mason}>
+    <WithSage sage={sage}>
       <div className="flex flex-col gap-14">
         <section>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="headline text-3xl">Workflows</h1>
-            <Button onClick={createBlank} busy={busy === "blank"} disabled={busy !== null}>
-              New workflow
-            </Button>
-          </div>
+          <PageHeader
+            title="Workflows"
+            actions={
+              <Button onClick={createBlank} busy={busy === "blank"} disabled={busy !== null}>
+                New workflow
+              </Button>
+            }
+          />
           <div className="mt-6">
             <Toolbar
               shelf={shelf}
@@ -192,21 +190,20 @@ export function View() {
 
         {shelf === "active" && <TemplateGrid />}
       </div>
-    </WithMason>
+    </WithSage>
   );
 }
 
-// Mason docks on the right from laptop widths up and stays in view while the list scrolls;
-// on phones he sits above the list. The page widens past the app column to make room.
-function WithMason({ mason, children }: { mason: React.ReactNode; children: React.ReactNode }) {
+// Sage is a column of the page grid, inside the same width as the nav, so the page's left
+// edge meets the logo and Sage's right edge meets the nav's. He stays in view while the
+// list scrolls on laptops and up; on phones he sits above the list.
+function WithSage({ sage, children }: { sage: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="xl:relative xl:left-1/2 xl:w-[min(1320px,calc(100vw-3rem))] xl:-translate-x-1/2">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_368px] lg:gap-8">
-        <div className="min-w-0">{children}</div>
-        <aside aria-label="Mason" className="order-first lg:sticky lg:top-28 lg:order-last lg:max-h-[calc(100dvh-8rem)] lg:self-start lg:overflow-y-auto">
-          {mason}
-        </aside>
-      </div>
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0">{children}</div>
+      <aside aria-label="Sage" className="order-first lg:sticky lg:top-28 lg:order-last lg:max-h-[calc(100dvh-8rem)] lg:self-start lg:overflow-y-auto">
+        {sage}
+      </aside>
     </div>
   );
 }
@@ -227,9 +224,7 @@ function EmptyState({ shelf, filtered, onClear }: { shelf: Shelf; filtered: bool
       <Archive size={24} className="text-ink-3" aria-hidden />
       <p className="font-semibold">{shelf === "archived" ? "Nothing archived" : "No active workflows"}</p>
       <p className="max-w-[44ch] text-sm text-ink-2">
-        {shelf === "archived"
-          ? "Workflows you archive land here, turned off, until you restore or delete them."
-          : "Everything is archived. Create a new one or start from a template below."}
+        {shelf === "archived" ? "Workflows you archive land here, turned off, until you restore or delete them." : "Everything is archived. Create a new one or start from a template below."}
       </p>
     </div>
   );

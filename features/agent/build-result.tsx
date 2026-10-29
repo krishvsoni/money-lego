@@ -1,19 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { nodeDefinition } from "@/lib/nodes/registry";
-import { CATEGORY_META } from "@/lib/nodes/types";
-import { topologicalOrder } from "@/lib/workflow/validate";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { BrickGlyph } from "@/features/workflows/node-icon";
-import type { MasonResult } from "./use-mason";
+import type { SageResult } from "./use-sage";
 
-// The blocks Mason chose, in the order money flows through them. Each one snaps in like a
-// brick seating on the one before it; that is the only motion on the page.
-export function BuildResult({ result, onReset }: { result: MasonResult; onReset: () => void }) {
+// What the crew built and what's left for the owner. The blocks themselves stay on the
+// build stage above, so finishing never replays their entrance.
+export function BuildResult({ result, onReset }: { result: SageResult; onReset: () => void }) {
   const { workflow, notes, setupIssues, linked, missing } = result;
-  const order = topologicalOrder(workflow.graph) ?? workflow.graph.nodes.map((n) => n.id);
-  const nodes = order.map((id) => workflow.graph.nodes.find((n) => n.id === id)!).filter(Boolean);
   const href = `/workflows/${workflow.id}`;
 
   return (
@@ -25,22 +19,6 @@ export function BuildResult({ result, onReset }: { result: MasonResult; onReset:
         </Link>
         {workflow.description && <p className="mt-1 max-w-[70ch] text-sm text-ink-2">{workflow.description}</p>}
       </div>
-
-      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2" aria-label="Blocks in this workflow, in order">
-        {nodes.map((n, i) => {
-          const def = nodeDefinition(n.type);
-          if (!def) return null;
-          return (
-            <li key={n.id} className="brick-snap flex items-center gap-1.5" style={{ ["--i" as string]: i }}>
-              {i > 0 && <span className="h-px w-3 bg-line-strong" aria-hidden />}
-              <span className="flex items-center gap-2 rounded-lg border border-line bg-paper py-1.5 pr-3 pl-1.5 text-sm font-semibold">
-                <BrickGlyph name={def.icon} color={CATEGORY_META[def.category].color} />
-                {n.label || def.title}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
 
       {linked.length > 0 && <p className="text-sm text-success">Already linked: {linked.join(", ")}</p>}
 
