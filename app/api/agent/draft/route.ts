@@ -6,7 +6,8 @@ import { route } from "@/server/http/handler";
 import { RATE_RULES } from "@/server/http/rate-limit";
 import { log } from "@/server/log";
 
-export const maxDuration = 120;
+// Two model calls at most (Planner, Fixer), each of which may fall through model groups.
+export const maxDuration = 300;
 
 // Auth, origin, rate limit and body checks run before the stream opens, so those failures
 // are ordinary JSON errors. After that, progress streams as one JSON object per line, and

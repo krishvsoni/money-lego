@@ -7,18 +7,33 @@ import { log } from "../log";
 // error bodies never reach the browser: callers see one of three plain app errors.
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const TIMEOUT_MS = 60_000;
-// Free models come and go; OpenRouter falls through this list when one is down or busy.
-const DEFAULT_MODELS = ["nvidia/nemotron-3.5-super-vl:free", "google/gemma-4-31b-it:free", "recursive/flint-v1.0:free"];
+const TIMEOUT_MS = 45_000;
+// Free models that support JSON output, strongest first. Free models come and go, so
+// OPENROUTER_MODELS overrides this with up to nine of your own.
+const DEFAULT_MODELS = [
+  "nvidia/nemotron-3.5-super-vl:free",
+  "google/gemma-4-31b-it:free",
+  "recursive/flint-v1.0:free",
+  "google/gemma-4-26b-a4b-it:free",
+  "xingchen-agi/xing4.0-29b-a4b:free",
+  "dots-studio/dots-3-note-preview:free",
+];
+// OpenRouter falls through a group of models within one request; when a whole group is
+// down, rate limited or answers badly, the next group gets a fresh request.
+const GROUP_SIZE = 3;
+const MAX_MODELS = 9;
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-function models(): string[] {
+function modelGroups(): string[][] {
   const configured = env().OPENROUTER_MODELS?.split(",").map((m) => m.trim()).filter(Boolean);
-  return (configured?.length ? configured : DEFAULT_MODELS).slice(0, 3);
+  const list = (configured?.length ? configured : DEFAULT_MODELS).slice(0, MAX_MODELS);
+  const groups: string[][] = [];
+  for (let i = 0; i < list.length; i += GROUP_SIZE) groups.push(list.slice(i, i + GROUP_SIZE));
+  return groups;
 }
 
 // Models wrap JSON in prose or code fences often enough that we take the outermost object.
@@ -29,7 +44,7 @@ function extractJson(text: string): unknown {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-async function completeOnce(messages: ChatMessage[], userTag: string): Promise<unknown> {
+async function completeOnce(messages: ChatMessage[], userTag: string, models: string[]): Promise<unknown> {
   const e = env();
   if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The workflow agent");
 
@@ -44,7 +59,7 @@ async function completeOnce(messages: ChatMessage[], userTag: string): Promise<u
         "x-title": "Money Lego",
       },
       body: JSON.stringify({
-        models: models(),
+        models,
         messages,
         temperature: 0.2,
         // Free models are often reasoning models whose thinking counts against this limit;
@@ -79,13 +94,21 @@ async function completeOnce(messages: ChatMessage[], userTag: string): Promise<u
   }
 }
 
-// An empty or cut-off reply is usually one slow or overloaded free model; one more try is
-// routed afresh and usually lands. Provider outages and rate limits are not retried here.
+// Each group gets one request. Only failures another model could fix move on to the next
+// group: a timeout or outage, a rate limit, or an unusable answer. Anything else (a missing
+// key) is the same for every model, so it stops at once.
+const FALL_THROUGH = new Set(["AGENT_UNAVAILABLE", "AGENT_BAD_OUTPUT", "RATE_LIMITED"]);
+
 export async function completeJson(messages: ChatMessage[], userTag: string): Promise<unknown> {
-  try {
-    return await completeOnce(messages, userTag);
-  } catch (error) {
-    if (!(error instanceof AppError) || error.code !== "AGENT_BAD_OUTPUT") throw error;
-    return completeOnce(messages, userTag);
+  let last: unknown;
+  for (const group of modelGroups()) {
+    try {
+      return await completeOnce(messages, userTag, group);
+    } catch (error) {
+      if (!(error instanceof AppError) || !FALL_THROUGH.has(error.code)) throw error;
+      log.warn("agent.group_failed", { models: group, code: error.code });
+      last = error;
+    }
   }
+  throw last;
 }

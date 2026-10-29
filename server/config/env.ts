@@ -31,7 +31,7 @@ const schema = z
       .optional(),
     CREDENTIALS_KEYRING: z.string().optional(),
     CREDENTIALS_KEYRING_FILE: z.string().optional(),
-    // The drafting agent. Comma-separated models are tried in order by OpenRouter's router.
+    // The drafting agent. Up to nine comma-separated models, tried in groups of three.
     OPENROUTER_API_KEY: z.string().regex(/^sk-or-/, "OPENROUTER_API_KEY should start with sk-or-").optional(),
     OPENROUTER_MODELS: z.string().regex(/^[\w./:-]+(,[\w./:-]+)*$/).optional(),
     NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
