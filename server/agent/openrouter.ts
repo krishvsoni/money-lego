@@ -29,7 +29,7 @@ function extractJson(text: string): unknown {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-export async function completeJson(messages: ChatMessage[], userTag: string): Promise<unknown> {
+async function completeOnce(messages: ChatMessage[], userTag: string): Promise<unknown> {
   const e = env();
   if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The workflow agent");
 
@@ -47,7 +47,10 @@ export async function completeJson(messages: ChatMessage[], userTag: string): Pr
         models: models(),
         messages,
         temperature: 0.2,
-        max_tokens: 4_000,
+        // Free models are often reasoning models whose thinking counts against this limit;
+        // low effort keeps them fast and leaves room for the full plan.
+        max_tokens: 8_000,
+        reasoning: { effort: "low", exclude: true },
         response_format: { type: "json_object" },
         // A hashed, opaque tag lets OpenRouter attribute abuse without learning who the user is.
         user: userTag,
@@ -66,12 +69,23 @@ export async function completeJson(messages: ChatMessage[], userTag: string): Pr
     throw new AppError("AGENT_UNAVAILABLE", 503, "The drafting agent is unavailable right now. Try again shortly, or start from a template.");
   }
 
-  const body = (await res.json().catch(() => null)) as { choices?: Array<{ message?: { content?: string } }>; model?: string } | null;
+  const body = (await res.json().catch(() => null)) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; model?: string } | null;
   const content = body?.choices?.[0]?.message?.content ?? "";
   try {
     return extractJson(content);
   } catch {
-    log.warn("agent.unparseable", { model: body?.model, length: content.length });
+    log.warn("agent.unparseable", { model: body?.model, length: content.length, finish: body?.choices?.[0]?.finish_reason });
     throw new AppError("AGENT_BAD_OUTPUT", 502, "The agent's answer wasn't usable. Try rephrasing with the trigger, the data source and who gets paid.");
+  }
+}
+
+// An empty or cut-off reply is usually one slow or overloaded free model; one more try is
+// routed afresh and usually lands. Provider outages and rate limits are not retried here.
+export async function completeJson(messages: ChatMessage[], userTag: string): Promise<unknown> {
+  try {
+    return await completeOnce(messages, userTag);
+  } catch (error) {
+    if (!(error instanceof AppError) || error.code !== "AGENT_BAD_OUTPUT") throw error;
+    return completeOnce(messages, userTag);
   }
 }

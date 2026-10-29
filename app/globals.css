@@ -351,3 +351,116 @@ button,
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Mason, the drafting agent. SVG parts pivot on their own boxes. Idle motion is rare and
+   small because this page is opened often; the bigger beats are kept for done and error. */
+.mason .mason-head,
+.mason .mason-gaze,
+.mason .mason-face,
+.mason .mason-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.mason .mason-head {
+  transform-origin: center bottom;
+}
+.mason .mason-gaze {
+  transition: transform 200ms var(--ease-out);
+}
+.mason .mason-face {
+  animation: mason-eyes-in 180ms var(--ease-out) both;
+}
+.mason[data-mood="idle"] .mason-eye {
+  animation: mason-blink 6s ease-in-out infinite;
+}
+.mason[data-mood="idle"] .mason-gaze {
+  animation: mason-glance 9s var(--ease-in-out) infinite;
+}
+.mason[data-mood="listening"] .mason-gaze {
+  transform: translateY(0.7px) scale(1.08);
+}
+.mason[data-mood="building"] .mason-head {
+  animation: mason-stack 900ms var(--ease-in-out) infinite;
+}
+.mason[data-mood="building"] .mason-gaze {
+  animation: mason-scan 1.8s var(--ease-in-out) infinite;
+}
+.mason[data-mood="done"] .mason-face {
+  animation: mason-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.mason[data-mood="error"] .mason-head {
+  animation: mason-wiggle 320ms var(--ease-out) both;
+}
+@keyframes mason-eyes-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+@keyframes mason-blink {
+  0%, 95%, 100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes mason-glance {
+  0%, 40%, 100% {
+    transform: translateX(0);
+  }
+  46%, 60% {
+    transform: translateX(1px);
+  }
+  66%, 80% {
+    transform: translateX(-1px);
+  }
+  86% {
+    transform: translateX(0);
+  }
+}
+@keyframes mason-stack {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-1.6px);
+  }
+}
+@keyframes mason-scan {
+  0%, 100% {
+    transform: translateX(-1px);
+  }
+  50% {
+    transform: translateX(1px);
+  }
+}
+@keyframes mason-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+@keyframes mason-wiggle {
+  25% {
+    transform: translateX(-0.8px) rotate(-3deg);
+  }
+  50% {
+    transform: translateX(0.8px) rotate(3deg);
+  }
+  75% {
+    transform: translateX(-0.4px) rotate(-1deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mason .mason-head,
+  .mason .mason-gaze,
+  .mason .mason-face,
+  .mason .mason-eye {
+    animation: none !important;
+    transition: none;
+  }
+  .mason .mason-face {
+    animation: fade-in 150ms ease both !important;
+  }
+}
