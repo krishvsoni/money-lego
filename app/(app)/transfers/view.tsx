@@ -11,7 +11,7 @@ export function View() {
   const { data, error } = useResource<{ runs: ExecutionDTO[] }>("/api/runs");
   return (
     <div>
-      <PageHeader title="Transfers" description="Every MultiHopper transfer your workflows created, newest first." />
+      <PageHeader title="Transfers" description="Every transfer your workflows created, newest first." />
       {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
       <ul className="-mx-3 mt-6 divide-y divide-line">
         {data?.runs.map((r) => (

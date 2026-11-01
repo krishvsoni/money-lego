@@ -94,7 +94,7 @@ export async function runEdit(
     { role: "system", content: systemPrompt() },
     {
       role: "user",
-      content: `Current workflow:\n${describeForModel(current, doc.name)}\n\nChange requested:\n"""\n${request}\n"""\n\nReply with the FULL updated workflow in the same JSON format. Keep the id of every block you keep. Keep the name unless the change asks for a new one.`,
+      content: `Current workflow:\n${describeForModel(current, doc.name)}\n\nChange requested:\n"""\n${request}\n"""\n\nReply with the FULL updated workflow in the same JSON format. Keep the id of every block you keep. Keep the name unless the change asks for a new one. Apply the change by editing the matching block's settings wherever one exists; only add blocks for steps the workflow doesn't have yet.`,
     },
   ];
 

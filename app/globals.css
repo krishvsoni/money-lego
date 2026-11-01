@@ -75,6 +75,14 @@ body {
   background: color-mix(in srgb, var(--progress) 18%, transparent);
   color: var(--ink);
 }
+/* On dark surfaces (chat bubbles, primary buttons) dark selected text vanishes. */
+.bg-ink::selection,
+.bg-ink *::selection,
+.bg-action::selection,
+.bg-action *::selection {
+  background: rgb(255 255 255 / 0.3);
+  color: var(--paper);
+}
 
 /* In the base layer so a component that draws its own focus ring (the Sage composer) can
    switch this one off with a utility; unlayered, it would beat every utility. */

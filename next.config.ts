@@ -25,7 +25,9 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  // "same-origin" would sever window.opener the moment a connect popup visits Stripe, Google
+  // or any provider, so the page could never hear that the connection finished.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
 ];
 
 const nextConfig: NextConfig = {
@@ -44,6 +46,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }] },
+      // Where a connect popup lands after consent; it must keep its link to the opener.
+      { source: "/connections/done", headers: [{ key: "Cross-Origin-Opener-Policy", value: "unsafe-none" }] },
     ];
   },
 };

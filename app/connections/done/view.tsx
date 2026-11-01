@@ -18,8 +18,15 @@ export function View() {
   const returnTo = safePath(params.get("returnTo"));
 
   useEffect(() => {
-    if (params.get("popup") === "1" && window.opener) {
-      window.opener.postMessage({ source: CONNECT_MESSAGE, ok, type: params.get("type") ?? "", message }, window.location.origin);
+    if (params.get("popup") === "1") {
+      const payload = { source: CONNECT_MESSAGE, ok, type: params.get("type") ?? "", message };
+      // opener can be null if the browser severed it while the popup was on the provider's site.
+      window.opener?.postMessage(payload, window.location.origin);
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel(CONNECT_MESSAGE);
+        channel.postMessage(payload);
+        channel.close();
+      }
       window.close();
       return;
     }

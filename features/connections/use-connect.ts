@@ -21,20 +21,35 @@ export function useConnect(onDone: (r: ConnectResult) => void) {
     done.current = onDone;
   }, [onDone]);
 
+  // The popup reports through postMessage and, because browsers can sever window.opener
+  // after a visit to another site, also through a same-origin BroadcastChannel. Whichever
+  // arrives first wins; a flow is only reported once.
+  const waiting = useRef(false);
   useEffect(() => {
+    const report = (d: { ok?: unknown; type?: unknown; message?: unknown }) => {
+      if (!waiting.current) return;
+      waiting.current = false;
+      setBusy(null);
+      done.current({ ok: Boolean(d.ok), type: String(d.type ?? ""), message: String(d.message ?? "") });
+    };
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.data?.source !== CONNECT_MESSAGE) return;
-      setBusy(null);
-      done.current({ ok: Boolean(e.data.ok), type: String(e.data.type ?? ""), message: String(e.data.message ?? "") });
+      report(e.data);
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(CONNECT_MESSAGE) : null;
+    if (channel) channel.onmessage = (e) => e.data?.source === CONNECT_MESSAGE && report(e.data);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      channel?.close();
+    };
   }, []);
 
   const connect = useCallback(async (slug: string, opts: { shop?: string } = {}) => {
     // Opened synchronously inside the click so popup blockers allow it.
     const popup = window.open("", "money-lego-connect", "width=560,height=760");
     setBusy(slug);
+    waiting.current = true;
     try {
       const returnTo = `${window.location.pathname}${window.location.search}`;
       const { url } = await api<{ url: string }>("/api/connections/start", { body: { slug, returnTo, popup: Boolean(popup), shop: opts.shop } });
@@ -42,10 +57,18 @@ export function useConnect(onDone: (r: ConnectResult) => void) {
       else window.location.href = url;
     } catch (e) {
       popup?.close();
+      waiting.current = false;
       setBusy(null);
       done.current({ ok: false, type: slug, message: errorMessage(e) });
     }
   }, []);
 
-  return { busy, connect, cancel: () => setBusy(null) };
+  return {
+    busy,
+    connect,
+    cancel: () => {
+      waiting.current = false;
+      setBusy(null);
+    },
+  };
 }
