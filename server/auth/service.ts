@@ -13,17 +13,38 @@ import { createSession } from "./session";
 
 const NONCE_TTL_MS = 5 * 60_000;
 
-function appDomain(): string {
-  return new URL(env().APP_URL).host;
+// Wallets compare the domain in the message with the page's real origin and refuse to show
+// the request on a mismatch. So the domain must be the host the browser is actually on, not
+// a configured value that can drift (APP_URL left at localhost, www vs apex, preview URLs).
+// The Origin header is set by the browser on these POSTs and is already vetted by the
+// same-origin check; the forwarded/Host headers cover non-browser callers. APP_URL is the
+// last resort.
+const HOST_RE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d{1,5})?$/i;
+
+export function signInDomain(headers: Headers): string {
+  const origin = headers.get("origin");
+  let originHost: string | null = null;
+  try {
+    originHost = origin ? new URL(origin).host : null;
+  } catch {
+    originHost = null;
+  }
+  const candidates = [
+    originHost,
+    headers.get("x-forwarded-host")?.split(",")[0]?.trim(),
+    headers.get("host")?.trim(),
+  ];
+  const host = candidates.find((h): h is string => !!h && HOST_RE.test(h));
+  return host ?? new URL(env().APP_URL).host;
 }
 
-export async function issueNonce(wallet: string): Promise<SignInPayload> {
+export async function issueNonce(wallet: string, domain: string = new URL(env().APP_URL).host): Promise<SignInPayload> {
   if (!isSolanaAddress(wallet)) throw errors.validation("That isn't a valid Solana wallet address.");
   const now = new Date();
   const doc = {
     _id: randomBytes(16).toString("hex"),
     walletHash: walletIndex(wallet),
-    domain: appDomain(),
+    domain,
     issuedAt: now,
     expiresAt: new Date(now.getTime() + NONCE_TTL_MS),
     consumedAt: null,

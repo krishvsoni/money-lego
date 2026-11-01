@@ -20,7 +20,6 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     <div className="flex flex-1 flex-col">
       <SiteNav
         links={APP_LINKS}
-        homeHref="/workflows"
         right={
           <>
             <NetworkBadge />
