@@ -6,6 +6,7 @@ import { MAX_DESTINATIONS } from "@/lib/recipe-schema";
 import { isSolanaAddress } from "@/lib/solana-address";
 import { findToken } from "@/lib/tokens";
 import { collections, isDuplicateKeyError } from "../../db/collections";
+import { typedRecipients } from "@/lib/nodes/catalog/payout";
 import { asObject, NodeError, ok, type Executor } from "../types";
 
 export interface PayoutOptions {
@@ -100,16 +101,19 @@ const once: Executor = async ({ config, input, run }) => {
 };
 
 export const payoutExecutors: Record<string, Executor> = {
-  "data.payout_rows": async ({ config }) =>
-    ok(
-      buildPayout(config.rows, {
+  "data.payout_rows": async ({ config }) => {
+    const typed = typedRecipients(config);
+    const useTyped = typed.length > 0;
+    return ok(
+      buildPayout(useTyped ? typed : config.rows, {
         tokenMint: String(config.tokenMint ?? ""),
-        walletField: String(config.walletField ?? "wallet"),
-        amountField: String(config.amountField ?? "amount"),
-        labelField: config.labelField ? String(config.labelField) : undefined,
+        walletField: useTyped ? "wallet" : String(config.walletField ?? "wallet"),
+        amountField: useTyped ? "amount" : String(config.amountField ?? "amount"),
+        labelField: useTyped ? "label" : config.labelField ? String(config.labelField) : undefined,
         expectedTotal: config.expectedTotal === undefined ? undefined : String(config.expectedTotal),
         maxTotal: config.maxTotal === undefined ? undefined : String(config.maxTotal),
       }),
-    ),
+    );
+  },
   "logic.once": once,
 };
