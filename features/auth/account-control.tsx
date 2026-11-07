@@ -9,7 +9,7 @@ export function AccountControl() {
   if (!isLoaded) return <span className="h-9 w-24 animate-pulse rounded-full bg-sunken" aria-hidden />;
   if (isSignedIn) return <UserButton />;
   return (
-    <SignInButton mode="modal">
+    <SignInButton mode="modal" withSignUp fallbackRedirectUrl="/workflows" signUpFallbackRedirectUrl="/workflows">
       <Button className="h-9 rounded-full px-5">Sign in</Button>
     </SignInButton>
   );
