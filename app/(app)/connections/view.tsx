@@ -12,6 +12,7 @@ import type { CredentialDTO } from "@/lib/workflow/dto";
 import { useResource } from "@/lib/use-resource";
 import { ConnectGrid } from "@/features/connections/connect-grid";
 import { ConnectionCard } from "@/features/connections/connection-card";
+import { PaypalPanel } from "@/features/connections/paypal-panel";
 import { TelegramLink } from "@/features/connections/telegram-link";
 import { useConnect, type ConnectResult } from "@/features/connections/use-connect";
 import { CredentialForm } from "@/features/credentials/credential-form";
@@ -60,10 +61,12 @@ export function View() {
         description={
           <span className="flex items-start gap-2">
             <ShieldCheckIcon size={18} weight="fill" className="mt-0.5 shrink-0 text-success" aria-hidden />
-            Sign in with your own accounts and approve exactly what Money Lego may do. Access is encrypted on the server, never shown back, and you can revoke it here at any time.
+            Your PayPal app and every service Money Lego acts through. Sign in with your own accounts and approve exactly what Money Lego may do. Access is encrypted on the server, never shown back, and you can revoke it here at any time.
           </span>
         }
       />
+
+      <PaypalPanel />
 
       {creds.error && <p role="alert" className="rounded-xl bg-danger-wash p-3 text-sm text-danger">{creds.error}</p>}
 

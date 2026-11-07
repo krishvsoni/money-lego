@@ -52,6 +52,7 @@ export const CREDENTIAL_META: Record<CredentialType, CredentialMeta> = {
     blurb: "Send workflow data to a Zap, then on to 8,000+ apps.",
     icon: LightningIcon,
     color: "#FF4F00",
+    brand: "zapier",
     inputs: [
       {
         key: "url",

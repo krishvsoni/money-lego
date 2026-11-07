@@ -53,7 +53,7 @@ npm run dev                   # http://localhost:3000
 PayPal sandbox setup:
 
 1. developer.paypal.com → Apps & Credentials → Sandbox → create a REST app; copy the client id/secret.
-2. In the app's features, enable **Payouts**, **Invoicing** and **Transaction Search** if you want those blocks (the PayPal page in the app shows what your app was granted).
+2. In the app's features, enable **Payouts**, **Invoicing** and **Transaction Search** if you want those blocks (the PayPal section on Connections shows what your app was granted).
 3. Sandbox → Accounts: use the generated *personal* account to pay checkout pages and *business* account emails (or other personal accounts) as payout recipients.
 4. Webhooks need a public HTTPS URL. On Render (or a tunnel), set `APP_URL`, run `npm run paypal:webhook`, and set the printed `PAYPAL_WEBHOOK_ID`. Checkout pages work without webhooks (runs start from the capture response).
 
@@ -79,7 +79,7 @@ Unit tests cover exact allocation, approval intents/fingerprints, webhook parsin
 ## Architecture
 
 ```
-Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Grid), Shop AI, PayPal page
+Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Studio), Shop AI, Connections (PayPal)
    │
    ├─ /api/agent/*            AI drafting/editing (OpenRouter) → guardrails → saved graph
    ├─ /api/workflows/*        CRUD, versions, enable (trigger activation), test runs

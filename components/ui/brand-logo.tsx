@@ -4,6 +4,11 @@
 
 const LOGOS = {
   paypal: "PayPal",
+  openrouter: "OpenRouter",
+  channel3: "Channel3",
+  elastic: "Elastic",
+  zapier: "Zapier",
+  "ag-grid": "AG Grid",
   slack: "Slack",
   github: "GitHub",
   "google-sheets": "Google Sheets",

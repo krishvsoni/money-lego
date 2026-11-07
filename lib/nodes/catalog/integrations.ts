@@ -99,7 +99,7 @@ export const integrationNodes: NodeDefinition[] = [
     category: "integrations",
     description:
       "POST a JSON payload to a Webhooks by Zapier Catch Hook you created, so the Zap can update a CRM, a spreadsheet, a helpdesk or any app Zapier connects. Only hooks.zapier.com is ever called. Zapier can't send anything back into Money Lego's money steps.",
-    icon: "Zap",
+    icon: "logo:zapier",
     provider: "zapier",
     fields: [
       { key: "credentialId", label: "Catch Hook", kind: "credential", credentialType: "zapier_hook", required: true },

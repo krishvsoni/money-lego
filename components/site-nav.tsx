@@ -34,7 +34,7 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/", wide = fals
   return (
     <>
       <nav aria-label="Main" className="fixed inset-x-0 top-0 z-40 flex justify-center px-4">
-        <div className={`mx-auto mt-5 flex h-14 w-full items-center justify-between gap-2 rounded-full border border-line bg-white/80 py-1.5 pl-5 pr-2 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl ${wide ? "max-w-[1240px] lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-4" : "max-w-[1080px] sm:grid sm:grid-cols-[1fr_auto_1fr]"}`}>
+        <div className={`mx-auto mt-5 flex h-[60px] w-full items-center justify-between gap-3 rounded-full border border-line bg-white/80 py-2 pl-5 pr-2.5 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl ${wide ? "max-w-[1240px] lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6" : "max-w-[1080px] sm:grid sm:grid-cols-[1fr_auto_1fr]"}`}>
           <Link href={homeHref} className="flex items-center gap-2.5 justify-self-start whitespace-nowrap rounded-full font-display text-lg font-semibold tracking-[-0.025em] text-ink">
             <LogoMark className="h-7 w-7" />
             Money Lego
@@ -42,7 +42,7 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/", wide = fals
           <Suspense fallback={<DesktopLinks links={links} pathname={null} wide={wide} />}>
             <CurrentDesktopLinks links={links} wide={wide} />
           </Suspense>
-          <div className={`hidden min-w-0 shrink-0 items-center justify-end gap-2 justify-self-end ${wide ? "lg:flex" : "sm:flex"}`}>{right}</div>
+          <div className={`hidden min-w-0 shrink-0 items-center justify-end gap-3 justify-self-end ${wide ? "lg:flex" : "sm:flex"}`}>{right}</div>
           <button
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
@@ -93,13 +93,13 @@ function CurrentDesktopLinks({ links, wide }: { links: NavLink[]; wide: boolean 
 function DesktopLinks({ links, pathname, wide }: { links: NavLink[]; pathname: string | null; wide: boolean }) {
   const isCurrent = (href: string) => pathname !== null && !href.startsWith("#") && (pathname === href || pathname.startsWith(`${href}/`));
   return (
-    <ul className={wide ? "hidden min-w-0 items-center justify-center gap-0.5 lg:flex" : "hidden items-center gap-2 sm:flex"}>
+    <ul className={wide ? "hidden min-w-0 items-center justify-center gap-1 lg:flex" : "hidden items-center gap-1 sm:flex"}>
       {links.map((l) => (
         <li key={l.href}>
           <Link
             href={l.href}
             aria-current={isCurrent(l.href) ? "page" : undefined}
-            className={`fluid whitespace-nowrap rounded-full py-1.5 text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:font-medium aria-[current=page]:text-ink ${wide ? "px-3 text-[14px]" : "px-4 text-[15px]"}`}
+            className="fluid inline-flex h-9 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] font-medium text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:text-ink"
           >
             {l.label}
           </Link>
@@ -111,7 +111,7 @@ function DesktopLinks({ links, pathname, wide }: { links: NavLink[]; pathname: s
 
 export function NavCta({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="press inline-flex h-9 items-center rounded-full bg-ink px-4 text-[15px] font-medium text-white hover:bg-[#27272a]">
+    <Link href={href} className="press inline-flex h-9 items-center rounded-full bg-ink px-4 text-[14px] font-medium text-white hover:bg-[#27272a]">
       {children}
     </Link>
   );

@@ -67,6 +67,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // The PayPal connection now lives on Connections; old links still land there.
+  async redirects() {
+    return [{ source: "/paypal", destination: "/connections#paypal", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

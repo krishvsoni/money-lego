@@ -91,17 +91,6 @@ export const CONNECTIONS: ConnectionInfo[] = [
     required: ["applications.commands", "bot"],
   },
   {
-    type: "stripe_account",
-    slug: "stripe",
-    provider: "stripe",
-    label: "Stripe",
-    action: "Connect with Stripe",
-    blurb: "Start workflows when your invoices are paid.",
-    method: "oauth",
-    permissions: [{ scope: "read_only", label: "Read-only access: receive your invoice events, change nothing" }],
-    required: ["read_only"],
-  },
-  {
     type: "shopify_store",
     slug: "shopify",
     provider: "shopify",

@@ -11,7 +11,7 @@ export const commerceNodes: NodeDefinition[] = [
     category: "integrations",
     description:
       "Search Channel3's product catalog for a free-text request. Returns real products with brand, image, price, availability and merchant offers, so AI suggestions and PayPal orders are grounded in actual product data.",
-    icon: "ShoppingCart",
+    icon: "logo:channel3",
     provider: "channel3",
     fields: [
       { key: "query", label: "Looking for", kind: "text", required: true, expression: true, maxLength: 300, placeholder: "{{ trigger.request }}" },

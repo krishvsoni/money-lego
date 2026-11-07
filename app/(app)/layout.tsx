@@ -13,7 +13,6 @@ const APP_LINKS = [
   { href: "/templates", label: "Templates" },
   { href: "/payments", label: "Payments" },
   { href: "/shop", label: "Shop AI" },
-  { href: "/paypal", label: "PayPal" },
   { href: "/connections", label: "Connections" },
 ];
 

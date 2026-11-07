@@ -20,7 +20,6 @@ function Json({ value }: { value: unknown }) {
 // How each inbound trigger's sender should call the endpoint.
 const ENDPOINT_HELP: Record<string, string> = {
   "trigger.github": "In the repository: Settings, Webhooks, Add webhook. Paste this URL, content type application/json, the same secret, and pick Releases or Pull requests.",
-  "trigger.stripe": "In Stripe: Developers, Webhooks, Add endpoint. Paste this URL and select invoice.paid, then save the signing secret as a credential.",
   "trigger.shopify": "In Shopify: Settings, Notifications, Webhooks, Create webhook. Event Order payment, format JSON, this URL.",
   "trigger.discord": "In the Developer Portal: your app, General Information, Interactions Endpoint URL. Discord checks it with a signed ping, which works while the workflow is off.",
 };

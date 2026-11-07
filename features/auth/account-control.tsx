@@ -8,30 +8,31 @@ import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 // an account, so a first-time Google sign-in never dead-ends.
 export function AccountControl({ builderLink = false }: { builderLink?: boolean }) {
   const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded) return <span className="h-9 w-40 animate-pulse rounded-full bg-sunken" aria-hidden />;
+  if (!isLoaded) return <span className="h-9 w-[176px] animate-pulse rounded-full bg-sunken" aria-hidden />;
 
   if (isSignedIn) {
+    // Clerk's avatar at the same 36px as the other buttons.
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {builderLink && (
           <Link href="/workflows" className="press inline-flex h-9 items-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white hover:bg-[#27272a]">
             Open builder
           </Link>
         )}
-        <UserButton />
+        <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2">
       <SignInButton mode="modal" withSignUp fallbackRedirectUrl="/workflows" signUpFallbackRedirectUrl="/workflows">
-        <button type="button" className="press inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-[14px] font-medium text-ink-2 hover:bg-sunken hover:text-ink">
+        <button type="button" className="press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full border border-line bg-white px-4 text-[14px] font-medium text-ink hover:bg-sunken">
           Sign in
         </button>
       </SignInButton>
       <SignUpButton mode="modal" fallbackRedirectUrl="/workflows" signInFallbackRedirectUrl="/workflows">
-        <button type="button" className="press inline-flex h-9 items-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgb(9_9_11/0.2)] hover:bg-[#27272a]">
+        <button type="button" className="press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgb(9_9_11/0.2)] hover:bg-[#27272a]">
           Sign up
         </button>
       </SignUpButton>
