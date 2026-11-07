@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { NavCta, SiteNav } from "@/components/site-nav";
+import { SiteNav } from "@/components/site-nav";
+import { AccountControl } from "@/features/auth/account-control";
 
 export const MARKETING_LINKS = [
   { href: "/#how", label: "How it works" },
@@ -11,7 +12,7 @@ export const MARKETING_LINKS = [
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return (
     <div className="theme-white flex flex-1 flex-col">
-      <SiteNav links={MARKETING_LINKS} right={<NavCta href="/workflows">Open builder</NavCta>} />
+      <SiteNav links={MARKETING_LINKS} right={<AccountControl builderLink />} />
       <main id="main" className="mx-auto w-full max-w-[720px] flex-1 px-6 pb-16 pt-32">
         <h1 className="font-display text-5xl font-semibold tracking-[-0.025em] text-ink">{title}</h1>
         <p className="mt-2 text-sm text-ink-3">Last updated {updated}</p>

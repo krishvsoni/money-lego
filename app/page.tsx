@@ -5,7 +5,8 @@ import { AsciiField } from "@/features/landing/ascii-field";
 import { FAQ, TAGLINE } from "@/features/landing/content";
 import { Faq } from "@/features/landing/faq";
 import { HeroCard } from "@/features/landing/hero-card";
-import { NavCta, SiteNav } from "@/components/site-nav";
+import { SiteNav } from "@/components/site-nav";
+import { AccountControl } from "@/features/auth/account-control";
 import { Reveal } from "@/features/landing/reveal";
 import { Benefits, Bricks, HowItWorks, PrimaryCta } from "@/features/landing/sections";
 import { TaglineReveal } from "@/features/landing/tagline-reveal";
@@ -29,7 +30,7 @@ export default function Landing() {
       <a href="#main" className="sr-only z-50 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Skip to content
       </a>
-      <SiteNav links={LANDING_LINKS} right={<NavCta href="/workflows">Open builder</NavCta>} />
+      <SiteNav links={LANDING_LINKS} right={<AccountControl builderLink />} />
 
       <main id="main">
         <section className="snap-section relative items-center overflow-hidden" aria-labelledby="hero-title">

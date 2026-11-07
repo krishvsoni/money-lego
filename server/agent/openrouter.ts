@@ -204,3 +204,69 @@ export async function completeJson(messages: ChatMessage[], userTag: string, hoo
   }
   throw last;
 }
+
+// One non-streaming chat completion with tool calling, for agents that run their own loop
+// (AG Studio's dashboard agents). Same key handling and model fallback as completeJson.
+export interface ChatCompletionBody {
+  messages: Array<Record<string, unknown>>;
+  tools?: Array<Record<string, unknown>>;
+  tool_choice?: unknown;
+  response_format?: unknown;
+}
+export interface ChatCompletionResult {
+  model: string | null;
+  content: string;
+  toolCalls: Array<{ id: string; name: string; arguments: string }>;
+  usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null;
+  finishReason: string | null;
+}
+
+export async function chatCompletion(body: ChatCompletionBody, userTag: string): Promise<ChatCompletionResult> {
+  const e = env();
+  if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The AI model");
+  let last: unknown = unavailable();
+  for (const models of modelGroups()) {
+    let res: Response;
+    try {
+      res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { authorization: `Bearer ${e.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": e.APP_URL, "x-title": "Money Lego" },
+        body: JSON.stringify({ models, ...body, temperature: 0.2, max_tokens: 6_000, user: userTag }),
+        signal: AbortSignal.timeout(CAP_MS),
+        cache: "no-store",
+      });
+    } catch (error) {
+      log.warn("agent.network", { error: error instanceof Error ? error.name : "unknown" });
+      last = unavailable();
+      continue;
+    }
+    if (res.status === 429) {
+      last = errors.rateLimited(Number(res.headers.get("retry-after")) || 20);
+      continue;
+    }
+    if (!res.ok) {
+      log.warn("agent.http", { status: res.status });
+      last = unavailable();
+      continue;
+    }
+    const json = (await res.json().catch(() => null)) as {
+      model?: string;
+      error?: unknown;
+      usage?: ChatCompletionResult["usage"];
+      choices?: Array<{ finish_reason?: string; message?: { content?: string | null; tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }> } }>;
+    } | null;
+    const choice = json?.choices?.[0];
+    if (!json || json.error || !choice?.message) {
+      last = unavailable();
+      continue;
+    }
+    return {
+      model: json.model ?? null,
+      content: choice.message.content ?? "",
+      toolCalls: (choice.message.tool_calls ?? []).filter((t) => t.function?.name).map((t, i) => ({ id: t.id || `call_${Date.now()}_${i}`, name: t.function!.name!, arguments: t.function!.arguments || "{}" })),
+      usage: json.usage ?? null,
+      finishReason: choice.finish_reason ?? null,
+    };
+  }
+  throw last;
+}

@@ -11,6 +11,7 @@ import { relativeTime } from "@/lib/format";
 import { formatMoney } from "@/lib/paypal/types";
 import { useResource } from "@/lib/use-resource";
 import type { PaymentsOverview } from "@/server/paypal/status";
+import { StudioDashboard } from "@/features/payments/studio-dashboard";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -123,7 +124,7 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 
 export function View() {
   const { data, error, loading, reload } = useResource<PaymentsOverview>("/api/payments");
-  const [tab, setTab] = useState<"objects" | "runs">("objects");
+  const [tab, setTab] = useState<"dashboard" | "objects" | "runs">("dashboard");
   const [kind, setKind] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -214,9 +215,9 @@ export function View() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex rounded-lg border border-line bg-paper p-0.5 text-sm font-semibold" role="tablist">
-          {(["objects", "runs"] as const).map((t) => (
+          {(["dashboard", "objects", "runs"] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-md px-3 py-1.5 ${tab === t ? "bg-ink text-paper" : "text-ink-2"}`}>
-              {t === "objects" ? "PayPal objects" : "Workflow runs"}
+              {t === "dashboard" ? "Dashboard" : t === "objects" ? "PayPal objects" : "Workflow runs"}
             </button>
           ))}
         </div>
@@ -231,11 +232,12 @@ export function View() {
               ))}
             </select>
           )}
-          <input aria-label="Search" placeholder="Search ids, statuses…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm" />
+          {tab !== "dashboard" && <input aria-label="Search" placeholder="Search ids, statuses…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm" />}
         </div>
       </div>
 
-      <div className="h-[520px] w-full">
+      {tab === "dashboard" && data && <StudioDashboard data={data} />}
+      <div className={tab === "dashboard" ? "hidden" : "h-[520px] w-full"}>
         {tab === "objects" ? (
           <AgGridReact<Resource>
             theme={theme}

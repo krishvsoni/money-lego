@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { NavCta, SiteNav } from "@/components/site-nav";
+import { SiteNav } from "@/components/site-nav";
+import { AccountControl } from "@/features/auth/account-control";
 import { LogoMark } from "@/components/wordmark";
 import { MARKETING_LINKS } from "@/features/landing/legal-page";
 
 export default function NotFound() {
   return (
     <div className="theme-white flex flex-1 flex-col">
-      <SiteNav links={MARKETING_LINKS} right={<NavCta href="/workflows">Open builder</NavCta>} />
+      <SiteNav links={MARKETING_LINKS} right={<AccountControl builderLink />} />
       <main id="main" className="flex flex-1 flex-col items-center justify-center px-6 pb-24 pt-32 text-center">
         <LogoMark className="h-12 w-12" />
         <h1 className="hero-heading mt-8 font-display text-6xl font-semibold tracking-[-0.03em]">This brick isn&apos;t here.</h1>

@@ -18,7 +18,7 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 | **Exact money** | Integer cents end to end; splits reconcile to the cent (largest-remainder), reserves are calculated but never paid out. |
 | **Approval integrity** | An approval computes an *intent* for every money action on its Approved branch (recipients, amounts, capture, invoices), shows it and fingerprints it. The action recomputes its intent and refuses if anything changed. |
 | **AI steps** | `AI risk review` (deterministic checks + model judgement, high-risk branch) and `AI write` (per-item drafts, e.g. invoice reminders). Emails are masked and secrets removed before anything reaches the model. AI never moves money. |
-| **Payments dashboard** | AG Grid tables of every PayPal object (captures, payout batches/items, refunds, invoices) and runs, KPIs, run full-text search. |
+| **Payments dashboard** | An AG Studio analytics dashboard (KPIs, charts, ledger, cross-filtering) over every PayPal object and run, editable by drag-and-drop or by asking AG Studio's AI agents (running on our server-side model) to build pages. AG Grid tables and full-text run search alongside. |
 | **Templates** | Five DB-backed templates that clone into editable graphs: Revenue split payout, AI invoice reminders, Failed subscription recovery, Approved refund desk, Weekly PayPal ops digest. |
 | **Agentic commerce (Shop AI)** | Channel3 product search + AI comparison grounded in Channel3's response, buyer approves a PayPal checkout; the price is re-read from Channel3 server-side. |
 
@@ -27,7 +27,7 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 | Tool | How it's used |
 |---|---|
 | **PayPal** (required) | Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks (verified). |
-| **AG Grid** | AG Grid Community powers the Payments dashboard grids (filtering, sorting, pagination, quick search). |
+| **AG Grid / AG Studio** | AG Studio powers the Payments analytics dashboard: two data sources (PayPal objects, workflow runs) with measure columns, a prebuilt report, edit mode, saved layouts, and AG Studio's AI harness wired to Money Lego's model through a server proxy (`/api/studio/llm`). AG Grid Community powers the detail tables. |
 | **Channel3** | `POST /v1/search` and `GET /v1/products/{id}` for the Shop AI page and the Channel3 block. |
 | **Elastic** | Finished runs are indexed (explicit mapping); run search on Payments uses Elastic, and AI run explanations cite similar past failures. Falls back to MongoDB, labelled, when not configured. |
 | **Zapier** | Zapier block posts run data to a Webhooks by Zapier Catch Hook (only `hooks.zapier.com`), reaching 8,000+ apps. |
