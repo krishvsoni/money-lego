@@ -63,7 +63,7 @@ function summarize(next: WorkflowGraph, current: WorkflowGraph): string {
 function fixRequest(graph: WorkflowGraph): string | null {
   const problems = [...validateGraph(graph).map((i) => `${i.nodeId ? `${i.nodeId}: ` : ""}${i.field ? `${i.field}: ` : ""}${i.message}`), ...moneySafetyIssues(graph)];
   if (!problems.length) return null;
-  return `Fix these problems. For a setting only the owner can know (a spreadsheet, a wallet, an account), leave it empty and say so in notes.\n${problems.map((p) => `- ${p}`).join("\n")}`;
+  return `Fix these problems. For a setting only the owner can know (a spreadsheet, an email address, an account), leave it empty and say so in notes.\n${problems.map((p) => `- ${p}`).join("\n")}`;
 }
 
 export async function runEdit(

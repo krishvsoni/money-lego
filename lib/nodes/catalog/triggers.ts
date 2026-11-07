@@ -58,7 +58,7 @@ export const triggerNodes: NodeDefinition[] = [
     summary: "Run on a repeating timer.",
     title: "Schedule trigger",
     category: "triggers",
-    description: "Start the workflow on an interval or every week at a set time while it's enabled. Money steps still wait for your approval and wallet.",
+    description: "Start the workflow on an interval or every week at a set time while it's enabled. Money steps still wait for your approval.",
     icon: "CalendarClock",
     provider: "schedule",
     fields: [

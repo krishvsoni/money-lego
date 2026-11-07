@@ -7,6 +7,7 @@ import { z } from "zod";
 // third-party service is connected by signing in (server/oauth), never by pasting a token.
 
 const name = z.string().trim().min(1).max(60);
+export const ZAPIER_HOOK = /^https:\/\/hooks\.zapier\.com\/hooks\/catch\/\d{1,12}\/[A-Za-z0-9]{3,40}\/?$/;
 
 export const credentialInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("webhook_secret"), name }),
@@ -15,6 +16,13 @@ export const credentialInputSchema = z.discriminatedUnion("type", [
     name,
     header: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, "Header names use letters, digits and dashes"),
     value: z.string().min(1).max(2_000),
+  }),
+  // A "Webhooks by Zapier" Catch Hook URL the user created in their own Zap. It works like a
+  // password (anyone holding it can trigger the Zap), so it's stored encrypted like one.
+  z.object({
+    type: z.literal("zapier_hook"),
+    name,
+    url: z.string().regex(ZAPIER_HOOK, "Paste the Catch Hook URL from Webhooks by Zapier (https://hooks.zapier.com/hooks/catch/…)"),
   }),
 ]);
 
@@ -25,5 +33,6 @@ export function materialize(input: CredentialInput): { plain: string; hint: stri
     const plain = `mlwh_${randomBytes(32).toString("base64url")}`;
     return { plain, hint: `${plain.slice(0, 9)}…`, revealOnce: plain };
   }
+  if (input.type === "zapier_hook") return { plain: input.url, hint: `hooks.zapier.com/…${input.url.replace(/\/$/, "").slice(-4)}` };
   return { plain: JSON.stringify({ header: input.header, value: input.value }), hint: `${input.header}: …${input.value.slice(-3)}` };
 }

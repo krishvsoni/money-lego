@@ -1,6 +1,6 @@
 // Points the Money Lego Telegram bot at this deployment, with the secret Telegram must send
 // back on every update. Run once per environment after setting the TELEGRAM_* variables.
-// Usage: bun --conditions=react-server scripts/telegram-webhook.ts
+// Usage: npm run telegram:webhook
 
 import { env } from "@/server/config/env";
 

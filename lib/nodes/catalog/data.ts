@@ -1,16 +1,61 @@
-import { MAX_DESTINATIONS } from "../../recipe-schema";
+import { CURRENCIES } from "../../paypal/types";
 import { MAIN_IN, MAIN_OUT, type NodeDefinition } from "../types";
+
+export const MAX_RECIPIENTS = 15;
 
 export const VALUE_TYPES = [
   { value: "string", label: "Text" },
   { value: "number", label: "Number" },
   { value: "boolean", label: "True/false" },
-  { value: "address", label: "Solana address" },
+  { value: "email", label: "Email address" },
   { value: "object", label: "Object" },
   { value: "array", label: "List" },
 ];
 
 export const dataNodes: NodeDefinition[] = [
+  {
+    type: "data.allocate",
+    summary: "Split an amount into exact shares, to the cent.",
+    title: "Split allocation",
+    category: "data",
+    description:
+      "Divide an amount between recipients by percentage, evenly or as fixed amounts. Works in whole cents, so the shares always add up exactly; any leftover cent is assigned visibly, never lost. A row without an email is a reserve the business keeps: it is calculated and shown but never paid out. Calculates only; it moves nothing.",
+    icon: "Split",
+    fields: [
+      { key: "total", label: "Amount to split", kind: "text", required: true, expression: true, placeholder: "{{ trigger.net }}", help: "A decimal amount, e.g. the capture's net after PayPal's fee." },
+      { key: "currency", label: "Currency", kind: "text", required: true, expression: true, placeholder: "{{ trigger.currency }}", help: `One of ${CURRENCIES.join(", ")}.` },
+      {
+        key: "mode",
+        label: "Split by",
+        kind: "select",
+        required: true,
+        options: [
+          { value: "percent", label: "Percentages" },
+          { value: "even", label: "Even shares" },
+          { value: "fixed", label: "Fixed amounts" },
+        ],
+      },
+      {
+        key: "recipients",
+        label: "Recipients",
+        kind: "pairs",
+        max: MAX_RECIPIENTS,
+        addLabel: "Add recipient",
+        required: true,
+        help: "Leave the email empty for a share the business keeps. Use sandbox test accounts in the demo.",
+        columns: [
+          { key: "label", label: "Who", kind: "text", placeholder: "Creator" },
+          { key: "email", label: "PayPal email", kind: "text", placeholder: "creator@example.com" },
+          { key: "share", label: "Share", kind: "text", placeholder: "70" },
+        ],
+      },
+    ],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: { total: "{{ trigger.net }}", currency: "{{ trigger.currency }}", mode: "percent", recipients: [{ label: "", email: "", share: "100" }] },
+    retrySafe: true,
+    outputHint: "The input plus { allocation: { currency, total, totalMinor, payoutMinor, items: [{ receiver, label, amountMinor, keep }] } }.",
+  },
   {
     type: "data.validate",
     summary: "Check data before it's used.",
@@ -66,46 +111,5 @@ export const dataNodes: NodeDefinition[] = [
     defaults: { keepInput: true, fields: [{ key: "", value: "" }] },
     retrySafe: true,
     outputHint: "The mapped object.",
-  },
-  {
-    type: "data.split",
-    summary: "Divide a total into exact shares.",
-    title: "Split allocation",
-    category: "data",
-    description: "Turn a total into exact per-recipient token amounts. Shares always add up to the last base unit.",
-    icon: "Split",
-    fields: [
-      { key: "tokenMint", label: "Token", kind: "token", required: true },
-      {
-        key: "mode",
-        label: "Split by",
-        kind: "select",
-        required: true,
-        options: [
-          { value: "percent", label: "Percentages of a total" },
-          { value: "even", label: "Even shares of a total" },
-          { value: "fixed", label: "Fixed amount per recipient" },
-        ],
-      },
-      { key: "total", label: "Total amount", kind: "text", expression: true, placeholder: "{{ input.amount }}", help: "In whole tokens, e.g. 1250.50. Not used for fixed amounts." },
-      {
-        key: "recipients",
-        label: "Recipients",
-        kind: "pairs",
-        max: MAX_DESTINATIONS,
-        addLabel: "Add recipient",
-        required: true,
-        columns: [
-          { key: "wallet", label: "Wallet", kind: "text", placeholder: "Solana address" },
-          { key: "share", label: "Share", kind: "text", placeholder: "40" },
-          { key: "label", label: "Label", kind: "text", placeholder: "Design" },
-        ],
-      },
-    ],
-    inputs: MAIN_IN,
-    outputs: MAIN_OUT,
-    defaults: { mode: "percent", total: "{{ input.amount }}", recipients: [{ wallet: "", share: "100", label: "" }] },
-    retrySafe: true,
-    outputHint: "{ tokenMint, decimals, amountRaw, destinations: [{ wallet, amountRaw, label }] } in base units.",
   },
 ];

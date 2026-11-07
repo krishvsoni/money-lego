@@ -103,5 +103,5 @@ export async function receiveDiscord(raw: Buffer, headers: Headers): Promise<Pla
   });
   if (!allowed.length) return { status: 200, body: ephemeral("You don't have the role needed to start a payout.") };
   for (const w of allowed) await start(w, "trigger.discord", `discord:${interaction.id}`, interaction.payload, 600);
-  return { status: 200, body: ephemeral("Request received. Nothing is paid until an operator reviews it and signs in their wallet.") };
+  return { status: 200, body: ephemeral("Request received. Nothing is paid until an operator reviews and approves it.") };
 }

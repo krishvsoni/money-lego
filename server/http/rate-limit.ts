@@ -12,12 +12,10 @@ export interface RateRule {
 }
 
 export const RATE_RULES = {
-  authNonce: { name: "auth-nonce", limit: 10, windowSeconds: 60 },
-  authVerify: { name: "auth-verify", limit: 10, windowSeconds: 60 },
   write: { name: "write", limit: 60, windowSeconds: 60 },
   quote: { name: "quote", limit: 8, windowSeconds: 60 },
+  checkout: { name: "checkout", limit: 20, windowSeconds: 60 },
   refresh: { name: "refresh", limit: 30, windowSeconds: 60 },
-  rpc: { name: "rpc", limit: 240, windowSeconds: 60 },
   save: { name: "save", limit: 120, windowSeconds: 60 },
   webhook: { name: "webhook", limit: 600, windowSeconds: 60 },
   read: { name: "read", limit: 120, windowSeconds: 60 },

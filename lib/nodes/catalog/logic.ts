@@ -54,7 +54,8 @@ export const logicNodes: NodeDefinition[] = [
     summary: "Wait for you to approve.",
     title: "Human approval",
     category: "logic",
-    description: "Pause until the workflow owner approves or rejects in the run panel.",
+    description:
+      "Pause until the workflow owner approves or rejects in the run panel. The reviewer sees exactly what each PayPal action on the Approved branch will do (recipients, amounts, invoices), fingerprinted; if anything changes after approval, the action refuses to run.",
     icon: "UserCheck",
     fields: [
       { key: "message", label: "What to review", kind: "textarea", expression: true, required: true, maxLength: 500 },
@@ -67,6 +68,21 @@ export const logicNodes: NodeDefinition[] = [
     ],
     defaults: { message: "Approve this payout?", timeoutHours: 24 },
     retrySafe: true,
-    outputHint: "The input plus { approval: { decision, by, at } }.",
+    outputHint: "The input plus { approval: { decision, by, at, payloadHash, actions } }.",
+  },
+  {
+    type: "logic.once",
+    summary: "Never act on the same thing twice.",
+    title: "Once per key",
+    category: "logic",
+    description:
+      "Claim a business key, such as an order, capture or invoice ID, for this workflow. If an earlier run already claimed it, this run stops. A key is only released when its run failed before any PayPal money action happened.",
+    icon: "Fingerprint",
+    fields: [{ key: "key", label: "Key", kind: "text", required: true, expression: true, maxLength: 200, placeholder: "capture:{{ trigger.captureId }}" }],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: {},
+    retrySafe: true,
+    outputHint: "The input plus { onceKey } after the key is claimed for this run.",
   },
 ];

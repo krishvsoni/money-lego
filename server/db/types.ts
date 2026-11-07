@@ -1,167 +1,23 @@
 import type { ObjectId } from "mongodb";
-import type { RecipeConfig } from "@/lib/recipe-schema";
-import type { ExecutionState } from "@/lib/execution-states";
 import type { CredentialType } from "@/lib/nodes/types";
 import type { NodeRunStatus, RunStatus, WaitKind, WorkflowGraph } from "@/lib/workflow/types";
 import type { TemplateChecklistItem, TemplateDefinition } from "@/lib/templates/types";
+import type { PaypalResourceKind } from "@/lib/paypal/types";
 
-// Document shapes as stored. Token amounts are base-unit integer strings; Mongo's numeric
-// types either lose precision (double) or cap at 2^63 (long), and u64 token supplies can
-// exceed that, so strings plus a $jsonSchema digit pattern is the exact representation.
+// Document shapes as stored. Money amounts are integer minor units (cents) stored as
+// strings next to an ISO currency code, so no stored value ever passes through a float.
 
-// Wallets are never stored in plaintext: walletHash is a keyed HMAC used for lookups and
-// uniqueness, walletEnc is the AES-GCM ciphertext (see server/crypto/wallet-vault.ts).
+// A person signs in with Clerk. identityKey = "clerk:<clerk user id>" is the unique lookup;
+// everything they own references this document's _id.
 export interface UserDoc {
   _id: ObjectId;
-  walletHash: string;
-  walletEnc: string;
+  identityKey: string;
+  kind: "clerk";
+  name: string;
+  // Shown to the owner only. Never sent to the AI model.
+  email: string | null;
   createdAt: Date;
   lastSignedInAt: Date;
-}
-
-export interface NonceDoc {
-  _id: string;
-  walletHash: string;
-  domain: string;
-  issuedAt: Date;
-  expiresAt: Date;
-  consumedAt: Date | null;
-}
-
-export interface SessionDoc {
-  _id: string;
-  userId: ObjectId;
-  walletEnc: string;
-  createdAt: Date;
-  expiresAt: Date;
-}
-
-export interface RecipeDoc {
-  _id: ObjectId;
-  ownerId: ObjectId;
-  name: string;
-  description: string;
-  status: "active" | "archived";
-  currentVersion: number;
-  config: RecipeConfig;
-  runCount: number;
-  lastRunAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface RecipeVersionDoc {
-  _id: ObjectId;
-  recipeId: ObjectId;
-  ownerId: ObjectId;
-  version: number;
-  name: string;
-  config: RecipeConfig;
-  createdAt: Date;
-}
-
-export interface QuoteSnapshot {
-  amountRaw: string;
-  recipientReceivesRaw: string;
-  percentFeeRaw: string;
-  percentFeeBps: number | null;
-  totalFlatFeeLamports: number | null;
-  requiredSolUpFrontLamports: number | null;
-  refundableLamports: number | null;
-  destinationsNet: Array<{ wallet: string; amountRaw: string }>;
-  hops: number;
-  arrivalSeconds: number;
-  pricingTier: string | null;
-  isTest: boolean;
-  quotedAt: Date;
-  expiresAt: Date | null;
-}
-
-export type SignatureKind =
-  | "keeper_funding"
-  | "route_init"
-  | "orchestrator_init"
-  | "session_init"
-  | "dispersion_init"
-  | "rescue"
-  | "reclaim_rent";
-
-export interface RecoverySnapshot {
-  canRescue: boolean;
-  rescuableLamports: number;
-  canReclaimRent: boolean;
-  reclaimableLamports: number;
-}
-
-export interface SignatureRecord {
-  kind: SignatureKind;
-  signature: string;
-  index: number;
-  recordedAt: Date;
-}
-
-export interface TimelineEvent {
-  at: Date;
-  state: ExecutionState;
-  note: string;
-  source: "app" | "wallet" | "provider" | "webhook" | "reconciler";
-}
-
-export interface DestinationOutcome {
-  wallet: string;
-  amountRaw: string;
-  status: "pending" | "paid";
-  payoutSignature: string | null;
-  paidAt: Date | null;
-}
-
-export interface ExecutionDoc {
-  _id: ObjectId;
-  source: { workflowId: ObjectId; workflowRunId: ObjectId; nodeId: string } | null;
-  ownerId: ObjectId;
-  recipeId: ObjectId;
-  recipeVersion: number;
-  recipeName: string;
-  requestKey: string;
-  externalId: string;
-  sourceWalletEnc: string;
-  snapshot: RecipeConfig;
-  amountRaw: string;
-  state: ExecutionState;
-  providerTransferId: number | null;
-  supportBundleId: string | null;
-  providerStatus: string | null;
-  providerPhase: string | null;
-  progress: { hopsCompleted: number; hopsTotal: number } | null;
-  quote: QuoteSnapshot | null;
-  // Absent on runs written before recovery was tracked.
-  recovery?: RecoverySnapshot | null;
-  recoveryAttempts?: number;
-  signatures: SignatureRecord[];
-  destinations: DestinationOutcome[];
-  timeline: TimelineEvent[];
-  lastError: { code: string; message: string; at: Date } | null;
-  prepareAttempts: number;
-  confirmAttempts: number;
-  shareToken: string;
-  lease: { owner: string; expiresAt: Date } | null;
-  nextCheckAt: Date | null;
-  lastCheckedAt: Date | null;
-  version: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface WebhookEventDoc {
-  _id: ObjectId;
-  dedupeKey: string;
-  eventType: string | null;
-  providerTransferId: number | null;
-  receivedAt: Date;
-  processedAt: Date | null;
-  outcome: "pending" | "applied" | "ignored" | "failed";
-  attempts: number;
-  payload: unknown;
 }
 
 export interface RateLimitDoc {
@@ -185,15 +41,15 @@ export interface WorkflowDoc {
   currentVersion: number;
   graph: WorkflowGraph;
   triggerType: string | null;
-  // Webhook triggers are addressed by an unguessable key, never by the workflow id.
+  // Webhook triggers and PayPal checkout links are addressed by an unguessable key, never by the workflow id.
   webhookKey: string;
   schedule: { key: string; nextAt: Date } | null;
   description?: string;
   // Set when the workflow was imported from a template. A snapshot, not a live link.
   sourceTemplate?: { id: ObjectId; slug: string; revision: number; setupChecklist: TemplateChecklistItem[] } | null;
   createRequestKey?: string;
-  // Where provider events for this workflow arrive, e.g. "stripe:acct_123". Set while it's
-  // enabled so one indexed lookup finds every workflow subscribed to an event.
+  // Where provider events for this workflow arrive, e.g. "stripe:acct_123" or "paypal:<key>".
+  // Set while it's enabled so one indexed lookup finds every workflow subscribed to an event.
   inboundRoute?: string | null;
   // Provider-side hooks this workflow registered (GitHub repo webhook, Discord command),
   // with the signing secret sealed, so turning it off can remove them.
@@ -309,11 +165,47 @@ export interface WorkflowTemplateDoc extends TemplateDefinition {
   updatedAt: Date;
 }
 
-// One business key per workflow, claimed by the run that pays it (see logic.once).
+// One business key per workflow, claimed by the run that acts on it (see logic.once).
 export interface OnceKeyDoc {
   _id: ObjectId;
   workflowId: ObjectId;
   key: string;
   runId: ObjectId;
   claimedAt: Date;
+}
+
+// Every PayPal webhook delivery, stored once by PayPal's event id before anything acts on it.
+export interface PaypalEventDoc {
+  _id: string;
+  eventType: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  // The Money Lego reference ("ml:<key>") found in custom_id / invoice reference, if any.
+  reference: string | null;
+  verified: boolean;
+  summary: Record<string, unknown>;
+  routed: Array<{ workflowId: ObjectId; runId: ObjectId | null }>;
+  outcome: "started" | "updated" | "ignored" | "rejected";
+  receivedAt: Date;
+}
+
+// Local mirror of the PayPal objects Money Lego created or observed, for the payments
+// dashboard, run drill-downs and idempotency checks. The PayPal id is the source of truth.
+export interface PaypalResourceDoc {
+  _id: ObjectId;
+  ownerId: ObjectId | null;
+  workflowId: ObjectId | null;
+  runId: ObjectId | null;
+  nodeId: string | null;
+  kind: PaypalResourceKind;
+  paypalId: string;
+  status: string;
+  currency: string | null;
+  amountMinor: string | null;
+  counterparty: string | null;
+  // Short, non-sensitive facts (e.g. item count, invoice number, debug id). No secrets.
+  detail: Record<string, unknown>;
+  environment: "sandbox" | "live";
+  createdAt: Date;
+  updatedAt: Date;
 }

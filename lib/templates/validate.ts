@@ -34,32 +34,36 @@ function upstreamOf(graph: WorkflowGraph, nodeId: string): Array<{ id: string; v
   return [...seen.values()];
 }
 
-// Every transfer must sit behind an approval's "approved" output, and every wallet
-// signature behind a created transfer.
+// Every money-moving or customer-contacting PayPal action must be entered only through a
+// Human approval's Approved output (so the approval can fingerprint exactly what it will
+// do), and payout status needs a payout before it.
 export function moneySafetyIssues(graph: WorkflowGraph): string[] {
   const issues: string[] = [];
+  const typeOf = new Map(graph.nodes.map((n) => [n.id, n.type]));
   for (const node of graph.nodes) {
-    if (node.type === "mh.create_transfer") {
-      const approved = upstreamOf(graph, node.id).some((u) => u.type === "logic.approval" && graph.edges.some((e) => e.source === u.id && e.sourcePort === "approved"));
-      if (!approved) issues.push(`${node.id}: a transfer must come after a human approval's Approved output`);
+    const def = nodeDefinition(node.type);
+    if (def?.sideEffect) {
+      const incoming = graph.edges.filter((e) => e.target === node.id);
+      const gated = incoming.length > 0 && incoming.every((e) => typeOf.get(e.source) === "logic.approval" && e.sourcePort === "approved");
+      if (!gated) issues.push(`${node.id}: ${def.title} must be connected only to a Human approval's Approved output`);
     }
-    if (node.type === "mh.wallet_sign" && !upstreamOf(graph, node.id).some((u) => u.type === "mh.create_transfer")) {
-      issues.push(`${node.id}: wallet signing needs a created transfer before it`);
+    if (node.type === "paypal.payout_status" && !upstreamOf(graph, node.id).some((u) => u.type === "paypal.payout")) {
+      issues.push(`${node.id}: Payout status needs a PayPal payout before it`);
     }
   }
-  if (!graph.nodes.some((n) => n.type === "mh.wallet_sign")) issues.push("A payout template must end in a wallet signature.");
+  if (!graph.nodes.some((n) => nodeDefinition(n.type)?.provider === "paypal")) issues.push("A template must use PayPal.");
   return issues;
 }
 
-// Values a template may not ship: credential ids, wallets, or anything that looks like a
-// live secret or endpoint. Placeholders like {{ configure_wallet }} are allowed.
+// Values a template may not ship: credential ids, real email addresses, or anything that
+// looks like a live secret or endpoint. Placeholders like {{ configure_email }} are allowed.
 function leakedValues(graph: WorkflowGraph): string[] {
   const issues: string[] = [];
   const scan = (nodeId: string, path: string, value: unknown) => {
     if (typeof value === "string") {
       if (PLACEHOLDER.test(value.trim())) return;
-      if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value) && !path.endsWith("tokenMint")) issues.push(`${nodeId}.${path}: looks like a real wallet address`);
-      if (/(whsec_|sk_live|sk_test|xox[bp]-|ntn_|secret_[A-Za-z0-9]{10}|pat[A-Za-z0-9]{10}\.|hooks\.slack\.com|discord\.com\/api\/webhooks)/.test(value)) issues.push(`${nodeId}.${path}: looks like a secret or live webhook`);
+      if (/@/.test(value) && !/@example\.(com|org)$/i.test(value) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) issues.push(`${nodeId}.${path}: templates may only use example.com addresses`);
+      if (/(whsec_|sk_live|sk_test|xox[bp]-|ntn_|secret_[A-Za-z0-9]{10}|pat[A-Za-z0-9]{10}\.|hooks\.slack\.com|discord\.com\/api\/webhooks|access_token\$)/.test(value)) issues.push(`${nodeId}.${path}: looks like a secret or live webhook`);
     } else if (Array.isArray(value)) value.forEach((v, i) => scan(nodeId, `${path}.${i}`, v));
     else if (value && typeof value === "object") Object.entries(value).forEach(([k, v]) => scan(nodeId, path ? `${path}.${k}` : k, v));
   };

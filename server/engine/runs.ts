@@ -10,11 +10,11 @@ import { parseId } from "../db/ids";
 import { inTransaction } from "../db/transaction";
 import type { WorkflowDoc, WorkflowRunDoc } from "../db/types";
 import { errors } from "../errors";
-import { maskWallet } from "../crypto/wallet-vault";
 import { advanceRun } from "./advance";
 
 export interface NodeRunDTO {
   nodeId: string;
+  nodeType: string;
   status: NodeRunStatus;
   port: string | null;
   input: unknown;
@@ -116,6 +116,7 @@ export async function getRunDetail(user: SessionUser, id: string, advanceIfDue: 
     ...toRunDTO(run),
     nodes: nodes.map((n) => ({
       nodeId: n.nodeId,
+      nodeType: n.nodeType,
       status: n.status,
       port: n.port,
       input: n.input,
@@ -140,7 +141,7 @@ export async function decideApproval(user: SessionUser, runId: string, nodeId: s
   const { nodeRuns, workflowRuns } = await collections();
   const result = await nodeRuns.updateOne(
     { runId: run._id, nodeId, status: "waiting", nodeType: "logic.approval", "waitState.decision": { $exists: false } },
-    { $set: { "waitState.decision": decision, "waitState.by": maskWallet(user.wallet), "waitState.at": new Date().toISOString() } },
+    { $set: { "waitState.decision": decision, "waitState.by": user.name, "waitState.at": new Date().toISOString() } },
   );
   if (!result.modifiedCount) throw errors.invalidState("This approval was already decided or isn't waiting anymore.");
   await workflowRuns.updateOne({ _id: run._id }, { $set: { nextWakeAt: new Date() } });
@@ -151,11 +152,11 @@ export async function decideApproval(user: SessionUser, runId: string, nodeId: s
 export async function cancelRun(user: SessionUser, runId: string): Promise<RunDTO> {
   const run = await ownedRun(user, runId);
   if (!["queued", "running", "waiting"].includes(run.status)) throw errors.invalidState("This run already finished.");
-  const { workflowRuns, nodeRuns, executions } = await collections();
-  const funded = await executions.countDocuments({ "source.workflowRunId": run._id, state: { $in: ["funded", "submitted", "processing"] } });
+  const { workflowRuns, nodeRuns, paypalResources } = await collections();
+  const funded = await paypalResources.countDocuments({ runId: run._id, kind: "payout_batch", status: { $nin: ["SUCCESS", "DENIED", "CANCELED"] } });
   const now = new Date();
   await nodeRuns.updateMany({ runId: run._id, status: { $in: ["pending", "running", "waiting"] } }, { $set: { status: "cancelled", finishedAt: now } });
-  const note = funded ? "Run cancelled. A transfer was already funded and keeps going on MultiHopper; track it on its transfer page." : "Run cancelled. Nothing further will be sent.";
+  const note = funded ? "Run cancelled. A PayPal payout batch was already submitted and keeps processing at PayPal; track it on the Payments page." : "Run cancelled. Nothing further will be sent.";
   await workflowRuns.updateOne(
     { _id: run._id },
     { $set: { status: "cancelled", waiting: null, nextWakeAt: null, finishedAt: now, updatedAt: now }, $inc: { version: 1 }, $push: { log: { $each: [{ at: now, nodeId: null, level: "warn", message: note }], $slice: -200 } } },
@@ -164,8 +165,8 @@ export async function cancelRun(user: SessionUser, runId: string): Promise<RunDT
 }
 
 // Retries from the failed node. Nodes that can repeat an outside effect (HTTP, Discord,
-// Slack) need explicit confirmation; money nodes are idempotent per run and node, so a
-// retry finds the same transfer instead of creating another.
+// Slack) need explicit confirmation; PayPal nodes send an idempotency key per run and
+// node, so a retry gets PayPal's first result instead of acting twice.
 export async function retryRun(user: SessionUser, runId: string, confirmSideEffects: boolean): Promise<RunDTO> {
   const run = await ownedRun(user, runId);
   if (run.status !== "failed") throw errors.invalidState("Only failed runs can be retried.");

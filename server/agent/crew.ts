@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { nodeDefinition } from "@/lib/nodes/registry";
+import { isSideEffect, nodeDefinition } from "@/lib/nodes/registry";
 import { topologicalOrder, type GraphIssue } from "@/lib/workflow/validate";
 import type { WorkflowGraph } from "@/lib/workflow/types";
 import type { SessionUser } from "../auth/session";
@@ -106,7 +106,7 @@ export class Crew {
     messages.push({ role: "user", content: `That JSON doesn't match the required shape: ${parsed.error.issues[0]?.message}. Reply with the corrected JSON only.` });
     const retry = agentDraftSchema.safeParse(await completeJson(messages, this.tag, hooks));
     if (retry.success) return retry.data;
-    throw new AppError("AGENT_BAD_OUTPUT", 502, "The plan came back unusable. Try naming the trigger, where the payout list comes from and who approves it.");
+    throw new AppError("AGENT_BAD_OUTPUT", 502, "The plan came back unusable. Try naming what starts it, what PayPal should do and who approves it.");
   }
 
   // Guard checks the money path; if it finds problems, Fixer gets one repair with the exact
@@ -114,12 +114,12 @@ export class Crew {
   async secure(draft: AgentDraft, messages: ChatMessage[], build: (d: AgentDraft) => WorkflowGraph): Promise<{ draft: AgentDraft; graph: WorkflowGraph }> {
     let graph = build(draft);
     this.status("guard", "working");
-    const transfers = graph.nodes.filter((n) => n.type === "mh.create_transfer").length;
-    this.log("guard", transfers ? `Found ${plural(transfers, "transfer")}, checking each one` : "No transfers in this workflow, checking the wiring");
+    const transfers = graph.nodes.filter((n) => isSideEffect(n.type)).length;
+    this.log("guard", transfers ? `Found ${plural(transfers, "PayPal money action")}, checking each one` : "No money actions in this workflow, checking the wiring");
     let { blocking } = reviewGraph(graph);
     if (!blocking.length) {
-      if (transfers) this.log("guard", "Every transfer waits for your approval, then your wallet signature");
-      this.status("guard", "done", transfers ? "Approval and wallet signature are in place" : "Wiring is sound");
+      if (transfers) this.log("guard", "Every PayPal money action waits for your approval of exactly what it will do");
+      this.status("guard", "done", transfers ? "Approvals are in place" : "Wiring is sound");
       this.status("fixer", "skipped", "Nothing to fix");
       return { draft, graph };
     }
@@ -138,9 +138,9 @@ export class Crew {
     log.info("agent.repair", { blocking: blocking.length });
     if (blocking.length) {
       this.status("fixer", "failed", `${plural(blocking.length, "problem")} left`);
-      throw new AppError("AGENT_BAD_OUTPUT", 422, "Sage couldn't make that safe. Try naming the trigger, where the payout list comes from and who approves it.");
+      throw new AppError("AGENT_BAD_OUTPUT", 422, "Sage couldn't make that safe. Try naming what starts it, what PayPal should do and who approves it.");
     }
-    this.log("guard", "Checked again: every transfer is safe now");
+    this.log("guard", "Checked again: every money action is behind an approval now");
     this.status("fixer", "done", "Guard's checks pass now");
     return { draft: fixed, graph };
   }

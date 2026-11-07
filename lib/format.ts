@@ -1,17 +1,3 @@
-import { formatAmount } from "./amounts";
-import { findToken } from "./tokens";
-
-export function formatToken(raw: string | bigint, mint: string, maxFraction = 6): string {
-  const token = findToken(mint);
-  if (!token) return `${raw} base units`;
-  return `${formatAmount(raw, token.decimals, maxFraction)} ${token.symbol}`;
-}
-
-export function formatSol(lamports: number | null | undefined): string {
-  if (lamports === null || lamports === undefined) return "Not returned";
-  return `${formatAmount(BigInt(lamports), 9, 6)} SOL`;
-}
-
 const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ["day", 86_400_000],
   ["hour", 3_600_000],

@@ -1,10 +1,6 @@
 import "server-only";
-import { fromRaw, splitByPercent, splitEvenly, sumRaw, toRaw } from "@/lib/amounts";
-import { MAX_DESTINATIONS } from "@/lib/recipe-schema";
-import { isSolanaAddress } from "@/lib/solana-address";
-import { findToken } from "@/lib/tokens";
 import { getPath } from "@/lib/workflow/expressions";
-import { payoutHash } from "../payload-hash";
+import { planActions, plannedHash } from "../intents";
 import { asObject, NodeError, ok, type ExecContext, type ExecResult, type Executor } from "../types";
 
 function parseJson(value: unknown, label: string): unknown {
@@ -50,8 +46,8 @@ function typeMatches(value: unknown, type: string): boolean {
       return typeof value === "number" ? Number.isFinite(value) : false;
     case "boolean":
       return typeof value === "boolean";
-    case "address":
-      return typeof value === "string" && isSolanaAddress(value);
+    case "email":
+      return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     case "object":
       return !!value && typeof value === "object" && !Array.isArray(value);
     case "array":
@@ -61,67 +57,27 @@ function typeMatches(value: unknown, type: string): boolean {
   }
 }
 
-const split: Executor = async ({ config }) => {
-  const token = findToken(String(config.tokenMint ?? ""));
-  if (!token) throw new NodeError("This token isn't supported on this network.");
-  const rows = (Array.isArray(config.recipients) ? config.recipients : []) as Array<Record<string, unknown>>;
-  if (!rows.length || rows.length > MAX_DESTINATIONS) throw new NodeError(`Use between 1 and ${MAX_DESTINATIONS} recipients.`);
-  const wallets = rows.map((r) => String(r.wallet ?? "").trim());
-  wallets.forEach((w, i) => {
-    if (!isSolanaAddress(w)) throw new NodeError(`Recipient ${i + 1} isn't a valid Solana address.`);
-    if (wallets.indexOf(w) !== i) throw new NodeError(`Recipient ${i + 1} repeats an earlier wallet.`);
-  });
-
-  const toTokenRaw = (value: unknown, what: string) => {
-    try {
-      return toRaw(String(value ?? ""), token.decimals);
-    } catch (e) {
-      throw new NodeError(`${what}: ${(e as Error).message}`);
-    }
-  };
-
-  let amounts: bigint[];
-  if (config.mode === "fixed") {
-    amounts = rows.map((r, i) => toTokenRaw(r.share, `Recipient ${i + 1}`));
-  } else {
-    const total = toTokenRaw(config.total, "Total amount");
-    if (config.mode === "even") amounts = splitEvenly(total, rows.length);
-    else {
-      const hundredths = rows.map((r, i) => {
-        const v = String(r.share ?? "").trim();
-        if (!/^\d+(\.\d{1,2})?$/.test(v)) throw new NodeError(`Recipient ${i + 1}: use a percentage with up to 2 decimals.`);
-        return Math.round(Number(v) * 100);
-      });
-      if (hundredths.reduce((a, b) => a + b, 0) !== 10_000) throw new NodeError("Percentages must add up to 100.");
-      amounts = splitByPercent(total, hundredths);
-    }
-  }
-  const zero = amounts.findIndex((a) => a <= 0n);
-  if (zero >= 0) throw new NodeError(`Recipient ${zero + 1} would receive nothing. Raise the total or their share.`);
-
-  const amountRaw = sumRaw(amounts);
-  return ok({
-    tokenMint: token.mint,
-    symbol: token.symbol,
-    decimals: token.decimals,
-    amountRaw: amountRaw.toString(),
-    amount: fromRaw(amountRaw, token.decimals),
-    destinations: amounts.map((a, i) => ({ wallet: wallets[i], amountRaw: a.toString(), label: String(rows[i].label ?? "") })),
-  });
-};
-
-const approval: Executor = async ({ config, input, waitState }) => {
+// Pauses until the owner decides. Before pausing it works out exactly what every PayPal
+// action on the Approved branch will do and fingerprints it; on approval the plan is
+// recomputed and must still match, and each action re-checks its own fingerprint.
+const approval: Executor = async ({ config, input, waitState, run, node, scope }) => {
   const decision = waitState?.decision as string | undefined;
-  const payloadHash = payoutHash(input);
+  const actions = planActions(run.graph, node.id, input, scope);
+  const payloadHash = plannedHash(actions);
   if (decision === "approved" || decision === "rejected") {
     if (decision === "approved" && waitState?.payloadHash && waitState.payloadHash !== payloadHash) {
-      throw new NodeError("The payout changed after it was shown for review, so the approval doesn't apply. Nothing was sent.");
+      throw new NodeError("What would happen changed after it was shown for review, so the approval doesn't apply. Nothing was sent.");
     }
-    return ok({ ...asObject(input), approval: { decision, by: waitState?.by ?? null, at: waitState?.at ?? null, payloadHash } }, decision);
+    const approvalInfo = { decision, by: waitState?.by ?? null, at: waitState?.at ?? null, payloadHash, actions: Object.fromEntries(actions.map((a) => [a.nodeId, a.hash])) };
+    return ok({ ...asObject(input), approval: approvalInfo }, decision);
   }
   const until = waitState?.until ? new Date(String(waitState.until)) : new Date(Date.now() + Number(config.timeoutHours ?? 24) * 3_600_000);
   if (until.getTime() <= Date.now()) throw new NodeError("Nobody approved this in time, so the run stopped. Nothing was sent.");
-  return { kind: "wait", wait: { kind: "approval", until, ref: null }, state: { until: until.toISOString(), message: String(config.message ?? ""), payloadHash } };
+  return {
+    kind: "wait",
+    wait: { kind: "approval", until, ref: null },
+    state: { until: until.toISOString(), message: String(config.message ?? ""), payloadHash, actions: actions.map(({ nodeId, type, title, intent }) => ({ nodeId, type, title, intent })) },
+  };
 };
 
 const delay: Executor = async ({ config, input, waitState }) => {
@@ -132,6 +88,8 @@ const delay: Executor = async ({ config, input, waitState }) => {
 
 export const coreExecutors: Record<string, Executor> = {
   "trigger.manual": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.paypal_checkout": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.paypal_event": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.webhook": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.schedule": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.github": async ({ run }) => ok(run.trigger.payload ?? {}),
@@ -157,7 +115,6 @@ export const coreExecutors: Record<string, Executor> = {
     const mapped = Object.fromEntries(pairs.filter((p) => p.key && !["__proto__", "constructor", "prototype"].includes(p.key)).map((p) => [p.key, p.value]));
     return ok(config.keepInput ? { ...asObject(input), ...mapped } : mapped);
   },
-  "data.split": split,
   "util.delay": delay,
   "util.log": async ({ config, input, log }) => {
     log(String(config.message ?? "").slice(0, 500));

@@ -93,7 +93,7 @@ export function useSageEdit(bridge: EditorBridge) {
     say(
       problems.length
         ? { from: "guard", text: `I found ${problems.length} thing${problems.length === 1 ? "" : "s"} to look at. Fixer can repair what doesn't need your input.`, list: problems.slice(0, 6) }
-        : { from: "guard", text: "All clear. Every transfer waits for your approval, then your wallet signature." },
+        : { from: "guard", text: "All clear. Every PayPal money action waits for your approval." },
     );
   }, [say]);
 

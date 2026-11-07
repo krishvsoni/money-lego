@@ -17,12 +17,12 @@ import { useReaction } from "./use-reaction";
 // you watch. Building it yourself on a blank canvas stays one tap away under the composer.
 
 const EXAMPLES = [
-  { label: "Pay two people now", prompt: "Send 25 USDC to Alice and 10 USDC to Bob right now, after I approve. I'll paste their wallets in the editor." },
-  { label: "Weekly payroll", prompt: "Every Friday at 17:00 Europe/London, pay approved contributors from my Google Sheet in USDC, ask me to approve, then post the result to Slack." },
-  { label: "AI agent invoices", prompt: "When my AI agent posts a signed invoice to a webhook with invoiceId, wallet and amount, pay it once per invoice in USDC if it's under 50 USDC, after my approval, and send me a Telegram message." },
-  { label: "Affiliate share", prompt: "When a Stripe invoice is paid, send 20% of it in USDC to my affiliate partner's wallet after my approval, then notify Discord." },
-  { label: "Launch tranche", prompt: "When I run it with a tranche name, pay every approved, unpaid allocation in that tranche from my Google Sheet in USDC after my approval, then announce it on Discord." },
-  { label: "OTC settlement", prompt: "When my desk posts a signed webhook with a dealId, counterparty wallet and USDC amount, settle each deal once after my approval and send the receipt to my Telegram." },
+  { label: "Revenue split", prompt: "When a client pays my $100 PayPal checkout, split the net 70% to the creator, 20% to the agency and keep 10% as operations reserve. Show me the amounts with an AI risk check, require my approval, then send PayPal payouts and notify Slack when everyone is paid." },
+  { label: "Invoice reminders", prompt: "Every Monday at 9:00 America/New_York, find my overdue PayPal invoices, have AI draft a friendly reminder for each, let me review them, then send the reminders through PayPal and post a summary to Slack." },
+  { label: "Failed subscriptions", prompt: "When a PayPal subscription payment fails, load the subscription, have AI explain why it failed, alert my team on Slack, and if a balance is outstanding draft a catch-up invoice that I approve before PayPal sends it." },
+  { label: "Refund desk", prompt: "When I run it with a capture id, amount and reason, check the request with AI, ask me to approve, refund it through PayPal once per capture, and log the result." },
+  { label: "Weekly digest", prompt: "Every Friday at 17:00, read the last 7 days of PayPal transactions, have AI write a short digest of totals, refunds and anything unusual, and post it to Slack." },
+  { label: "Invoice a client", prompt: "When I run it with a client email, project name and amount, create a PayPal invoice due in 14 days, let me approve it, then send it through PayPal and tell me on Telegram." },
 ];
 
 const GREETING = "Who should I pay, and when?";

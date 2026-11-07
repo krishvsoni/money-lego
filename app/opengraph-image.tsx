@@ -18,7 +18,7 @@ export default function OpengraphImage() {
           <div style={{ fontSize: 44, fontWeight: 600, letterSpacing: -1.2, color: "#09090b" }}>Money Lego</div>
         </div>
         <div style={{ marginTop: 56, fontSize: 88, fontWeight: 300, letterSpacing: -3, color: "#09090b", lineHeight: 1 }}>Build how your money moves.</div>
-        <div style={{ marginTop: 32, fontSize: 32, color: "#52525b" }}>Payout workflows for Solana teams, routed by MultiHopper.</div>
+        <div style={{ marginTop: 32, fontSize: 32, color: "#52525b" }}>AI-built PayPal workflows you approve before money moves.</div>
       </div>
     ),
     size,

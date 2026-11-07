@@ -55,7 +55,7 @@ export async function completeConnection(user: SessionUser | null, slug: string,
 
   const pending = await consumeState(query.get("state") ?? "");
   if (!pending || pending.type !== info.type) return fail("This sign-in link expired or was already used. Start again.");
-  if (!user || !user.userId.equals(pending.userId)) return fail("Sign in to Money Lego with the same wallet that started this connection.", pending);
+  if (!user || !user.userId.equals(pending.userId)) return fail("Sign in to Money Lego with the same account that started this connection.", pending);
   const providerError = query.get("error");
   if (providerError) return fail(providerError === "access_denied" ? "You cancelled on the provider's screen. Nothing was connected." : `${info.label} returned an error.`, pending);
   const code = query.get("code");

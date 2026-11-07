@@ -8,8 +8,8 @@ import { toGraph } from "./guardrails";
 import type { ChatMessage } from "./openrouter";
 
 // Building a new workflow from a sentence. Nothing the crew produces can run until the
-// owner sets it up and turns it on, and every transfer still needs the owner's approval and
-// wallet signature.
+// owner sets it up and turns it on, and every PayPal money action still needs the owner's
+// approval of exactly what it will do.
 
 export type { CrewEvent, CrewId, CrewStatus, PlanNode } from "./crew";
 

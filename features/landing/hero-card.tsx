@@ -15,12 +15,13 @@ interface Chip {
 }
 
 const START: Chip[] = [
-  { key: "webhook", label: "Signed webhook", color: "var(--brick-2)", icon: "Webhook" },
-  { key: "split", label: "Split 60/40", color: "var(--brick-5)", icon: "Split" },
+  { key: "checkout", label: "PayPal checkout paid", color: "var(--brick-2)", icon: "ShoppingCart" },
+  { key: "split", label: "Split 70/20/10", color: "var(--brick-5)", icon: "Split" },
+  { key: "review", label: "AI risk review", color: "var(--brick-1)", icon: "Sparkles" },
   { key: "approve", label: "Approve", color: "var(--brick-4)", icon: "UserCheck" },
-  { key: "sign", label: "Sign", color: "var(--brick-1)", icon: "PenLine" },
+  { key: "payout", label: "PayPal payout", color: "var(--paypal)", icon: "Banknote" },
 ];
-const IDLE_WORDS = ["Discord message", "Wait for transfer", "Delay", "Slack message", "Execution log"];
+const IDLE_WORDS = ["Payout status", "Send invoice", "AI write", "Slack message", "Refund payment"];
 const MAX_CHIPS = 8;
 
 // The hero's composer: a workflow written as one line, and an input that works. Type to

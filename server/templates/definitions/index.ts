@@ -1,22 +1,10 @@
 import type { TemplateDefinition } from "@/lib/templates/types";
-import { agentServicePayment } from "./agent-service-payment";
-import { discordCommunityBountyReward } from "./discord-community-bounty-reward";
-import { launchDistribution } from "./launch-distribution";
-import { opensourceContributorPayout } from "./opensource-contributor-payout";
-import { otcSettlement } from "./otc-settlement";
-import { shopifyApprovedSupplierPayout } from "./shopify-approved-supplier-payout";
-import { stripePartnerRevenueAllocation } from "./stripe-partner-revenue-allocation";
-import { weeklyGrantDistribution } from "./weekly-grant-distribution";
+import { paypalInvoiceReminders } from "./paypal-invoice-reminders";
+import { paypalRefundDesk } from "./paypal-refund-desk";
+import { paypalSaleRevenueSplit } from "./paypal-sale-revenue-split";
+import { paypalSubscriptionRecovery } from "./paypal-subscription-recovery";
+import { paypalWeeklyOpsReport } from "./paypal-weekly-ops-report";
 
 // Seed source for the published templates. The database is what the app serves; these are
-// what the seed upserts into it, keyed by slug.
-export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
-  opensourceContributorPayout,
-  shopifyApprovedSupplierPayout,
-  stripePartnerRevenueAllocation,
-  discordCommunityBountyReward,
-  weeklyGrantDistribution,
-  agentServicePayment,
-  otcSettlement,
-  launchDistribution,
-];
+// what the seed upserts into it, keyed by slug. Templates no longer listed are unpublished.
+export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [paypalSaleRevenueSplit, paypalInvoiceReminders, paypalSubscriptionRecovery, paypalRefundDesk, paypalWeeklyOpsReport];

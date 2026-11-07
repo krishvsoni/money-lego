@@ -12,10 +12,10 @@ export interface NavLink {
 
 // The one navbar for the whole site: a floating glass bar with a fixed width on every page.
 // Three columns: brand left, links centred, and a right-hand slot (a CTA on marketing pages,
-// network and wallet in the app) pinned right, so new items never resize or shift the bar.
+// sandbox badge and account in the app) pinned right, so new items never resize or shift the bar.
 // The current page is marked. On small screens the hamburger rotates into an X and the links rise into
 // a full-screen glass sheet one at a time.
-export function SiteNav({ links, right, mobileExtra, homeHref = "/" }: { links: NavLink[]; right: ReactNode; mobileExtra?: NavLink; homeHref?: string }) {
+export function SiteNav({ links, right, mobileExtra, homeHref = "/", wide = false }: { links: NavLink[]; right: ReactNode; mobileExtra?: NavLink; homeHref?: string; wide?: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -34,21 +34,21 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/" }: { links: 
   return (
     <>
       <nav aria-label="Main" className="fixed inset-x-0 top-0 z-40 flex justify-center px-4">
-        <div className="mx-auto mt-5 flex h-14 w-full max-w-[1080px] items-center justify-between gap-2 rounded-full border border-line bg-white/80 py-1.5 pl-5 pr-2 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl sm:grid sm:grid-cols-[1fr_auto_1fr]">
+        <div className={`mx-auto mt-5 flex h-14 w-full items-center justify-between gap-2 rounded-full border border-line bg-white/80 py-1.5 pl-5 pr-2 shadow-[0_8px_24px_-12px_rgb(9_9_11/0.18)] backdrop-blur-xl ${wide ? "max-w-[1240px] lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-4" : "max-w-[1080px] sm:grid sm:grid-cols-[1fr_auto_1fr]"}`}>
           <Link href={homeHref} className="flex items-center gap-2.5 justify-self-start whitespace-nowrap rounded-full font-display text-lg font-semibold tracking-[-0.025em] text-ink">
             <LogoMark className="h-7 w-7" />
             Money Lego
           </Link>
-          <Suspense fallback={<DesktopLinks links={links} pathname={null} />}>
-            <CurrentDesktopLinks links={links} />
+          <Suspense fallback={<DesktopLinks links={links} pathname={null} wide={wide} />}>
+            <CurrentDesktopLinks links={links} wide={wide} />
           </Suspense>
-          <div className="hidden min-w-0 items-center justify-end gap-2 justify-self-end sm:flex">{right}</div>
+          <div className={`hidden min-w-0 shrink-0 items-center justify-end gap-2 justify-self-end ${wide ? "lg:flex" : "sm:flex"}`}>{right}</div>
           <button
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
             aria-controls="mobile-menu"
             aria-label={open ? "Close menu" : "Open menu"}
-            className="press relative h-9 w-9 rounded-full hover:bg-sunken sm:hidden"
+            className={`press relative h-9 w-9 rounded-full hover:bg-sunken ${wide ? "lg:hidden" : "sm:hidden"}`}
           >
             <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "rotate-45" : "-translate-y-1"}`} />
             <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "-rotate-45" : "translate-y-1"}`} />
@@ -58,7 +58,7 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/" }: { links: 
 
       <div
         id="mobile-menu"
-        className={`fluid fixed inset-0 z-30 bg-white/80 backdrop-blur-3xl transition-opacity sm:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fluid fixed inset-0 z-30 bg-white/80 backdrop-blur-3xl transition-opacity ${wide ? "lg:hidden" : "sm:hidden"} ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         aria-hidden={!open}
       >
         <div className="flex h-full flex-col justify-center gap-10 px-8">
@@ -86,20 +86,20 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/" }: { links: 
 
 // The pathname is read in its own boundary: on dynamic routes it suspends during prerender,
 // and the pill shouldn't wait for it. The fallback is the same links, just unmarked.
-function CurrentDesktopLinks({ links }: { links: NavLink[] }) {
-  return <DesktopLinks links={links} pathname={usePathname()} />;
+function CurrentDesktopLinks({ links, wide }: { links: NavLink[]; wide: boolean }) {
+  return <DesktopLinks links={links} pathname={usePathname()} wide={wide} />;
 }
 
-function DesktopLinks({ links, pathname }: { links: NavLink[]; pathname: string | null }) {
+function DesktopLinks({ links, pathname, wide }: { links: NavLink[]; pathname: string | null; wide: boolean }) {
   const isCurrent = (href: string) => pathname !== null && !href.startsWith("#") && (pathname === href || pathname.startsWith(`${href}/`));
   return (
-    <ul className="hidden items-center gap-2 sm:flex">
+    <ul className={wide ? "hidden min-w-0 items-center justify-center gap-0.5 lg:flex" : "hidden items-center gap-2 sm:flex"}>
       {links.map((l) => (
         <li key={l.href}>
           <Link
             href={l.href}
             aria-current={isCurrent(l.href) ? "page" : undefined}
-            className="fluid rounded-full px-4 py-1.5 text-[15px] text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:text-ink"
+            className={`fluid whitespace-nowrap rounded-full py-1.5 text-ink-2 transition-colors hover:bg-sunken hover:text-ink aria-[current=page]:bg-sunken aria-[current=page]:font-medium aria-[current=page]:text-ink ${wide ? "px-3 text-[14px]" : "px-4 text-[15px]"}`}
           >
             {l.label}
           </Link>

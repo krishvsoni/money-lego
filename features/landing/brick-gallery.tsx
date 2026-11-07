@@ -9,6 +9,20 @@ import { NodeIcon } from "@/features/workflows/node-icon";
 
 type Filter = "all" | Category;
 
+// On the canvas PayPal blocks carry PayPal's mark; in this gallery a wall of identical logos
+// says nothing, so each shows what it does instead. The PayPal tab says whose API it is.
+const GALLERY_ICON: Record<string, string> = {
+  "trigger.paypal_checkout": "ShoppingCart",
+  "trigger.paypal_event": "Radio",
+  "paypal.get_order": "Receipt",
+  "paypal.payout": "Banknote",
+  "paypal.refund": "Undo2",
+  "paypal.find_invoices": "FileSearch",
+  "paypal.create_invoice": "FileText",
+  "paypal.get_subscription": "Repeat",
+  "paypal.transactions": "ChartColumn",
+};
+
 const LIST = "col-start-1 row-start-1 flex flex-wrap content-start justify-center gap-3";
 
 // The real node catalog as a filterable gallery. Unbuilt connectors carry a "Soon" badge
@@ -86,7 +100,7 @@ function BrickCard({ node: n, ghost = false }: { node: NodeDefinition; ghost?: b
         className="tactile-soft relative flex h-16 items-center justify-center rounded-lg [@media(max-height:860px)]:h-12"
         style={{ color: n.unavailable ? "var(--ink-3)" : color }}
       >
-        <NodeIcon name={n.icon} className="h-6 w-6" />
+        <NodeIcon name={GALLERY_ICON[n.type] ?? n.icon} className="h-6 w-6" />
         {n.unavailable && <span className="tactile absolute right-1 top-1 rounded-full px-2 text-sm font-medium leading-5 text-ink-2">Soon</span>}
       </span>
       {/* Titles start at the same line under the icon in every card, with room for two

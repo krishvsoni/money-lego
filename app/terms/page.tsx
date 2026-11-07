@@ -5,16 +5,14 @@ export const metadata: Metadata = { title: "Terms" };
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms" updated="25 October 2026">
-      <p>These pilot terms are short on purpose. If anything here is unclear, ask before you send funds.</p>
+    <LegalPage title="Terms" updated="7 November 2026">
+      <p>These terms are short on purpose.</p>
       <h2>What Money Lego does</h2>
-      <p>Money Lego lets you build workflows that prepare token transfers routed by MultiHopper. You approve and sign every transfer from your own wallet. We do not hold your funds.</p>
+      <p>Money Lego lets you build workflows that read from and act on PayPal through PayPal&apos;s APIs. Every payout, refund or invoice send waits for your explicit approval. We do not hold funds; PayPal does.</p>
+      <h2>Sandbox only</h2>
+      <p>This build runs against the PayPal Sandbox with test accounts and test money. Do not enter real payment credentials.</p>
       <h2>Your responsibilities</h2>
-      <p>Check recipient addresses and amounts before you sign. On-chain transfers can&apos;t be reversed by us or by MultiHopper once funded.</p>
-      <h2>Fees</h2>
-      <p>MultiHopper fees and Solana network costs are shown in each quote before you sign. Money Lego is free during the devnet pilot.</p>
-      <h2>Availability</h2>
-      <p>The pilot runs on devnet and may change or pause. Do not use it for funds you can&apos;t afford to have delayed.</p>
+      <p>Check recipients and amounts before you approve. AI suggestions and reviews can be wrong; your approval is the decision.</p>
       <h2>No advice</h2>
       <p>Nothing here is legal, tax or financial advice.</p>
     </LegalPage>

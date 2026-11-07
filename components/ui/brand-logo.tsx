@@ -3,7 +3,7 @@
 // Plain <img> keeps them out of the JS bundle and lets the browser cache them.
 
 const LOGOS = {
-  multihopper: "MultiHopper",
+  paypal: "PayPal",
   slack: "Slack",
   github: "GitHub",
   "google-sheets": "Google Sheets",
@@ -17,8 +17,7 @@ const LOGOS = {
 
 export type Brand = keyof typeof LOGOS;
 
-// MultiHopper publishes its mark only as a bitmap (multihopper.com's touch icon).
-const FILE: Partial<Record<Brand, string>> = { multihopper: "multihopper.png" };
+const FILE: Partial<Record<Brand, string>> = {};
 
 export const isBrand = (value: string | undefined): value is Brand => Boolean(value && value in LOGOS);
 

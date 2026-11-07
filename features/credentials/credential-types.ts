@@ -1,5 +1,5 @@
 import {
-  DiscordLogoIcon, FingerprintIcon, GithubLogoIcon, GoogleLogoIcon, LockKeyIcon, NotionLogoIcon, SlackLogoIcon, StorefrontIcon, StripeLogoIcon, TableIcon,
+  LightningIcon, DiscordLogoIcon, FingerprintIcon, GithubLogoIcon, GoogleLogoIcon, LockKeyIcon, NotionLogoIcon, SlackLogoIcon, StorefrontIcon, StripeLogoIcon, TableIcon,
   TelegramLogoIcon, type Icon,
 } from "@phosphor-icons/react";
 import type { Brand } from "@/components/ui/brand-logo";
@@ -45,6 +45,23 @@ export const CREDENTIAL_META: Record<CredentialType, CredentialMeta> = {
     inputs: [
       { key: "header", label: "Header", kind: "text", placeholder: "Authorization", pattern: /^[A-Za-z0-9-]{1,64}$/, patternMessage: "Letters, digits and dashes" },
       { key: "value", label: "Value", kind: "secret", placeholder: "Bearer …", hint: "Stored encrypted. Never sent back to the browser." },
+    ],
+  },
+  zapier_hook: {
+    label: "Zapier Catch Hook",
+    blurb: "Send workflow data to a Zap, then on to 8,000+ apps.",
+    icon: LightningIcon,
+    color: "#FF4F00",
+    inputs: [
+      {
+        key: "url",
+        label: "Catch Hook URL",
+        kind: "secret",
+        placeholder: "https://hooks.zapier.com/hooks/catch/123456/abcdef/",
+        hint: "In Zapier: create a Zap with the trigger Webhooks by Zapier > Catch Hook and copy its URL. Stored encrypted.",
+        pattern: /^https:\/\/hooks\.zapier\.com\/hooks\/catch\/\d{1,12}\/[A-Za-z0-9]{3,40}\/?$/,
+        patternMessage: "A hooks.zapier.com Catch Hook URL",
+      },
     ],
   },
   github_account: connection("GitHub account", "Signed in with GitHub.", GithubLogoIcon, "#24292f", "github"),

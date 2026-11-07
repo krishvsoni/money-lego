@@ -1,0 +1,5 @@
+import { route } from "@/server/http/handler";
+import { RATE_RULES } from "@/server/http/rate-limit";
+import { paymentsOverview } from "@/server/paypal/status";
+
+export const GET = route({ auth: true, rate: RATE_RULES.read }, async ({ user }) => paymentsOverview(user));

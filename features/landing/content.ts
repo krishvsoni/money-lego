@@ -1,76 +1,76 @@
 // Landing copy, kept apart from layout so wording can change without touching markup.
 
-export const TAGLINE = ["Automation gets it ready.", "Only your wallet moves it."];
+export const TAGLINE = ["AI builds it. PayPal runs it.", "Only you approve the money."];
 
 export const BENEFITS = [
   {
     icon: "equals",
-    title: "Exact to the base unit",
-    body: "Splits use integer math, so the parts always add back to the exact total. Never a cent lost to rounding.",
+    title: "Exact to the cent",
+    body: "Splits use integer cents, so the shares always add back to the exact net. Leftover cents land visibly, never lost to rounding.",
   },
   {
     icon: "clock",
     title: "Runs that outlive a closed tab",
-    body: "Every step is saved as it finishes. Approvals and waits pick up on the server, even after a restart.",
+    body: "Every step is saved as it finishes. Approvals and payout checks pick up on the server, even after a restart.",
   },
   {
     icon: "copy",
-    title: "One delivery, one payout",
-    body: "Duplicate webhooks, retries and double clicks all land on the same run. Nothing is paid twice.",
+    title: "One payment, one run",
+    body: "However many times a payment notification arrives, it's handled once. Nobody gets paid twice."
   },
   {
     icon: "receipt",
-    title: "Real quotes, not estimates",
-    body: "Fees, the SOL you need up front and what each person receives come from MultiHopper's live quote.",
+    title: "PayPal's numbers, not guesses",
+    body: "Splits use what actually landed after PayPal's fee, and a payout only counts as done when PayPal confirms each person was paid.",
   },
 ];
 
 export const STEPS = [
   {
-    title: "Snap the bricks together",
-    body: "Drag a trigger, a split and the MultiHopper steps onto the canvas and connect them. Problems show up while you build, not while money moves.",
+    title: "Describe it, get a graph",
+    body: "Tell Sage what should happen when money arrives. It lays out every step on the canvas, from the payment to the split to the payout, and you can change any of it.",
   },
   {
-    title: "Review the live quote",
-    body: "Each run gets a quote with the exact fee and net amount per recipient. Approval steps pause the run until you say yes.",
+    title: "Approve exactly what will happen",
+    body: "Before any payout, refund or invoice goes out, the run pauses and shows you the recipients, amounts and an AI risk review. Approval is fingerprinted.",
   },
   {
-    title: "Sign and track",
-    body: "Your wallet signs the transfer in the order MultiHopper requires. Every hop and payout is then recorded with its signature.",
+    title: "PayPal does the rest, you see everything",
+    body: "Payouts, refunds and invoices go out through PayPal, and every payment, payout and invoice shows up on your Payments page.",
   },
 ];
 
 export const FAQ = [
   {
-    q: "Does Money Lego hold my funds or keys?",
-    a: "No. Transfers go from your wallet into MultiHopper's route. Signing happens in your wallet, and the server never sees a private key or seed phrase.",
+    q: "Who is Money Lego for?",
+    a: "Small businesses, agencies and creators who get paid through PayPal and spend too much time splitting revenue, chasing invoices and following up on failed payments by hand.",
   },
   {
-    q: "Can a schedule or webhook send money without me?",
-    a: "No. Triggers can start a run and prepare a quote, but the run waits at the wallet step until you sign. Nothing can fund a transfer on your behalf.",
+    q: "Do I need to know how to code?",
+    a: "No. Describe what you want in a sentence and Money Lego builds the workflow for you. You can adjust any step by clicking on it, or start from a ready-made template.",
   },
   {
-    q: "Which tokens can I send?",
-    a: "USDC on devnet today. A token is only added after MultiHopper confirms it is supported on that network.",
+    q: "Can it move money without me?",
+    a: "Never. Before anyone is paid, refunded or sent an invoice, Money Lego stops and shows you exactly who gets what. Nothing happens until you approve it.",
   },
   {
-    q: "What does a transfer cost?",
-    a: "MultiHopper charges a percentage of the amount plus a small fee per hop, paid in SOL. You see the exact figures in the quote before you sign.",
+    q: "What if something changes after I approve?",
+    a: "Then it doesn't go through. Your approval covers exactly what you saw. If an amount or a person changes, Money Lego asks you again instead of guessing.",
   },
   {
-    q: "What happens if the same webhook arrives twice?",
-    a: "It maps to the run it already started. Retries from your systems never create a second payout.",
+    q: "Could someone get paid twice?",
+    a: "No. Each payment is handled once, even if the same notification arrives more than once or a step is retried.",
   },
   {
-    q: "What if the server restarts in the middle of a run?",
-    a: "The run continues from the last saved step. A step that may already have sent a message is flagged for you instead of being sent again.",
+    q: "What does the AI actually do?",
+    a: "It builds workflows from your description, double-checks payments for anything unusual before you approve, drafts friendly reminders for overdue invoices, and explains in plain words what happened in any run. It suggests; you decide.",
   },
   {
-    q: "Does routing make payouts private?",
-    a: "Routing spreads a transfer across hops, but Solana history stays public. We don't claim anonymity, and neither should anyone else.",
+    q: "Is my customers' information safe?",
+    a: "The AI only sees what it needs for the task, with email addresses hidden. Your PayPal login and keys are never shared with it.",
   },
   {
-    q: "Which wallets work?",
-    a: "Any wallet that supports the Solana wallet standard, including Phantom, Solflare and Backpack.",
+    q: "Is this real money?",
+    a: "Not yet. Everything runs on PayPal's test environment, so you can try every workflow end to end with test accounts and test money.",
   },
 ];

@@ -2,13 +2,14 @@
 // (execution). Executors live server-side in server/engine/executors, keyed by `type`, so
 // a new connector is one definition plus one executor, with no change to canvas or engine.
 
-export type Category = "triggers" | "logic" | "data" | "money" | "integrations" | "utilities";
+export type Category = "triggers" | "logic" | "data" | "paypal" | "ai" | "integrations" | "utilities";
 
 export const CATEGORY_META: Record<Category, { title: string; color: string }> = {
   triggers: { title: "Triggers", color: "var(--brick-2)" },
   logic: { title: "Logic", color: "var(--brick-4)" },
   data: { title: "Data", color: "var(--brick-5)" },
-  money: { title: "Money", color: "var(--brick-1)" },
+  paypal: { title: "PayPal", color: "var(--paypal)" },
+  ai: { title: "AI", color: "var(--brick-1)" },
   integrations: { title: "Integrations", color: "var(--brick-3)" },
   utilities: { title: "Utilities", color: "var(--brick-6)" },
 };
@@ -30,7 +31,7 @@ export const CONNECTION_TYPES = [
   "telegram_chat",
 ] as const;
 
-export const MANUAL_CREDENTIAL_TYPES = ["webhook_secret", "http_header"] as const;
+export const MANUAL_CREDENTIAL_TYPES = ["webhook_secret", "http_header", "zapier_hook"] as const;
 
 export const CREDENTIAL_TYPES = [...MANUAL_CREDENTIAL_TYPES, ...CONNECTION_TYPES] as const;
 
@@ -63,7 +64,6 @@ export type Field =
   | (FieldBase & { kind: "boolean" })
   | (FieldBase & { kind: "json"; placeholder?: string })
   | (FieldBase & { kind: "credential"; credentialType: CredentialType })
-  | (FieldBase & { kind: "token" })
   | (FieldBase & { kind: "pairs"; columns: PairColumn[]; max: number; addLabel: string });
 
 export interface Port {
@@ -92,6 +92,10 @@ export interface NodeDefinition {
   unavailable?: string;
   // True when re-running the node can't repeat an external side effect.
   retrySafe: boolean;
+  // Moves money or contacts a customer (payout, refund, invoice send). Such a node must sit
+  // directly on a Human approval's Approved output, and the approval fingerprints exactly
+  // what it will do (see server/engine/intents.ts).
+  sideEffect?: boolean;
   // The outside service this node talks to, for integration badges and setup checklists.
   provider?: string;
   // Explains what the node outputs, for the inspector.

@@ -25,7 +25,7 @@ export const utilityNodes: NodeDefinition[] = [
     fields: [{ key: "message", label: "Message", kind: "textarea", expression: true, required: true, maxLength: 500 }],
     inputs: MAIN_IN,
     outputs: MAIN_OUT,
-    defaults: { message: "Run finished: {{ input.state }}" },
+    defaults: { message: "Run {{ run.id }} reached this step." },
     retrySafe: true,
     outputHint: "The input, unchanged. The message appears in the run log.",
   },

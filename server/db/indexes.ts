@@ -8,30 +8,20 @@ import { COLLECTIONS } from "./names";
 // Shapes and invariants are enforced in the app with zod, not by database validators.
 
 const INDEXES: Record<string, IndexDescription[]> = {
-  [COLLECTIONS.users]: [{ key: { walletHash: 1 }, name: "wallet_hash_unique", unique: true }],
+  [COLLECTIONS.users]: [{ key: { identityKey: 1 }, name: "identity_unique", unique: true }],
   // TTL indexes: Mongo's background monitor deletes expired rows, so no instance runs a cleanup job.
-  [COLLECTIONS.nonces]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
-  [COLLECTIONS.sessions]: [
-    { key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 },
-    { key: { userId: 1 }, name: "by_user" },
-  ],
   [COLLECTIONS.rateLimits]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
   [COLLECTIONS.locks]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 300 }],
-  [COLLECTIONS.recipes]: [{ key: { ownerId: 1, status: 1, updatedAt: -1 }, name: "owner_status_recent" }],
-  [COLLECTIONS.recipeVersions]: [{ key: { recipeId: 1, version: 1 }, name: "recipe_version_unique", unique: true }],
-  [COLLECTIONS.executions]: [
-    { key: { externalId: 1 }, name: "external_id_unique", unique: true },
-    { key: { ownerId: 1, requestKey: 1 }, name: "owner_request_unique", unique: true },
-    { key: { shareToken: 1 }, name: "share_token_unique", unique: true },
-    { key: { ownerId: 1, createdAt: -1 }, name: "owner_recent" },
-    { key: { recipeId: 1, createdAt: -1 }, name: "recipe_recent" },
-    { key: { providerTransferId: 1 }, name: "provider_transfer_unique", unique: true, partialFilterExpression: { providerTransferId: { $type: "int" } } },
-    { key: { nextCheckAt: 1 }, name: "reconcile_queue", partialFilterExpression: { nextCheckAt: { $type: "date" } } },
-    { key: { "source.workflowRunId": 1 }, name: "by_workflow_run", partialFilterExpression: { "source.workflowRunId": { $type: "objectId" } } },
+  [COLLECTIONS.paypalEvents]: [
+    { key: { receivedAt: -1 }, name: "recent" },
+    { key: { reference: 1, receivedAt: -1 }, name: "by_reference" },
+    { key: { receivedAt: 1 }, name: "ttl_180d", expireAfterSeconds: 60 * 60 * 24 * 180 },
   ],
-  [COLLECTIONS.webhookEvents]: [
-    { key: { dedupeKey: 1 }, name: "dedupe_unique", unique: true },
-    { key: { receivedAt: 1 }, name: "ttl_90d", expireAfterSeconds: 60 * 60 * 24 * 90 },
+  [COLLECTIONS.paypalResources]: [
+    // One local row per PayPal object, however many times we see it.
+    { key: { kind: 1, paypalId: 1 }, name: "kind_paypal_id_unique", unique: true },
+    { key: { ownerId: 1, updatedAt: -1 }, name: "owner_recent" },
+    { key: { runId: 1 }, name: "by_run", partialFilterExpression: { runId: { $type: "objectId" } } },
   ],
   [COLLECTIONS.workflows]: [
     { key: { ownerId: 1, status: 1, updatedAt: -1 }, name: "owner_status_recent" },

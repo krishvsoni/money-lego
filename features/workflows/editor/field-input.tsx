@@ -6,7 +6,6 @@ import { Plus, X } from "lucide-react";
 import { inputClass } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import type { Field } from "@/lib/nodes/types";
-import { supportedTokens } from "@/lib/tokens";
 import type { CredentialDTO } from "@/lib/workflow/dto";
 import { connectionInfo } from "@/lib/connections/catalog";
 import { useConnect, type ConnectResult } from "@/features/connections/use-connect";
@@ -51,7 +50,7 @@ function PairsInput({ field, value, onChange, rowErrors }: Props & { field: Extr
                   placeholder={c.placeholder ?? c.label}
                   spellCheck={false}
                   aria-invalid={Boolean(rowErrors[`${field.key}.${i}.${c.key}`]) || undefined}
-                  className={`${inputClass} h-8 text-xs ${c.key === "wallet" ? "font-mono" : ""} ${field.columns.length > 2 && ci === 0 ? "col-span-2" : ""}`}
+                  className={`${inputClass} h-8 text-xs ${c.key === "email" ? "font-mono" : ""} ${field.columns.length > 2 && ci === 0 ? "col-span-2" : ""}`}
                 />
               ),
             )}
@@ -166,17 +165,6 @@ export function FieldInput(props: Props) {
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
-            </option>
-          ))}
-        </Select>
-      );
-    case "token":
-      return (
-        <Select {...common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
-          <option value="">Choose a token</option>
-          {supportedTokens().map((t) => (
-            <option key={t.mint} value={t.mint}>
-              {t.symbol}, {t.name}
             </option>
           ))}
         </Select>

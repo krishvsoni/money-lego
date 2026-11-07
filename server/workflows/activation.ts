@@ -19,6 +19,8 @@ import { OAuthError } from "../oauth/types";
 //  - Discord: the slash command in the connected server.
 //  - Stripe and Shopify: events already flow to the platform endpoint; the workflow just
 //    subscribes by route (inboundRoute), found with one indexed query per event.
+//  - PayPal: checkout workflows are found by their key; event workflows subscribe to their
+//    owner's PayPal events by route. Both need the server's PayPal app configured.
 
 export interface Activation {
   inboundRoute: string | null;
@@ -85,6 +87,16 @@ export async function activateTrigger(doc: WorkflowDoc): Promise<Activation> {
   if (trigger.type === "trigger.stripe") {
     const { account } = await call(() => openConnection(doc.ownerId, config.credentialId, "stripe_account"));
     return { inboundRoute: `stripe:${account.id}`, remoteHook: null };
+  }
+
+  if (trigger.type === "trigger.paypal_checkout" || trigger.type === "trigger.paypal_event") {
+    const e = env();
+    if (!e.PAYPAL_CLIENT_ID || !e.PAYPAL_CLIENT_SECRET) throw errors.validation("PayPal isn't configured on this server yet (PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET).");
+    if (trigger.type === "trigger.paypal_event") {
+      if (!e.PAYPAL_WEBHOOK_ID) throw errors.validation("PayPal events need the app's webhook registered first (npm run paypal:webhook, then set PAYPAL_WEBHOOK_ID).");
+      return { inboundRoute: `paypal:${doc.ownerId.toHexString()}`, remoteHook: null };
+    }
+    return { inboundRoute: null, remoteHook: null };
   }
 
   if (trigger.type === "trigger.shopify") {

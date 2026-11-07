@@ -25,6 +25,33 @@ const ENDPOINT_HELP: Record<string, string> = {
   "trigger.discord": "In the Developer Portal: your app, General Information, Interactions Endpoint URL. Discord checks it with a signed ping, which works while the workflow is off.",
 };
 
+function CheckoutHelp({ workflow }: { workflow: WorkflowDTO }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window === "undefined" ? workflow.checkoutPath : `${window.location.origin}${workflow.checkoutPath}`;
+  return (
+    <div className="rounded-lg border border-[var(--paypal)]/20 bg-[color-mix(in_srgb,var(--paypal)_6%,transparent)] p-3 text-xs text-ink-2">
+      <p className="font-semibold text-ink">Checkout page {workflow.enabled ? "(live in the sandbox)" : "(turn the workflow on to accept payments)"}</p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate font-mono text-[0.6875rem]">{url}</code>
+        <button
+          className="press shrink-0 rounded px-1.5 py-0.5 hover:bg-surface"
+          onClick={() => {
+            navigator.clipboard.writeText(url).catch(() => null);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          }}
+        >
+          {copied ? "Copied" : <Copy className="h-3.5 w-3.5" aria-label="Copy URL" />}
+        </button>
+        <a href={workflow.checkoutPath} target="_blank" rel="noreferrer" className="shrink-0 rounded px-1.5 py-0.5 font-semibold text-action hover:bg-surface">
+          Open
+        </a>
+      </div>
+      <p className="mt-2">Pay it with a PayPal sandbox personal account. The run starts from PayPal&apos;s capture response; the verified webhook for the same capture never starts a second run.</p>
+    </div>
+  );
+}
+
 function WebhookHelp({ workflow, type }: { workflow: WorkflowDTO; type: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window === "undefined" ? workflow.webhookPath : `${window.location.origin}${workflow.webhookPath}`;
@@ -144,6 +171,12 @@ export function Inspector({
         {tab === "settings" ? (
           <div className="flex flex-col gap-4">
             {(node.type === "trigger.webhook" || ENDPOINT_HELP[node.type]) && <WebhookHelp workflow={editor.workflow} type={node.type} />}
+            {node.type === "trigger.paypal_checkout" && <CheckoutHelp workflow={editor.workflow} />}
+            {node.type === "trigger.paypal_event" && (
+              <p className="rounded-lg bg-sunken p-3 text-xs text-ink-2">
+                Events arrive at the server&apos;s verified PayPal webhook and are routed to your workspace when they concern an order, invoice or payout your workflows created. Turn the workflow on to subscribe.
+              </p>
+            )}
             {def?.fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-1.5">
                 <label htmlFor={f.key} className="flex items-center justify-between text-xs font-semibold">
@@ -197,7 +230,7 @@ export function Inspector({
           <div className="text-sm text-ink-2">
             <p>Run the workflow to see what this node receives and produces.</p>
             <p className="mt-3 text-xs">
-              Reference earlier data in any field marked {"{{ }}"}: <code className={`${inputClass} mt-1 block h-auto py-1.5 font-mono text-[0.6875rem]`}>{"{{ input.amount }}  {{ trigger.body.event }}  {{ nodes.split.amountRaw }}"}</code>
+              Reference earlier data in any field marked {"{{ }}"}: <code className={`${inputClass} mt-1 block h-auto py-1.5 font-mono text-[0.6875rem]`}>{"{{ trigger.net }}  {{ input.allocation.total }}  {{ nodes.order.order.captureId }}"}</code>
             </p>
           </div>
         )}

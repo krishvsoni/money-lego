@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const uri = process.env.TEST_MONGODB_URI ?? "";
 const local = /^mongodb:\/\/(localhost|127\.0\.0\.1)[:/]/.test(uri);
 const dbName = `money_lego_test_${Date.now()}`;
+const COUNT = 5;
 
 describe.skipIf(!local)("templates against MongoDB", () => {
   let mod: {
@@ -16,9 +17,9 @@ describe.skipIf(!local)("templates against MongoDB", () => {
     seedTemplates: typeof import("@/server/templates/seed").seedTemplates;
     service: typeof import("@/server/workflows/service");
     runs: typeof import("@/server/engine/runs");
-    payout: typeof import("@/server/engine/executors/payout");
+    once: typeof import("@/server/engine/executors/once");
   };
-  const user = { userId: new ObjectId(), wallet: "11111111111111111111111111111111" };
+  const user = { userId: new ObjectId(), name: "Test Studio", kind: "clerk" as const };
 
   beforeAll(async () => {
     process.env.MONGODB_URI = uri;
@@ -29,7 +30,7 @@ describe.skipIf(!local)("templates against MongoDB", () => {
       seedTemplates: (await import("@/server/templates/seed")).seedTemplates,
       service: await import("@/server/workflows/service"),
       runs: await import("@/server/engine/runs"),
-      payout: await import("@/server/engine/executors/payout"),
+      once: await import("@/server/engine/executors/once"),
     };
   });
 
@@ -39,52 +40,52 @@ describe.skipIf(!local)("templates against MongoDB", () => {
     await mod.mongoClient().close();
   });
 
-  it("seeding twice leaves exactly five published templates, no duplicates, no new revision", async () => {
+  it("seeding twice leaves exactly the published templates, no duplicates, no new revision", async () => {
     const c = await mod.collections();
     const first = await mod.seedTemplates(c);
     const second = await mod.seedTemplates(c);
-    expect(first.written).toHaveLength(5);
+    expect(first.written).toHaveLength(COUNT);
     expect(second.written).toHaveLength(0);
-    expect(second.unchanged).toHaveLength(5);
-    expect(await c.workflowTemplates.countDocuments({ isPublished: true })).toBe(5);
-    expect(new Set(await c.workflowTemplates.distinct("slug")).size).toBe(5);
-    expect(await c.workflowTemplates.countDocuments({ revision: 1 })).toBe(5);
+    expect(second.unchanged).toHaveLength(COUNT);
+    expect(await c.workflowTemplates.countDocuments({ isPublished: true })).toBe(COUNT);
+    expect(new Set(await c.workflowTemplates.distinct("slug")).size).toBe(COUNT);
+    expect(await c.workflowTemplates.countDocuments({ revision: 1 })).toBe(COUNT);
   });
 
   it("concurrent seeds from many instances still produce one document per slug", async () => {
     const c = await mod.collections();
     await c.workflowTemplates.deleteMany({});
     await Promise.all([mod.seedTemplates(c), mod.seedTemplates(c), mod.seedTemplates(c)]);
-    expect(await c.workflowTemplates.countDocuments({})).toBe(5);
+    expect(await c.workflowTemplates.countDocuments({})).toBe(COUNT);
   });
 
   it("imports a deep, user-owned, disabled copy and never mutates the template", async () => {
     const c = await mod.collections();
-    const before = await c.workflowTemplates.findOne({ slug: "opensource-contributor-payout" });
+    const before = await c.workflowTemplates.findOne({ slug: "paypal-sale-revenue-split" });
     const requestKey = crypto.randomUUID();
     const [a, b] = await Promise.all([
-      mod.service.createWorkflow(user, { templateSlug: "opensource-contributor-payout", requestKey }),
-      mod.service.createWorkflow(user, { templateSlug: "opensource-contributor-payout", requestKey }),
+      mod.service.createWorkflow(user, { templateSlug: "paypal-sale-revenue-split", requestKey }),
+      mod.service.createWorkflow(user, { templateSlug: "paypal-sale-revenue-split", requestKey }),
     ]);
     expect(a.id).toBe(b.id);
     expect(await c.workflows.countDocuments({ ownerId: user.userId })).toBe(1);
     expect(a.enabled).toBe(false);
-    expect(a.sourceTemplate?.slug).toBe("opensource-contributor-payout");
+    expect(a.sourceTemplate?.slug).toBe("paypal-sale-revenue-split");
     const doc = await c.workflows.findOne({ _id: new ObjectId(a.id) });
     expect(doc?.ownerId.equals(user.userId)).toBe(true);
     expect(doc?.sourceTemplate?.id.equals(before!._id)).toBe(true);
     expect(a.graph.edges).toEqual(before!.graphDefinition.edges);
 
     const edited = structuredClone(a.graph);
-    edited.nodes[0].config.repository = "someone/else";
+    edited.nodes[0].config.itemName = "Something else";
     await mod.service.saveWorkflow(user, a.id, { name: a.name, graph: edited, expectedVersion: a.version });
-    const after = await c.workflowTemplates.findOne({ slug: "opensource-contributor-payout" });
+    const after = await c.workflowTemplates.findOne({ slug: "paypal-sale-revenue-split" });
     expect(after!.graphDefinition).toEqual(before!.graphDefinition);
     expect(after!.revision).toBe(before!.revision);
   });
 
   it("won't turn an imported workflow on while setup is missing", async () => {
-    const w = await mod.service.createWorkflow(user, { templateSlug: "weekly-grant-distribution" });
+    const w = await mod.service.createWorkflow(user, { templateSlug: "paypal-invoice-reminders" });
     await expect(mod.service.setWorkflowEnabled(user, w.id, true)).rejects.toThrow(/before turning this workflow on/);
   });
 
@@ -112,14 +113,14 @@ describe.skipIf(!local)("templates against MongoDB", () => {
     const runIds = [new ObjectId(), new ObjectId(), new ObjectId()];
     await c.workflowRuns.insertMany(runIds.map((_id) => ({ _id, workflowId, ownerId: user.userId, status: "running", trigger: { key: `manual:${_id.toHexString()}` } }) as never));
     const once = (runId: ObjectId) =>
-      mod.payout.payoutExecutors["logic.once"]({ config: { key: "bounty:BOUNTY-DEMO-17" }, input: {}, run: { _id: runId, workflowId } } as never).then(
+      mod.once.onceExecutors["logic.once"]({ config: { key: "capture:3C679366HH908993F" }, input: {}, run: { _id: runId, workflowId } } as never).then(
         () => "claimed",
         () => "stopped",
       );
     const outcomes = await Promise.all(runIds.map(once));
     expect(outcomes.filter((o) => o === "claimed")).toHaveLength(1);
 
-    // A run that failed before funding releases its key to a retry; a live one never does.
+    // A run that failed before any PayPal money action releases its key to a retry; a live one never does.
     const winner = runIds[outcomes.indexOf("claimed")];
     expect(await once(runIds.find((r) => r !== winner)!)).toBe("stopped");
     await c.workflowRuns.updateOne({ _id: winner }, { $set: { status: "failed" } });

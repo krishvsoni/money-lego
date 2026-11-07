@@ -1,0 +1,675 @@
+{
+  "info": {
+    "name": "Money Lego — PayPal Sandbox",
+    "description": "The exact PayPal REST calls Money Lego makes (sandbox), plus Money Lego's own public endpoints. Run \"OAuth 2.0 token\" first; it stores the token for the rest. Never use live credentials here.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "paypal_base",
+      "value": "https://api-m.sandbox.paypal.com"
+    },
+    {
+      "key": "paypal_client_id",
+      "value": ""
+    },
+    {
+      "key": "paypal_client_secret",
+      "value": ""
+    },
+    {
+      "key": "paypal_access_token",
+      "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    },
+    {
+      "key": "capture_id",
+      "value": ""
+    },
+    {
+      "key": "payout_batch_id",
+      "value": ""
+    },
+    {
+      "key": "invoice_id",
+      "value": ""
+    },
+    {
+      "key": "app_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "checkout_key",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. PayPal auth",
+      "item": [
+        {
+          "name": "OAuth 2.0 token (client credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"paypal_access_token\", j.access_token);",
+                  "pm.test(\"token issued\", () => pm.expect(j.access_token).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Exchanges the sandbox app credentials for an access token. Money Lego does this server-side and caches it (server/paypal/client.ts).",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{paypal_client_id}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{paypal_client_secret}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "client_credentials"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/oauth2/token",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "oauth2",
+                "token"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Orders & captures (checkout trigger)",
+      "item": [
+        {
+          "name": "Create order",
+          "request": {
+            "method": "POST",
+            "description": "What a workflow checkout page creates. custom_id routes the webhook back to the workflow.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "checkout",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intent\": \"CAPTURE\",\n  \"purchase_units\": [\n    {\n      \"reference_id\": \"default\",\n      \"custom_id\": \"ml:<workflow key>\",\n      \"description\": \"Brand strategy session\",\n      \"amount\": {\n        \"currency_code\": \"USD\",\n        \"value\": \"100.00\",\n        \"breakdown\": {\n          \"item_total\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          }\n        }\n      },\n      \"items\": [\n        {\n          \"name\": \"Brand strategy session\",\n          \"quantity\": \"1\",\n          \"unit_amount\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          },\n          \"category\": \"DIGITAL_GOODS\"\n        }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get order",
+          "request": {
+            "method": "GET",
+            "description": "Used by the Get PayPal order block.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "checkout",
+                "orders",
+                "{{order_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Capture order (after buyer approval)",
+          "request": {
+            "method": "POST",
+            "description": "Idempotent per order via PayPal-Request-Id in Money Lego.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}/capture",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "checkout",
+                "orders",
+                "{{order_id}}",
+                "capture"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Refund capture",
+          "request": {
+            "method": "POST",
+            "description": "The Refund payment block (only after a human approval).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/payments/captures/{{capture_id}}/refund",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "payments",
+                "captures",
+                "{{capture_id}}",
+                "refund"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": {\n    \"currency_code\": \"USD\",\n    \"value\": \"25.00\"\n  },\n  \"note_to_payer\": \"Refund for your booking.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Payouts",
+      "item": [
+        {
+          "name": "Create payout batch",
+          "request": {
+            "method": "POST",
+            "description": "The PayPal payout block. sender_batch_id is stable per run+node, so retries never pay twice.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/payments/payouts",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "payouts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender_batch_header\": {\n    \"sender_batch_id\": \"ml-<runId>-<nodeId>\",\n    \"email_subject\": \"Your share of a client payment\",\n    \"email_message\": \"Thank you!\"\n  },\n  \"items\": [\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"67.22\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"creator@example.com\",\n      \"note\": \"Creator share\",\n      \"sender_item_id\": \"1\"\n    },\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"19.20\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"agency@example.com\",\n      \"note\": \"Agency share\",\n      \"sender_item_id\": \"2\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get payout batch",
+          "request": {
+            "method": "GET",
+            "description": "The Payout status block polls this (and webhooks wake it).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/payments/payouts/{{payout_batch_id}}?fields=batch_header,items",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "payouts",
+                "{{payout_batch_id}}?fields=batch_header,items"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Invoicing",
+      "item": [
+        {
+          "name": "Search unpaid invoices",
+          "request": {
+            "method": "POST",
+            "description": "The Find invoices block.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/invoicing/search-invoices?page=1&page_size=10&total_required=true",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "invoicing",
+                "search-invoices?page=1&page_size=10&total_required=true"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": [\n    \"SENT\",\n    \"UNPAID\",\n    \"PARTIALLY_PAID\"\n  ],\n  \"due_date_range\": {\n    \"start\": \"2000-01-01\",\n    \"end\": \"2026-11-06\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Send reminder",
+          "request": {
+            "method": "POST",
+            "description": "The Send invoice block in remind mode.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v2/invoicing/invoices/{{invoice_id}}/remind",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v2",
+                "invoicing",
+                "invoices",
+                "{{invoice_id}}",
+                "remind"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"A friendly reminder about your invoice\",\n  \"note\": \"AI-drafted note goes here\",\n  \"send_to_invoicer\": false,\n  \"send_to_recipient\": true\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Subscriptions & reporting",
+      "item": [
+        {
+          "name": "Get subscription",
+          "request": {
+            "method": "GET",
+            "description": "The Get subscription block.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/billing/subscriptions/I-BW452GLLEP1G",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "billing",
+                "subscriptions",
+                "I-BW452GLLEP1G"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Transaction search (7 days)",
+          "request": {
+            "method": "GET",
+            "description": "The Transaction report block.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/reporting/transactions?start_date=2026-11-01T00:00:00Z&end_date=2026-11-07T23:59:59Z&fields=transaction_info&page_size=100",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "reporting",
+                "transactions?start_date=2026-11-01T00:00:00Z&end_date=2026-11-07T23:59:59Z&fields=transaction_info&page_size=100"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Webhooks",
+      "item": [
+        {
+          "name": "List webhooks",
+          "request": {
+            "method": "GET",
+            "description": "npm run paypal:webhook registers/updates the app webhook.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/notifications/webhooks",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "notifications",
+                "webhooks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify webhook signature",
+          "request": {
+            "method": "POST",
+            "description": "Money Lego verifies every delivery this way before storing or acting on it.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{paypal_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{paypal_base}}/v1/notifications/verify-webhook-signature",
+              "host": [
+                "{{paypal_base}}"
+              ],
+              "path": [
+                "v1",
+                "notifications",
+                "verify-webhook-signature"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auth_algo\": \"SHA256withRSA\",\n  \"cert_url\": \"https://api.sandbox.paypal.com/v1/notifications/certs/CERT-...\",\n  \"transmission_id\": \"...\",\n  \"transmission_sig\": \"...\",\n  \"transmission_time\": \"...\",\n  \"webhook_id\": \"<PAYPAL_WEBHOOK_ID>\",\n  \"webhook_event\": {}\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Money Lego public endpoints",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "description": "Up or down.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{app_url}}/api/health",
+              "host": [
+                "{{app_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Checkout page data",
+          "request": {
+            "method": "GET",
+            "description": "Price and product for a workflow checkout page (never the graph).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{app_url}}/api/pay/{{checkout_key}}",
+              "host": [
+                "{{app_url}}"
+              ],
+              "path": [
+                "api",
+                "pay",
+                "{{checkout_key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create checkout order",
+          "request": {
+            "method": "POST",
+            "description": "Server creates the PayPal order at the workflow's price; the browser can't set the amount.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{app_url}}/api/pay/{{checkout_key}}/orders",
+              "host": [
+                "{{app_url}}"
+              ],
+              "path": [
+                "api",
+                "pay",
+                "{{checkout_key}}",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestKey\": \"00000000-0000-4000-8000-000000000000\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

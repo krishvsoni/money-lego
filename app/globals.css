@@ -23,6 +23,8 @@
   --danger-wash: #fbe8e5;
 
   --brick-1: #2c4bd6;
+  --paypal: #003087;
+  --paypal-light: #0070e0;
   --brick-2: #e3a21a;
   --brick-3: #c2412d;
   --brick-4: #7a3e8f;
@@ -220,7 +222,8 @@ dd,
 .react-flow__minimap-node.mm-triggers { fill: var(--brick-2); }
 .react-flow__minimap-node.mm-logic { fill: var(--brick-4); }
 .react-flow__minimap-node.mm-data { fill: var(--brick-5); }
-.react-flow__minimap-node.mm-money { fill: var(--brick-1); }
+.react-flow__minimap-node.mm-paypal { fill: var(--paypal); }
+.react-flow__minimap-node.mm-ai { fill: var(--brick-1); }
 .react-flow__minimap-node.mm-integrations { fill: var(--brick-3); }
 .react-flow__minimap-node.mm-utilities { fill: var(--brick-6); }
 

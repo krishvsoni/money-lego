@@ -16,7 +16,7 @@ export function masterKey(): Buffer {
   return Buffer.from(k, "base64");
 }
 
-// Independent subkeys per purpose: the key that encrypts wallets never doubles as the key
+// Independent subkeys per purpose: the key that encrypts one kind of secret never doubles as the key
 // that indexes them, and neither is the raw credentials key.
 const derived = new Map<string, Buffer>();
 export function subkey(purpose: string): Buffer {

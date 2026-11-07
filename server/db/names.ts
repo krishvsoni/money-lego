@@ -2,16 +2,9 @@
 // collection names without creating an import cycle through the connection module.
 
 export const COLLECTIONS = {
-  // Accounts live in "accounts". The old "users" collection carries a database validator
-  // that requires a plaintext wallet; it is only read to carry legacy accounts over.
-  users: "accounts",
-  legacyUsers: "users",
-  nonces: "auth_nonces",
-  sessions: "sessions",
-  recipes: "recipes",
-  recipeVersions: "recipe_versions",
-  executions: "executions",
-  webhookEvents: "webhook_events",
+  // Accounts live in "members". Older collections ("users", "accounts") from the wallet
+  // era are left untouched; nothing reads or deletes them.
+  users: "members",
   rateLimits: "rate_limits",
   locks: "locks",
   workflows: "workflows",
@@ -23,6 +16,8 @@ export const COLLECTIONS = {
   onceKeys: "once_keys",
   oauthStates: "oauth_states",
   telegramLinks: "telegram_links",
+  paypalEvents: "paypal_events",
+  paypalResources: "paypal_resources",
 } as const;
 
 export function isDuplicateKeyError(error: unknown): boolean {

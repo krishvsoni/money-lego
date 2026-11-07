@@ -1,13 +1,13 @@
 // Renders the template thumbnails to public/templates/*.svg. Each is a self-contained
 // 16:9 illustration of its workflow: brick-style node cards on the brand navy, with the
-// trigger, logic, MultiHopper and notification steps in that template's own arrangement.
+// trigger, logic, PayPal, AI and notification steps in that template's own arrangement.
 // No fonts, images or links are fetched; text uses the system font stack.
-// Usage: bun scripts/thumbnails.ts
+// Usage: npm run thumbnails
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-type Kind = "trigger" | "logic" | "data" | "money" | "notify" | "stop";
+type Kind = "trigger" | "logic" | "data" | "money" | "ai" | "notify" | "stop";
 
 interface Card {
   id: string;
@@ -29,7 +29,7 @@ interface Thumb {
   badges: Array<[string, string]>;
 }
 
-const KIND_COLOR: Record<Kind, string> = { trigger: "#e3a21a", logic: "#a066b8", data: "#3c8dbc", money: "#4a6af0", notify: "#d0563f", stop: "#8b93a7" };
+const KIND_COLOR: Record<Kind, string> = { trigger: "#e3a21a", logic: "#a066b8", data: "#3c8dbc", money: "#0070e0", ai: "#7c5cff", notify: "#d0563f", stop: "#8b93a7" };
 const W = 200;
 const H = 84;
 // Cards grow to fit their label, so text never runs past the edge.
@@ -120,7 +120,7 @@ function render(t: Thumb): string {
 <rect x="60" y="48" width="${30 + t.category.length * 11}" height="30" rx="15" fill="#e3a21a" fill-opacity="0.16"/>
 <text x="74" y="68" font-size="15" font-weight="700" fill="#f2c45a">${esc(t.category.toUpperCase())}</text>
 <text x="60" y="124" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="-0.5">${esc(t.title)}</text>
-<g transform="translate(1000 54)"><rect width="220" height="32" rx="16" fill="#17784a" fill-opacity="0.22"/><path d="M18 9 l9 3.5 v6 c0 5 -4 8 -9 9.5 c-5 -1.5 -9 -4.5 -9 -9.5 v-6 z" fill="#4cc38a"/><text x="36" y="21.5" font-size="14" font-weight="700" fill="#9be3bf">Approve + sign each run</text></g>
+<g transform="translate(1000 54)"><rect width="220" height="32" rx="16" fill="#17784a" fill-opacity="0.22"/><path d="M18 9 l9 3.5 v6 c0 5 -4 8 -9 9.5 c-5 -1.5 -9 -4.5 -9 -9.5 v-6 z" fill="#4cc38a"/><text x="36" y="21.5" font-size="14" font-weight="700" fill="#9be3bf">You approve every action</text></g>
 ${edges}
 ${t.cards.map(card).join("\n")}
 ${badgeRow(t.badges)}
@@ -130,144 +130,85 @@ ${badgeRow(t.badges)}
 }
 
 const B = {
-  github: ["GitHub", "#e6edf3"],
-  sheets: ["Google Sheets", "#34a853"],
-  mh: ["MultiHopper", "#4a6af0"],
-  discord: ["Discord", "#5865F2"],
+  paypal: ["PayPal", "#0070e0"],
+  ai: ["AI", "#7c5cff"],
   slack: ["Slack", "#e01e5a"],
-  stripe: ["Stripe", "#635BFF"],
-  shopify: ["Shopify", "#95bf47"],
-  telegram: ["Telegram", "#229ED9"],
-  notion: ["Notion", "#ffffff"],
-  airtable: ["Airtable", "#fcb400"],
-  http: ["HTTP Request", "#3c8dbc"],
   schedule: ["Schedule", "#e3a21a"],
 } satisfies Record<string, [string, string]>;
 
 const THUMBS: Thumb[] = [
   {
-    slug: "opensource-contributor-payout",
-    title: "Open Source Contributor Payout",
-    category: "Developer Tools",
-    cards: [
-      { id: "gh", x: 60, y: 200, label: "Release published", sub: "GitHub · signed", kind: "trigger", mono: "GH", w: 220 },
-      { id: "rows", x: 360, y: 200, label: "Approved rows", sub: "Google Sheets", kind: "data", mono: "GS" },
-      { id: "val", x: 650, y: 200, label: "Validate & split", sub: "1–20 wallets, exact", kind: "logic", mono: "✓" },
-      { id: "quote", x: 960, y: 200, label: "Quote", sub: "MultiHopper fees", kind: "money", mono: "MH", w: 220 },
-      { id: "review", x: 960, y: 420, label: "Operator review", sub: "approve payload", kind: "logic", mono: "OK", w: 220 },
-      { id: "sign", x: 650, y: 420, label: "Wallet signs", sub: "keeper, then route", kind: "money", mono: "MH" },
-      { id: "track", x: 360, y: 420, label: "Track delivery", sub: "webhook + polling", kind: "money", mono: "MH" },
-      { id: "dc", x: 60, y: 420, label: "Post summary", sub: "Discord", kind: "notify", mono: "DC", w: 220 },
-    ],
-    edges: [["gh", "rows"], ["rows", "val"], ["val", "quote"], ["quote", "review"], ["review", "sign", "approved"], ["sign", "track"], ["track", "dc"]],
-    badges: [B.github, B.sheets, B.mh, B.discord],
-  },
-  {
-    slug: "shopify-approved-supplier-payout",
-    title: "Shopify Supplier Payout",
-    category: "Commerce",
-    cards: [
-      { id: "order", x: 60, y: 190, label: "Order paid", sub: "Shopify · HMAC", kind: "trigger", mono: "SH" },
-      { id: "check", x: 60, y: 420, label: "Paid, not cancelled", sub: "order rules", kind: "logic", mono: "✓", w: 220 },
-      { id: "supplier", x: 370, y: 420, label: "Supplier terms", sub: "Airtable · approved", kind: "data", mono: "AT" },
-      { id: "once", x: 370, y: 190, label: "Once per order", sub: "no double payout", kind: "logic", mono: "1×" },
-      { id: "quote", x: 680, y: 190, label: "Quote + review", sub: "MultiHopper", kind: "money", mono: "MH" },
-      { id: "sign", x: 680, y: 420, label: "Wallet signs", sub: "separate funds", kind: "money", mono: "MH" },
-      { id: "slack", x: 990, y: 420, label: "Notify", sub: "Slack", kind: "notify", mono: "SL" },
-    ],
-    edges: [["order", "check"], ["check", "supplier"], ["supplier", "once"], ["once", "quote"], ["quote", "sign", "approved"], ["sign", "slack"]],
-    badges: [B.shopify, B.airtable, B.mh, B.slack],
-  },
-  {
-    slug: "stripe-partner-revenue-allocation",
-    title: "Stripe Partner Revenue Allocation",
+    slug: "paypal-sale-revenue-split",
+    title: "PayPal Sale → Revenue Split Payout",
     category: "Revenue Operations",
     cards: [
-      { id: "inv", x: 60, y: 200, label: "Invoice paid", sub: "Stripe · signed", kind: "trigger", mono: "ST" },
-      { id: "policy", x: 360, y: 200, label: "Payout policy", sub: "Notion page", kind: "data", mono: "NO" },
-      { id: "alloc", x: 660, y: 200, label: "Allocation API", sub: "HTTP · allowlisted", kind: "data", mono: "{}" },
-      { id: "split", x: 960, y: 200, label: "Validate split", sub: "sum must match", kind: "logic", mono: "✓", w: 220 },
-      { id: "review", x: 960, y: 410, label: "Quote + review", sub: "MultiHopper", kind: "money", mono: "MH", w: 220 },
-      { id: "sign", x: 660, y: 410, label: "Wallet signs", sub: "your funds", kind: "money", mono: "MH" },
-      { id: "slack", x: 360, y: 350, label: "Notify", sub: "Slack", kind: "notify", mono: "SL" },
-      { id: "record", x: 360, y: 480, label: "Record", sub: "Notion database", kind: "notify", mono: "NO" },
+      { id: "pay", x: 60, y: 200, label: "Checkout paid", sub: "PayPal capture", kind: "trigger", mono: "PP" },
+      { id: "once", x: 360, y: 200, label: "Once per capture", sub: "no double splits", kind: "logic", mono: "1×" },
+      { id: "split", x: 700, y: 200, label: "Split 70/20/10", sub: "exact cents", kind: "data", mono: "%" },
+      { id: "ai", x: 1000, y: 200, label: "AI review", sub: "risk + checks", kind: "ai", mono: "AI", w: 220 },
+      { id: "ok", x: 1000, y: 420, label: "You approve", sub: "fingerprinted", kind: "logic", mono: "✓", w: 220 },
+      { id: "payout", x: 660, y: 420, label: "PayPal payout", sub: "one batch", kind: "money", mono: "PP" },
+      { id: "status", x: 360, y: 420, label: "Wait until paid", sub: "item by item", kind: "money", mono: "◷" },
+      { id: "slack", x: 60, y: 420, label: "Slack", sub: "team update", kind: "notify", mono: "#", w: 200 },
     ],
-    edges: [["inv", "policy"], ["policy", "alloc"], ["alloc", "split"], ["split", "review"], ["review", "sign", "approved"], ["sign", "slack"], ["sign", "record"]],
-    badges: [B.stripe, B.notion, B.http, B.mh, B.slack],
+    edges: [["pay", "once"], ["once", "split"], ["split", "ai"], ["ai", "ok"], ["ok", "payout", "approved"], ["payout", "status"], ["status", "slack"]],
+    badges: [B.paypal, B.ai, B.slack],
   },
   {
-    slug: "discord-community-bounty-reward",
-    title: "Community Bounty Reward",
-    category: "Community",
+    slug: "paypal-invoice-reminders",
+    title: "AI Invoice Reminder Assistant",
+    category: "Accounts Receivable",
     cards: [
-      { id: "cmd", x: 40, y: 320, label: "/payout-bounty", sub: "Discord · Ed25519", kind: "trigger", mono: "DC" },
-      { id: "bounty", x: 295, y: 320, label: "Approved bounty", sub: "Airtable", kind: "data", mono: "AT" },
-      { id: "review", x: 560, y: 320, label: "Review + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
-      { id: "track", x: 810, y: 320, label: "Delivery", sub: "confirmed only", kind: "money", mono: "MH" },
-      { id: "tg", x: 1040, y: 200, label: "Tell winner", sub: "Telegram", kind: "notify", mono: "TG", w: 190 },
-      { id: "dc", x: 1040, y: 450, label: "Post outcome", sub: "Discord channel", kind: "notify", mono: "DC", w: 190 },
+      { id: "s", x: 60, y: 220, label: "Every Monday", sub: "09:00", kind: "trigger", mono: "◷" },
+      { id: "find", x: 360, y: 220, label: "Overdue invoices", sub: "PayPal Invoicing", kind: "money", mono: "PP" },
+      { id: "ai", x: 720, y: 220, label: "AI drafts reminders", sub: "one per invoice", kind: "ai", mono: "AI" },
+      { id: "ok", x: 720, y: 430, label: "You review", sub: "edit or approve", kind: "logic", mono: "✓" },
+      { id: "send", x: 360, y: 430, label: "Send reminders", sub: "via PayPal", kind: "money", mono: "PP" },
+      { id: "slack", x: 60, y: 430, label: "Slack", sub: "summary", kind: "notify", mono: "#", w: 200 },
     ],
-    edges: [["cmd", "bounty"], ["bounty", "review"], ["review", "track"], ["track", "tg", "paid"], ["track", "dc", "any outcome"]],
-    badges: [B.discord, B.airtable, B.telegram, B.mh],
+    edges: [["s", "find"], ["find", "ai"], ["ai", "ok"], ["ok", "send", "approved"], ["send", "slack"]],
+    badges: [B.schedule, B.paypal, B.ai, B.slack],
   },
   {
-    slug: "weekly-grant-distribution",
-    title: "Weekly Grant Distribution",
-    category: "Treasury Operations",
+    slug: "paypal-subscription-recovery",
+    title: "Failed Subscription Recovery",
+    category: "Subscriptions",
     cards: [
-      { id: "sched", x: 60, y: 200, label: "Every Friday", sub: "15:00 your timezone", kind: "trigger", mono: "⏱" },
-      { id: "rows", x: 320, y: 200, label: "Approved grants", sub: "Google Sheets batch", kind: "data", mono: "GS" },
-      { id: "policy", x: 590, y: 200, label: "Policy + budget", sub: "Notion · HTTP", kind: "data", mono: "NO" },
-      { id: "ok", x: 860, y: 200, label: "Budget OK?", sub: "treasury answer", kind: "logic", mono: "?", w: 170 },
-      { id: "stop", x: 1100, y: 218, label: "Stop + log", sub: "", kind: "stop", mono: "", w: 130 },
-      { id: "review", x: 860, y: 420, label: "Quote + review", sub: "one batch", kind: "money", mono: "MH" },
-      { id: "sign", x: 560, y: 420, label: "Wallet signs", sub: "every week", kind: "money", mono: "MH" },
-      { id: "notify", x: 250, y: 420, label: "Slack + record", sub: "Notion run log", kind: "notify", mono: "SL" },
+      { id: "ev", x: 60, y: 210, label: "Payment failed", sub: "verified webhook", kind: "trigger", mono: "PP" },
+      { id: "sub", x: 380, y: 210, label: "Load subscription", sub: "PayPal billing", kind: "money", mono: "PP" },
+      { id: "ai", x: 720, y: 210, label: "AI explains why", sub: "reason + balance", kind: "ai", mono: "AI" },
+      { id: "inv", x: 720, y: 430, label: "Draft invoice", sub: "outstanding only", kind: "money", mono: "PP" },
+      { id: "ok", x: 400, y: 430, label: "You approve", sub: "then PayPal sends", kind: "logic", mono: "✓" },
+      { id: "slack", x: 60, y: 430, label: "Slack", sub: "alert", kind: "notify", mono: "#", w: 200 },
     ],
-    edges: [["sched", "rows"], ["rows", "policy"], ["policy", "ok"], ["ok", "stop", "no"], ["ok", "review", "yes"], ["review", "sign", "approved"], ["sign", "notify"]],
-    badges: [B.schedule, B.sheets, B.notion, B.http, B.mh, B.slack],
+    edges: [["ev", "sub"], ["sub", "ai"], ["ai", "inv", "owed"], ["inv", "ok"], ["ok", "slack"]],
+    badges: [B.paypal, B.ai, B.slack],
   },
   {
-    slug: "agent-service-payment",
-    title: "AI Agent Service Payments",
-    category: "AI Agents",
+    slug: "paypal-refund-desk",
+    title: "Approved Refund Desk",
+    category: "Customer Support",
     cards: [
-      { id: "inv", x: 60, y: 300, label: "Agent invoice", sub: "signed webhook", kind: "trigger", mono: "AI" },
-      { id: "once", x: 320, y: 300, label: "Once per invoice", sub: "no replays", kind: "logic", mono: "1x" },
-      { id: "cap", x: 580, y: 300, label: "Budget cap", sub: "≤ 50 USDC", kind: "logic", mono: "$" },
-      { id: "sign", x: 840, y: 300, label: "Review + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
-      { id: "tg", x: 1060, y: 300, label: "Receipt", sub: "Telegram", kind: "notify", mono: "TG", w: 170 },
+      { id: "r", x: 70, y: 300, label: "Refund request", sub: "capture + reason", kind: "trigger", mono: "↩" },
+      { id: "ai", x: 400, y: 300, label: "AI check", sub: "amount + reason", kind: "ai", mono: "AI" },
+      { id: "ok", x: 700, y: 300, label: "You approve", sub: "exact amount", kind: "logic", mono: "✓" },
+      { id: "ref", x: 980, y: 300, label: "PayPal refund", sub: "once", kind: "money", mono: "PP", w: 220 },
     ],
-    edges: [["inv", "once"], ["once", "cap"], ["cap", "sign", "within"], ["sign", "tg"]],
-    badges: [B.mh, B.telegram],
+    edges: [["r", "ai"], ["ai", "ok"], ["ok", "ref", "approved"]],
+    badges: [B.paypal, B.ai],
   },
   {
-    slug: "otc-settlement",
-    title: "OTC Deal Settlement",
-    category: "Settlement",
+    slug: "paypal-weekly-ops-report",
+    title: "Weekly PayPal Ops Digest",
+    category: "Reporting",
     cards: [
-      { id: "deal", x: 60, y: 300, label: "Deal booked", sub: "signed ticket", kind: "trigger", mono: "⚡" },
-      { id: "once", x: 320, y: 300, label: "Once per deal", sub: "no double settle", kind: "logic", mono: "1x" },
-      { id: "match", x: 580, y: 300, label: "Match total", sub: "legs = ticket", kind: "data", mono: "=" },
-      { id: "sign", x: 840, y: 300, label: "Review + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
-      { id: "tg", x: 1060, y: 300, label: "Desk receipt", sub: "Telegram", kind: "notify", mono: "TG", w: 170 },
+      { id: "s", x: 70, y: 300, label: "Fridays", sub: "17:00", kind: "trigger", mono: "◷", w: 200 },
+      { id: "tx", x: 340, y: 300, label: "Transactions", sub: "last 7 days", kind: "money", mono: "PP" },
+      { id: "ai", x: 660, y: 300, label: "AI digest", sub: "five lines", kind: "ai", mono: "AI" },
+      { id: "slack", x: 960, y: 300, label: "Slack", sub: "the team", kind: "notify", mono: "#", w: 220 },
     ],
-    edges: [["deal", "once"], ["once", "match"], ["match", "sign"], ["sign", "tg"]],
-    badges: [B.mh, B.telegram],
-  },
-  {
-    slug: "launch-distribution",
-    title: "Launch Tranche Distribution",
-    category: "Launches",
-    cards: [
-      { id: "run", x: 60, y: 300, label: "Release tranche", sub: "manual run", kind: "trigger", mono: "▶" },
-      { id: "rows", x: 320, y: 300, label: "Allocations", sub: "Google Sheets", kind: "data", mono: "GS" },
-      { id: "check", x: 580, y: 300, label: "Validate", sub: "once per tranche", kind: "logic", mono: "✓" },
-      { id: "sign", x: 840, y: 300, label: "One Multi-Send", sub: "MultiHopper", kind: "money", mono: "MH" },
-      { id: "dc", x: 1060, y: 300, label: "Announce", sub: "Discord", kind: "notify", mono: "DC", w: 170 },
-    ],
-    edges: [["run", "rows"], ["rows", "check"], ["check", "sign"], ["sign", "dc"]],
-    badges: [B.sheets, B.mh, B.discord],
+    edges: [["s", "tx"], ["tx", "ai"], ["ai", "slack"]],
+    badges: [B.schedule, B.paypal, B.ai, B.slack],
   },
 ];
 
@@ -277,12 +218,12 @@ const FALLBACK: Thumb = {
   category: "Money Lego",
   cards: [
     { id: "t", x: 140, y: 300, label: "Trigger", sub: "an event arrives", kind: "trigger", mono: "⚡" },
-    { id: "r", x: 420, y: 300, label: "Rules", sub: "validate the payout", kind: "logic", mono: "✓" },
-    { id: "a", x: 700, y: 300, label: "Approve + sign", sub: "MultiHopper", kind: "money", mono: "MH" },
+    { id: "r", x: 420, y: 300, label: "AI + rules", sub: "check it", kind: "ai", mono: "AI" },
+    { id: "a", x: 700, y: 300, label: "Approve", sub: "then PayPal", kind: "money", mono: "PP" },
     { id: "n", x: 980, y: 300, label: "Notify", sub: "the team", kind: "notify", mono: "✉", w: 180 },
   ],
   edges: [["t", "r"], ["r", "a"], ["a", "n"]],
-  badges: [B.mh],
+  badges: [B.paypal],
 };
 
 const out = join(import.meta.dirname, "..", "public", "templates");

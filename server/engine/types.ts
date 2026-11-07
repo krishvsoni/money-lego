@@ -14,7 +14,6 @@ export interface ExecContext {
   input: unknown;
   scope: Scope;
   ownerId: ObjectId;
-  ownerWallet: string;
   // Saved between attempts of a waiting node, e.g. an approval decision or a deadline.
   waitState: Record<string, unknown> | null;
   signal: AbortSignal;

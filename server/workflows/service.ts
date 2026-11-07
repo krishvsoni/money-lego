@@ -25,6 +25,8 @@ export interface WorkflowDTO {
   graph: WorkflowGraph;
   triggerType: string | null;
   webhookPath: string;
+  // The public hosted PayPal checkout page for workflows started by trigger.paypal_checkout.
+  checkoutPath: string;
   nextScheduledAt: string | null;
   runCount: number;
   lastRunAt: string | null;
@@ -43,6 +45,7 @@ export function toWorkflowDTO(d: WorkflowDoc): WorkflowDTO {
     graph: d.graph,
     triggerType: d.triggerType,
     webhookPath: `/api/hooks/${d.webhookKey}`,
+    checkoutPath: `/pay/${d.webhookKey}`,
     nextScheduledAt: d.schedule?.nextAt.toISOString() ?? null,
     runCount: d.runCount,
     lastRunAt: d.lastRunAt?.toISOString() ?? null,

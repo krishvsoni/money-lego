@@ -1,7 +1,7 @@
-// Upserts the five published templates by slug. Idempotent: running it again changes
+// Upserts the published templates by slug. Idempotent: running it again changes
 // nothing unless a definition changed. The app also runs the same seed lazily on first
 // use, so this is for deploys and CI that want the data in place up front.
-// Usage: MONGODB_URI=… bun --conditions=react-server scripts/seed-templates.ts
+// Usage: npm run db:seed
 
 import { collections } from "@/server/db/collections";
 import { mongoClient } from "@/server/db/client";

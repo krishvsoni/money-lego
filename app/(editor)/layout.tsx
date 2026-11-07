@@ -1,6 +1,6 @@
 import { AuthGate } from "@/features/auth/auth-gate";
 
-// Everything here is gated on the signed-in wallet, which is only known in the browser,
+// Everything here is gated on the signed-in account, which is only known in the browser,
 // so these routes opt out of instant-navigation validation (Next's documented escape
 // hatch for session-gated segments) instead of prerendering an empty shell.
 export const instant = false;

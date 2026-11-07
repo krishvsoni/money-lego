@@ -32,8 +32,8 @@ vi.mock("@/server/oauth/http", async (original) => {
 });
 
 describe.skipIf(!local)("connections against MongoDB", () => {
-  const user = { userId: new ObjectId(), wallet: "11111111111111111111111111111111" };
-  const other = { userId: new ObjectId(), wallet: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" };
+  const user = { userId: new ObjectId(), name: "Test Studio", kind: "clerk" as const };
+  const other = { userId: new ObjectId(), name: "Other Studio", kind: "clerk" as const };
   let m: {
     collections: typeof import("@/server/db/collections").collections;
     mongoClient: typeof import("@/server/db/client").mongoClient;

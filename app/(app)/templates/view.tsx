@@ -49,7 +49,7 @@ export function View() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Templates"
-        description="Complete payout workflows you can copy and make your own. Each opens in the editor turned off, with a checklist of what to connect. Every one waits for your approval and wallet signature before money moves."
+        description="Complete PayPal workflows you can copy and make your own. Each opens in the editor turned off, with a checklist of what to set up. Every money action waits for your approval of exactly what it will do."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

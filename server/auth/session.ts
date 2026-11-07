@@ -1,78 +1,50 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
-import { ObjectId } from "mongodb";
-import { env } from "../config/env";
+import { auth, currentUser as clerkUser } from "@clerk/nextjs/server";
+import type { ObjectId } from "mongodb";
 import { collections } from "../db/collections";
-import { openWallet, sealWallet } from "../crypto/wallet-vault";
 import { errors } from "../errors";
 
-// Opaque session tokens. The browser holds the token in an httpOnly cookie; the database
-// holds only its SHA-256, so reading the sessions collection never yields a usable login.
-// Sessions live in Mongo rather than process memory, so any instance can serve any request.
-
-// In production the __Host- prefix makes the browser reject the cookie unless it is Secure,
-// host-only and path=/, so a sibling subdomain can never set or shadow it.
-export function sessionCookieName(): string {
-  return env().NODE_ENV === "production" && env().APP_URL.startsWith("https://") ? "__Host-ml_session" : "ml_session";
-}
+// Identity comes from Clerk. Each Clerk user maps to one Money Lego member document
+// (identityKey "clerk:<userId>") that owns workflows, runs and credentials, so ownership
+// checks everywhere stay on our own ObjectId and never on a provider id.
 
 export interface SessionUser {
   userId: ObjectId;
-  wallet: string;
+  name: string;
+  kind: "clerk";
 }
 
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export async function createSession(userId: ObjectId, wallet: string): Promise<void> {
-  const token = randomBytes(32).toString("base64url");
-  const ttlMs = env().SESSION_TTL_HOURS * 3_600_000;
-  const now = new Date();
-  const { sessions } = await collections();
-  await sessions.insertOne({
-    _id: hashToken(token),
-    userId,
-    walletEnc: sealWallet(wallet, "sessions.wallet"),
-    createdAt: now,
-    expiresAt: new Date(now.getTime() + ttlMs),
-  });
-  const jar = await cookies();
-  jar.set({
-    name: sessionCookieName(),
-    value: token,
-    httpOnly: true,
-    secure: sessionCookieName().startsWith("__Host-") || env().NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: Math.floor(ttlMs / 1000),
-  });
+function displayName(u: Awaited<ReturnType<typeof clerkUser>>): string {
+  if (!u) return "Money Lego user";
+  const full = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+  return (full || u.username || u.primaryEmailAddress?.emailAddress || "Money Lego user").slice(0, 80);
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
-  const token = (await cookies()).get(sessionCookieName())?.value;
-  if (!token) return null;
-  const { sessions } = await collections();
-  // TTL deletion runs about once a minute, so expiry is also checked on read.
-  const session = await sessions.findOne({ _id: hashToken(token), expiresAt: { $gt: new Date() } });
-  // Sessions from before wallet encryption carry no walletEnc; they simply sign in again.
-  if (!session?.walletEnc) return null;
-  return { userId: session.userId, wallet: openWallet(session.walletEnc, "sessions.wallet") };
+  const { userId } = await auth();
+  if (!userId) return null;
+  const { users } = await collections();
+  const identityKey = `clerk:${userId}`;
+  const existing = await users.findOne({ identityKey });
+  if (existing) return { userId: existing._id, name: existing.name, kind: "clerk" };
+
+  // First request from this Clerk user: create their member record once.
+  const profile = await clerkUser();
+  const now = new Date();
+  const doc = await users.findOneAndUpdate(
+    { identityKey },
+    {
+      $setOnInsert: { identityKey, kind: "clerk", name: displayName(profile), email: profile?.primaryEmailAddress?.emailAddress ?? null, createdAt: now },
+      $set: { lastSignedInAt: now },
+    },
+    { upsert: true, returnDocument: "after" },
+  );
+  if (!doc) throw errors.internal();
+  return { userId: doc._id, name: doc.name, kind: "clerk" };
 }
 
 export async function requireUser(): Promise<SessionUser> {
   const user = await currentUser();
   if (!user) throw errors.unauthenticated();
   return user;
-}
-
-export async function destroySession(): Promise<void> {
-  const jar = await cookies();
-  const token = jar.get(sessionCookieName())?.value;
-  if (token) {
-    const { sessions } = await collections();
-    await sessions.deleteOne({ _id: hashToken(token) });
-  }
-  jar.delete(sessionCookieName());
 }

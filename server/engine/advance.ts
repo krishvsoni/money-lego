@@ -9,7 +9,7 @@ import { INSTANCE_ID } from "../db/locks";
 import type { NodeRunDoc, RunLogEntry, WorkflowRunDoc } from "../db/types";
 import { isAppError } from "../errors";
 import { log } from "../log";
-import { openWallet } from "../crypto/wallet-vault";
+import { indexRun } from "../integrations/elastic";
 import { executorFor } from "./executors";
 import { NodeError, type ExecResult } from "./types";
 
@@ -103,7 +103,7 @@ export async function advanceRun(runId: ObjectId, budgetMs = 20_000): Promise<vo
       const outputs = Object.fromEntries(runs.filter((r) => r.status === "succeeded").map((r) => [r.nodeId, r.output]));
       const scope: Scope = { input, trigger: run.trigger.payload, nodes: outputs, run: { id: run._id.toHexString(), workflowId: run.workflowId.toHexString() } };
 
-      const result = await runNode(run, node, def?.title ?? node.type, input, scope, current ?? null, openWallet(owner.walletEnc, "users.wallet"), addLog);
+      const result = await runNode(run, node, def?.title ?? node.type, input, scope, current ?? null, addLog);
       if (result.kind === "failed") {
         status = "failed";
         error = `${def?.title ?? node.type}: ${result.message}`;
@@ -112,7 +112,7 @@ export async function advanceRun(runId: ObjectId, budgetMs = 20_000): Promise<vo
       if (result.kind === "wait") {
         status = "waiting";
         waiting = { nodeId: node.id, kind: result.wait.kind, until: result.wait.until, ref: result.wait.ref };
-        const external = result.wait.kind === "wallet" || result.wait.kind === "transfer";
+        const external = result.wait.kind === "provider";
         const recheck = external ? new Date(Date.now() + EXTERNAL_RECHECK_MS) : result.wait.until;
         wakeAt = [recheck, result.wait.until].filter(Boolean).sort((a, b) => a!.getTime() - b!.getTime())[0] ?? null;
       }
@@ -124,7 +124,7 @@ export async function advanceRun(runId: ObjectId, budgetMs = 20_000): Promise<vo
       if (settled) {
         // A failure branch that ran (e.g. to notify someone) doesn't make the run a success.
         const handled = all.find((r) => r.status === "succeeded" && r.port === "failed");
-        if (handled) await finish(run, "failed", `${nodeDefinition(handled.nodeType)?.title ?? handled.nodeType}: the transfer didn't complete. The failure branch ran.`, pendingLog);
+        if (handled) await finish(run, "failed", `${nodeDefinition(handled.nodeType)?.title ?? handled.nodeType}: the PayPal action didn't fully succeed. The problem branch ran.`, pendingLog);
         else await finish(run, "succeeded", null, pendingLog);
         return;
       }
@@ -180,7 +180,6 @@ async function runNode(
   input: unknown,
   scope: Scope,
   previous: NodeRunDoc | null,
-  ownerWallet: string,
   addLog: (nodeId: string | null, message: string, level?: RunLogEntry["level"]) => void,
 ): Promise<NodeOutcome> {
   const executor = executorFor(node.type);
@@ -204,7 +203,6 @@ async function runNode(
       input,
       scope,
       ownerId: run.ownerId,
-      ownerWallet,
       waitState: previous?.waitState ?? null,
       signal: AbortSignal.timeout(NODE_TIMEOUT_MS),
       log: (message, level) => addLog(node.id, message, level),
@@ -240,4 +238,6 @@ async function finish(run: WorkflowRunDoc, status: "succeeded" | "failed", error
       $push: { log: { $each: pendingLog, $slice: -200 } },
     },
   );
+  // Make the finished run searchable (Elastic, when configured). Never blocks or fails the run.
+  void indexRun(run._id);
 }

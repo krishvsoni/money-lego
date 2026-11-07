@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, KeyRound, Route } from "lucide-react";
+import { FlaskConical, ShieldCheck, Sparkles } from "lucide-react";
 import { allNodeDefinitions } from "@/lib/nodes/registry";
 import { AsciiField } from "@/features/landing/ascii-field";
 import { FAQ, TAGLINE } from "@/features/landing/content";
@@ -12,9 +12,9 @@ import { TaglineReveal } from "@/features/landing/tagline-reveal";
 import { HandoffDemo } from "@/features/landing/handoff-demo";
 
 const PROOF = [
-  { label: "Free on devnet", Icon: FlaskConical, color: "var(--brick-1)" },
-  { label: "Keys stay in your wallet", Icon: KeyRound, color: "var(--brick-5)" },
-  { label: "Routing by MultiHopper", Icon: Route, color: "var(--brick-2)" },
+  { label: "PayPal Sandbox", Icon: FlaskConical, color: "var(--paypal-light)" },
+  { label: "AI drafts, you approve", Icon: Sparkles, color: "var(--brick-1)" },
+  { label: "Every action fingerprinted", Icon: ShieldCheck, color: "var(--brick-5)" },
 ];
 const LANDING_LINKS = [
   { href: "#how", label: "How it works" },
@@ -41,9 +41,9 @@ export default function Landing() {
               money moves.
             </h1>
             <p className="mt-6 text-xl leading-[1.55] text-ink-2">
-              Payout workflows for Solana teams.
+              Describe a payment process. AI builds the PayPal workflow.
               <br />
-              Every transfer signed in your own wallet.
+              You approve every dollar before it moves.
             </p>
             <div className="mt-10 w-full [@media(max-height:860px)]:mt-8">
               <div className="flex justify-center">
@@ -78,9 +78,9 @@ export default function Landing() {
             <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.5fr]">
               <Reveal className="lg:sticky lg:top-32">
                 <h2 id="faq-title" className="font-display text-4xl font-semibold leading-[1.05] tracking-[-0.025em] text-ink text-balance sm:text-5xl sm:[@media(max-height:860px)]:text-4xl">
-                  Questions people ask before they connect a wallet
+                  Questions people ask before they let software touch money
                 </h2>
-                <p className="mt-4 text-lg leading-[1.6] text-ink-2 text-pretty">Short answers. If yours isn&apos;t here, ask before you send funds.</p>
+                <p className="mt-4 text-lg leading-[1.6] text-ink-2 text-pretty">Short answers. If yours isn&apos;t here, sign in and try a template: everything runs with test money.</p>
               </Reveal>
               <Reveal delay={80}>
                 <Faq items={FAQ} />
@@ -93,21 +93,21 @@ export default function Landing() {
               <Reveal className="tactile mx-auto flex w-full max-w-[800px] flex-col items-center rounded-2xl p-2 text-center">
                 <div className="tactile-soft flex w-full flex-col items-center rounded-lg px-6 py-16">
                   <h2 id="final-title" className="hero-heading max-w-[680px] font-display text-4xl font-semibold leading-[1.02] tracking-[-0.03em] text-balance sm:text-6xl">
-                    Start with the payout template.
+                    Start with the revenue split template.
                   </h2>
                   <p className="mt-4 max-w-[560px] text-lg leading-[1.6] text-ink-2 text-pretty">
-                    It already has the webhook, split, approval and signing steps wired. Add your recipients and a signing secret, then run it on devnet.
+                    A PayPal checkout, an exact split, an AI risk review, your approval and a PayPal payout, already wired. Add your sandbox recipients and pay your own checkout page.
                   </p>
                   <PrimaryCta className="mt-8" />
-                  <p className="mt-4 text-base text-ink-3">Free on devnet. No card, no custody.</p>
+                  <p className="mt-4 text-base text-ink-3">PayPal Sandbox only. No real money, no card.</p>
                 </div>
               </Reveal>
             </div>
           <footer className="dashed-t flex flex-wrap items-center justify-between gap-6 px-6 py-8 text-base text-ink-3">
-            <p>© 2026 Money Lego. Routing by MultiHopper on Solana.</p>
+            <p>© 2026 Money Lego. Built on the PayPal Developer Platform (sandbox).</p>
             <nav aria-label="Footer" className="flex flex-wrap gap-6">
               <Link href="/workflows" className="hover:text-ink">Builder</Link>
-              <a href="https://dev-docs.multihopper.com/" target="_blank" rel="noreferrer" className="hover:text-ink">MultiHopper docs</a>
+              <a href="https://developer.paypal.com/" target="_blank" rel="noreferrer" className="hover:text-ink">PayPal Developer</a>
               <Link href="/privacy" className="hover:text-ink">Privacy</Link>
               <Link href="/terms" className="hover:text-ink">Terms</Link>
             </nav>

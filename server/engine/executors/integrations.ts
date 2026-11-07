@@ -1,5 +1,8 @@
 import "server-only";
 import type { ObjectId } from "mongodb";
+import { isAppError } from "../../errors";
+import { searchProducts } from "../../integrations/channel3";
+import { ZAPIER_HOOK } from "../../workflows/credential-schema";
 import { readCredentialSecret } from "../../workflows/credentials";
 import { safeFetch } from "../safe-fetch";
 import { asObject, NodeError, ok, type Executor } from "../types";
@@ -23,6 +26,32 @@ async function webhookOf(ownerId: ObjectId, id: unknown, type: "discord_webhook"
 }
 
 export const integrationExecutors: Record<string, Executor> = {
+  // Zapier Catch Hook: the URL is the user's secret, and only hooks.zapier.com is accepted.
+  "zapier.send": async ({ config, input, ownerId, signal }) => {
+    const url = await readCredentialSecret(ownerId, config.credentialId, "zapier_hook");
+    if (!ZAPIER_HOOK.test(url)) throw new NodeError("That Zapier credential isn't a hooks.zapier.com Catch Hook URL.");
+    const pairs = (Array.isArray(config.fields) ? config.fields : []) as Array<{ key: string; value: unknown }>;
+    const payload = Object.fromEntries(pairs.filter((p) => p.key && !["__proto__", "constructor", "prototype"].includes(p.key)).map((p) => [p.key, p.value]));
+    const res = await safeFetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), timeoutMs: 10_000, signal });
+    if (res.status < 200 || res.status >= 300) throw new NodeError(`Zapier refused the payload (HTTP ${res.status}).`);
+    const body = asObject(res.body);
+    return ok({ ...asObject(input), zapier: { status: String(body.status ?? "success"), attempt: body.attempt ?? null } });
+  },
+
+  "channel3.search": async ({ config, input, log }) => {
+    const query = String(config.query ?? "").trim();
+    if (!query || query.includes("{{")) throw new NodeError("Looking for didn't resolve to a search request.");
+    const maxPrice = Number(String(config.maxPrice ?? "").trim() || 0);
+    let products;
+    try {
+      products = await searchProducts({ query, maxPrice: Number.isFinite(maxPrice) ? maxPrice : null, limit: Number(config.limit ?? 5) });
+    } catch (error) {
+      throw new NodeError(isAppError(error) ? error.message : "Channel3 search failed.");
+    }
+    log(`Channel3 returned ${products.length} product(s) for "${query.slice(0, 60)}".`);
+    return ok({ ...asObject(input), products, productCount: products.length });
+  },
+
   "http.request": async ({ config, input, ownerId, signal }) => {
     const method = String(config.method ?? "GET");
     const headers: Record<string, string> = { accept: "application/json" };

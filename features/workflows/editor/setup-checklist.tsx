@@ -39,7 +39,7 @@ export function SetupChecklist({ editor }: { editor: Editor }) {
           );
         })}
       </ul>
-      <p className="mt-2 text-[0.6875rem] text-ink-3">The workflow stays off and can&apos;t run until every step is configured. Each payout still needs your approval and wallet signature.</p>
+      <p className="mt-2 text-[0.6875rem] text-ink-3">The workflow stays off and can&apos;t run until every step is configured. Each PayPal money action still needs your approval.</p>
     </section>
   );
 }

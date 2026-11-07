@@ -68,8 +68,8 @@ describe("graph validation", () => {
     const g: WorkflowGraph = { ...emptyGraph(), nodes: [node("t", "trigger.manual"), node("a", "util.log", { message: "x" })], edges: [{ id: "1", source: "t", sourcePort: "true", target: "a", targetPort: "main" }] };
     expect(validateGraph(g).some((i) => /no "true" output/.test(i.message))).toBe(true);
   });
-  it("accepts a connection from Wait for transfer's Failed output", () => {
-    const g: WorkflowGraph = { ...emptyGraph(), nodes: [node("t", "trigger.manual"), node("w", "mh.wait_status", { target: "completed", timeoutHours: 72 }), node("a", "util.log", { message: "x" })], edges: [
+  it("accepts a connection from Payout status's Problem output", () => {
+    const g: WorkflowGraph = { ...emptyGraph(), nodes: [node("t", "trigger.manual"), node("w", "paypal.payout_status", { timeoutHours: 48 }), node("a", "util.log", { message: "x" })], edges: [
       { id: "1", source: "t", sourcePort: "main", target: "w", targetPort: "main" },
       { id: "2", source: "w", sourcePort: "failed", target: "a", targetPort: "main" },
     ] };

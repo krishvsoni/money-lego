@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-label="Approved Refund Desk workflow">
+<title>Approved Refund Desk workflow</title>
+<defs>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#24305c"/></pattern>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121c3d"/><stop offset="1" stop-color="#0b1229"/></linearGradient>
+  <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8ea0d6"/></marker>
+</defs>
+<g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect width="1280" height="720" fill="url(#dots)"/>
+<rect x="60" y="48" width="206" height="30" rx="15" fill="#e3a21a" fill-opacity="0.16"/>
+<text x="74" y="68" font-size="15" font-weight="700" fill="#f2c45a">CUSTOMER SUPPORT</text>
+<text x="60" y="124" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="-0.5">Approved Refund Desk</text>
+<g transform="translate(1000 54)"><rect width="220" height="32" rx="16" fill="#17784a" fill-opacity="0.22"/><path d="M18 9 l9 3.5 v6 c0 5 -4 8 -9 9.5 c-5 -1.5 -9 -4.5 -9 -9.5 v-6 z" fill="#4cc38a"/><text x="36" y="21.5" font-size="14" font-weight="700" fill="#9be3bf">You approve every action</text></g>
+<path d="M278 342 C334 342 334 342 390 342" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M600 342 C645 342 645 342 690 342" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M900 342 C935 342 935 342 970 342" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/><text x="935" y="332" font-size="14" font-weight="700" fill="#c9d3f5" text-anchor="middle">approved</text>
+<g transform="translate(70 300)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/>
+  <rect width="208" height="84" rx="14" fill="#ffffff" stroke="#e3a21a" stroke-width="3"/>
+  <rect width="208" height="8" rx="4" fill="#e3a21a"/>
+  <circle cx="34" cy="48" r="17" fill="#e3a21a" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#e3a21a">↩</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Refund request</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">capture + reason</text>
+</g>
+<g transform="translate(400 300)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#7c5cff"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#7c5cff"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#7c5cff"/>
+  <circle cx="34" cy="48" r="17" fill="#7c5cff" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#7c5cff">AI</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">AI check</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">amount + reason</text>
+</g>
+<g transform="translate(700 300)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#a066b8"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#a066b8"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#a066b8"/>
+  <circle cx="34" cy="48" r="17" fill="#a066b8" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#a066b8">✓</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">You approve</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">exact amount</text>
+</g>
+<g transform="translate(980 300)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#0070e0"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#0070e0"/>
+  <rect width="220" height="84" rx="14" fill="#ffffff" />
+  <rect width="220" height="8" rx="4" fill="#0070e0"/>
+  <circle cx="34" cy="48" r="17" fill="#0070e0" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#0070e0">PP</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">PayPal refund</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">once</text>
+</g>
+<g transform="translate(60 640)"><rect width="89.19999999999999" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#0070e0"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">PayPal</text></g><g transform="translate(159.2 640)"><rect width="52.4" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#7c5cff"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">AI</text></g>
+</g>
+</svg>

@@ -9,16 +9,7 @@ import { WORKFLOW_SCHEMA_VERSION } from "@/lib/workflow/types";
 import { validateGraph } from "@/lib/workflow/validate";
 import { TEMPLATE_DEFINITIONS } from "@/server/templates/definitions";
 
-const SLUGS = [
-  "opensource-contributor-payout",
-  "shopify-approved-supplier-payout",
-  "stripe-partner-revenue-allocation",
-  "discord-community-bounty-reward",
-  "weekly-grant-distribution",
-  "agent-service-payment",
-  "otc-settlement",
-  "launch-distribution",
-];
+const SLUGS = ["paypal-sale-revenue-split", "paypal-invoice-reminders", "paypal-subscription-recovery", "paypal-refund-desk", "paypal-weekly-ops-report"];
 
 describe("template definitions", () => {
   it("are exactly the specified templates", () => {
@@ -29,17 +20,19 @@ describe("template definitions", () => {
     expect(validateTemplate(t)).toEqual([]);
   });
 
-  it("cover all ten external connectors between them", () => {
-    const used = new Set(TEMPLATE_DEFINITIONS.flatMap((t) => t.integrations));
-    for (const p of ["github", "google-sheets", "discord", "slack", "stripe", "shopify", "telegram", "notion", "airtable", "http"]) expect(used).toContain(p);
+  it("all use PayPal, and between them cover payouts, refunds, invoicing, subscriptions and reporting", () => {
+    for (const t of TEMPLATE_DEFINITIONS) expect(t.integrations).toContain("paypal");
+    const types = new Set(TEMPLATE_DEFINITIONS.flatMap((t) => t.graphDefinition.nodes.map((n) => n.type)));
+    for (const type of ["trigger.paypal_checkout", "trigger.paypal_event", "paypal.payout", "paypal.payout_status", "paypal.refund", "paypal.find_invoices", "paypal.send_invoice", "paypal.get_subscription", "paypal.transactions", "ai.review", "ai.write"]) {
+      expect(types).toContain(type);
+    }
   });
 
-  it("put every transfer behind a human approval and a wallet signature", () => {
+  it("put every PayPal money action directly behind a human approval", () => {
     for (const t of TEMPLATE_DEFINITIONS) {
       expect(moneySafetyIssues(t.graphDefinition)).toEqual([]);
-      const types = t.graphDefinition.nodes.map((n) => n.type);
-      expect(types).toContain("logic.approval");
-      expect(types).toContain("mh.wallet_sign");
+      const sideEffects = t.graphDefinition.nodes.filter((n) => nodeDefinition(n.type)?.sideEffect);
+      if (sideEffects.length) expect(t.graphDefinition.nodes.map((n) => n.type)).toContain("logic.approval");
     }
   });
 
@@ -52,18 +45,13 @@ describe("template definitions", () => {
     }
   });
 
-  it("can't run as seeded: each needs credentials and setup first", () => {
-    for (const t of TEMPLATE_DEFINITIONS) {
-      const issues = validateGraph(t.graphDefinition);
-      expect(issues.length).toBeGreaterThan(0);
-      expect(issues.every((i) => i.field !== undefined)).toBe(true);
-    }
+  it("only ever need settings filled in, never structural fixes", () => {
+    for (const t of TEMPLATE_DEFINITIONS) expect(validateGraph(t.graphDefinition).every((i) => i.field !== undefined)).toBe(true);
   });
 
-  it("schedule the weekly grant run only once a timezone is chosen", () => {
-    const grant = TEMPLATE_DEFINITIONS.find((t) => t.slug === "weekly-grant-distribution")!;
-    const issues = validateGraph(grant.graphDefinition).filter((i) => i.nodeId === "schedule");
-    expect(issues.some((i) => i.field === "timezone")).toBe(true);
+  it("ship only example.com recipients", () => {
+    const split = TEMPLATE_DEFINITIONS[0].graphDefinition.nodes.find((n) => n.type === "data.allocate")!;
+    for (const r of split.config.recipients as Array<{ email: string }>) expect(r.email === "" || r.email.endsWith("@example.com")).toBe(true);
   });
 });
 
@@ -81,19 +69,19 @@ describe("template validation catches broken templates", () => {
   it("rejects an edge from a port that doesn't exist", () => {
     expect(validateTemplate(withGraph((g) => (g.edges[0].sourcePort = "nope"))).join()).toMatch(/no "nope" output/);
   });
-  it("rejects a transfer that skips approval", () => {
-    const issues = validateTemplate(withGraph((g) => (g.edges.find((e) => e.target === "transfer")!.sourcePort = "rejected")));
-    expect(issues.join()).toMatch(/after a human approval/);
+  it("rejects a payout that skips approval", () => {
+    const issues = validateTemplate(withGraph((g) => (g.edges.find((e) => e.target === "payout")!.sourcePort = "rejected")));
+    expect(issues.join()).toMatch(/Human approval's Approved output/);
   });
-  it("rejects shipped credentials and real-looking wallets", () => {
+  it("rejects shipped credentials and real email addresses", () => {
     const issues = validateTemplate(
       withGraph((g) => {
-        g.nodes[0].config.credentialId = "64b7f0c2a1b2c3d4e5f60718";
-        g.nodes[2].config.matchValue = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin";
+        g.nodes.find((n) => n.id === "slack")!.config.credentialId = "64b7f0c2a1b2c3d4e5f60718";
+        g.nodes.find((n) => n.id === "split")!.config.recipients = [{ label: "Real person", email: "jane.doe@gmail.com", share: "100" }];
       }),
     );
     expect(issues.join()).toMatch(/never carry a credential/);
-    expect(issues.join()).toMatch(/real wallet address/);
+    expect(issues.join()).toMatch(/example\.com/);
   });
 });
 
@@ -102,9 +90,9 @@ describe("importing a template", () => {
 
   it("deep-clones the graph, so editing the copy never changes the template", () => {
     const copy = cloneForImport(t.graphDefinition, WORKFLOW_SCHEMA_VERSION);
-    copy.nodes[0].config.repository = "someone/else";
+    copy.nodes[0].config.itemName = "Something else";
     copy.nodes[0].position.x = 9999;
-    expect(t.graphDefinition.nodes[0].config.repository).toBe("");
+    expect(t.graphDefinition.nodes[0].config.itemName).toBe("Brand strategy session");
     expect(t.graphDefinition.nodes[0].position.x).toBe(0);
   });
 

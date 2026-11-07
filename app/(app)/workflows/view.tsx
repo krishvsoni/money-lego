@@ -131,7 +131,7 @@ export function View() {
           {shelf === "archived" && all.length > 0 && (
             <p className="mt-5 flex items-center gap-2 rounded-xl bg-sunken px-4 py-3 text-sm text-ink-2">
               <Archive size={16} className="shrink-0" aria-hidden />
-              Archived workflows are off and never run. Restore one to use it again, or delete it for good. Its transfers stay on the Transfers page.
+              Archived workflows are off and never run. Restore one to use it again, or delete it for good. Its PayPal activity stays on the Payments page.
             </p>
           )}
 

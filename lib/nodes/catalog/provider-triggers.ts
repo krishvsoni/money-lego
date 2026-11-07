@@ -1,11 +1,81 @@
-import { MAIN_OUT, type NodeDefinition } from "../types";
+import { CURRENCIES, PAYPAL_EVENTS } from "../../paypal/types";
+import { MAIN_OUT, type ConfigIssue, type NodeDefinition } from "../types";
 
-// Inbound events from named providers. Each is verified with that provider's own signing
-// scheme over the raw request body (server/engine/inbound) and deduplicated by the
-// provider's delivery or event id, so a redelivery never starts a second run. A verified
-// event proves who sent it, not that money is owed: payouts still need approval and a wallet.
+// Inbound events from named providers. Each is verified with that provider's own scheme
+// (PayPal: signature postback; others: HMAC/Ed25519 over the raw body) and deduplicated by
+// the provider's event id, so a redelivery never starts a second run. A verified event
+// proves who sent it; anything that moves money still waits for a human approval.
+
+const currencyOptions = CURRENCIES.map((c) => ({ value: c, label: c }));
+
+function checkoutIssues(config: Record<string, unknown>): ConfigIssue[] {
+  const amount = String(config.amount ?? "").trim();
+  if (amount && (!/^\d{1,7}(\.\d{1,2})?$/.test(amount) || Number(amount) <= 0)) return [{ field: "amount", message: "Use a price like 100 or 49.99" }];
+  return [];
+}
+
+const SAMPLE_CAPTURE = JSON.stringify(
+  {
+    source: "test",
+    eventType: "PAYMENT.CAPTURE.COMPLETED",
+    orderId: "TEST-ORDER",
+    captureId: "TEST-CAPTURE",
+    status: "COMPLETED",
+    currency: "USD",
+    amount: "100.00",
+    amountMinor: "10000",
+    fee: "3.98",
+    net: "96.02",
+    netMinor: "9602",
+    payer: { id: "TESTPAYER", country: "US" },
+  },
+  null,
+  2,
+);
 
 export const providerTriggerNodes: NodeDefinition[] = [
+  {
+    type: "trigger.paypal_checkout",
+    summary: "Start when a buyer pays your PayPal checkout link.",
+    title: "PayPal checkout paid",
+    category: "triggers",
+    description:
+      "Gives this workflow a hosted PayPal checkout page. When a buyer pays and the capture is COMPLETED, the run starts with the capture details straight from PayPal. The verified PAYMENT.CAPTURE.COMPLETED webhook for the same capture never starts a second run. Pending or denied captures never start it.",
+    icon: "logo:paypal",
+    provider: "paypal",
+    fields: [
+      { key: "itemName", label: "What the buyer pays for", kind: "text", required: true, maxLength: 120, placeholder: "Brand strategy session" },
+      { key: "amount", label: "Price", kind: "text", required: true, placeholder: "100.00", help: "Set here, never by the buyer's browser." },
+      { key: "currency", label: "Currency", kind: "select", required: true, options: currencyOptions },
+      { key: "description", label: "Description on the checkout page", kind: "textarea", maxLength: 300 },
+      { key: "samplePayload", label: "Test payload", kind: "json", help: "Used when you click Run in the editor. Real payments use PayPal's capture data instead." },
+    ],
+    inputs: [],
+    outputs: MAIN_OUT,
+    defaults: { itemName: "", amount: "100.00", currency: "USD", description: "", samplePayload: SAMPLE_CAPTURE },
+    retrySafe: true,
+    outputHint: "{ source, orderId, captureId, status, currency, amount, amountMinor, fee, net, netMinor, payer: { id, country } } from PayPal. Amounts are decimal strings; *Minor are cents.",
+    validate: checkoutIssues,
+  },
+  {
+    type: "trigger.paypal_event",
+    summary: "Start on a verified PayPal webhook event.",
+    title: "PayPal event",
+    category: "triggers",
+    description:
+      "Start when PayPal sends a verified webhook event about an object your workspace created (a checkout order, invoice or payout). Every delivery is verified with PayPal's signature API and stored once by event id before anything runs.",
+    icon: "logo:paypal",
+    provider: "paypal",
+    fields: [
+      { key: "eventType", label: "Event", kind: "select", required: true, options: PAYPAL_EVENTS.map((e) => ({ value: e.value, label: `${e.label} (${e.value})` })) },
+      { key: "samplePayload", label: "Test payload", kind: "json", help: "Used when you click Run in the editor." },
+    ],
+    inputs: [],
+    outputs: MAIN_OUT,
+    defaults: { eventType: "INVOICING.INVOICE.PAID", samplePayload: '{ "eventType": "INVOICING.INVOICE.PAID", "resourceId": "INV2-TEST", "source": "test" }' },
+    retrySafe: true,
+    outputHint: "{ eventId, eventType, resourceType, resourceId, reference, resource: { id, status, amount, currency, … } } with customer details removed.",
+  },
   {
     type: "trigger.github",
     summary: "Start on a signed GitHub release or merged PR.",
@@ -39,7 +109,7 @@ export const providerTriggerNodes: NodeDefinition[] = [
     summary: "Start on a verified Stripe event.",
     title: "Stripe event",
     category: "triggers",
-    description: "Start when your connected Stripe account has an invoice paid. Events come through Money Lego's verified Stripe Connect endpoint with a 5 minute timestamp tolerance. A paid invoice is a business signal; it does not fund a Solana wallet.",
+    description: "Start when your connected Stripe account has an invoice paid. Events come through Money Lego's verified Stripe Connect endpoint with a 5 minute timestamp tolerance.",
     icon: "logo:stripe",
     provider: "stripe",
     fields: [
@@ -57,12 +127,10 @@ export const providerTriggerNodes: NodeDefinition[] = [
     summary: "Start on a verified paid Shopify order.",
     title: "Shopify order paid",
     category: "triggers",
-    description: "Start when your connected store reports an order paid, verified with Shopify's HMAC over the raw body. Shopify's fiat settlement never reaches a Solana wallet through this event.",
+    description: "Start when your connected store reports an order paid, verified with Shopify's HMAC over the raw body.",
     icon: "logo:shopify",
     provider: "shopify",
-    fields: [
-      { key: "credentialId", label: "Store", kind: "credential", credentialType: "shopify_store", required: true },
-    ],
+    fields: [{ key: "credentialId", label: "Store", kind: "credential", credentialType: "shopify_store", required: true }],
     inputs: [],
     outputs: MAIN_OUT,
     defaults: {},
@@ -79,12 +147,12 @@ export const providerTriggerNodes: NodeDefinition[] = [
     provider: "discord",
     fields: [
       { key: "credentialId", label: "Discord server", kind: "credential", credentialType: "discord_server", required: true },
-      { key: "command", label: "Command name", kind: "text", required: true, placeholder: "payout-bounty", pattern: "^[a-z0-9_-]{1,32}$", patternMessage: "Lowercase letters, digits, - and _" },
+      { key: "command", label: "Command name", kind: "text", required: true, placeholder: "request-payout", pattern: "^[a-z0-9_-]{1,32}$", patternMessage: "Lowercase letters, digits, - and _" },
       { key: "allowedRoleId", label: "Allowed role ID", kind: "text", required: true, placeholder: "123456789012345678", pattern: "^\\d{17,20}$", patternMessage: "A Discord role ID (digits)", help: "Only members with this role can start a run." },
     ],
     inputs: [],
     outputs: MAIN_OUT,
-    defaults: { command: "payout-bounty" },
+    defaults: { command: "request-payout" },
     retrySafe: true,
     outputHint: "{ interactionId, guildId, channelId, userId, command, options: { name: value } }.",
   },

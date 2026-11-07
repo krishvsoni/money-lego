@@ -1,5 +1,4 @@
-import { isSolanaAddress } from "../solana-address";
-import { findToken } from "../tokens";
+import { isCurrency } from "../paypal/types";
 import { hasExpression } from "../workflow/expressions";
 import { OPERATORS } from "./catalog/logic";
 import type { ConfigIssue, Field, NodeDefinition } from "./types";
@@ -24,8 +23,6 @@ function checkField(field: Field, value: unknown): string | null {
     }
     case "select":
       return field.options.some((o) => o.value === value) ? null : `Pick a ${field.label.toLowerCase()}`;
-    case "token":
-      return findToken(String(value)) ? null : "This token isn't supported on this network";
     case "json":
       try {
         JSON.parse(String(value));
@@ -47,19 +44,22 @@ function checkField(field: Field, value: unknown): string | null {
   }
 }
 
-function splitIssues(config: Record<string, unknown>): ConfigIssue[] {
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function allocateIssues(config: Record<string, unknown>): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
   // Rows can hold numbers (imported JSON, a model's draft), so every cell is read as text.
   const rows = Array.isArray(config.recipients) ? (config.recipients as Array<Record<string, unknown>>) : [];
   const seen = new Set<string>();
   rows.forEach((row, i) => {
-    const wallet = String(row.wallet ?? "").trim();
+    const email = String(row.email ?? "").trim().toLowerCase();
     const share = String(row.share ?? "").trim();
-    if (!hasExpression(wallet) && !isSolanaAddress(wallet)) issues.push({ field: `recipients.${i}.wallet`, message: `Recipient ${i + 1}: not a valid Solana address` });
-    else if (seen.has(wallet)) issues.push({ field: `recipients.${i}.wallet`, message: `Recipient ${i + 1}: same wallet as an earlier row` });
-    seen.add(wallet);
-    if (config.mode !== "even" && !hasExpression(share) && !/^\d+(\.\d+)?$/.test(share)) {
-      issues.push({ field: `recipients.${i}.share`, message: `Recipient ${i + 1}: enter a number` });
+    if (email && !hasExpression(email) && !EMAIL.test(email)) issues.push({ field: `recipients.${i}.email`, message: `Recipient ${i + 1}: not an email address` });
+    else if (email && seen.has(email)) issues.push({ field: `recipients.${i}.email`, message: `Recipient ${i + 1}: same email as an earlier row` });
+    if (email) seen.add(email);
+    if (!email && !String(row.label ?? "").trim()) issues.push({ field: `recipients.${i}.label`, message: `Recipient ${i + 1}: name the reserve this row keeps` });
+    if (config.mode !== "even" && !hasExpression(share) && !/^\d+(\.\d{1,2})?$/.test(share)) {
+      issues.push({ field: `recipients.${i}.share`, message: `Recipient ${i + 1}: enter a number with up to 2 decimals` });
     }
   });
   if (config.mode === "percent") {
@@ -69,7 +69,8 @@ function splitIssues(config: Record<string, unknown>): ConfigIssue[] {
       if (hundredths !== 10_000) issues.push({ field: "recipients", message: `Percentages add up to ${hundredths / 100}%, not 100%` });
     }
   }
-  if (config.mode !== "fixed" && empty(config.total)) issues.push({ field: "total", message: "Total amount is required" });
+  const currency = String(config.currency ?? "").trim();
+  if (currency && !hasExpression(currency) && !isCurrency(currency)) issues.push({ field: "currency", message: "Use USD, EUR, GBP, CAD or AUD" });
   return issues;
 }
 
@@ -85,7 +86,7 @@ function rulesIssues(config: Record<string, unknown>): ConfigIssue[] {
 }
 
 const EXTRA: Record<string, (config: Record<string, unknown>) => ConfigIssue[]> = {
-  "data.split": splitIssues,
+  "data.allocate": allocateIssues,
   "logic.condition": comparisonIssues,
   "logic.filter": comparisonIssues,
   "data.validate": rulesIssues,

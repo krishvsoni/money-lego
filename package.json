@@ -1,7 +1,8 @@
 {
   "name": "money-lego",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,21 +11,19 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:up": "docker compose up -d",
-    "smoke": "bun scripts/smoke.ts",
-    "db:seed": "bun --conditions=react-server scripts/seed-templates.ts",
-    "thumbnails": "bun scripts/thumbnails.ts",
-    "test:db": "TEST_MONGODB_URI=\"mongodb://localhost:27017/?replicaSet=rs0&directConnection=true\" vitest run tests/templates-db.test.ts tests/connections-db.test.ts",
-    "keys:rotate": "bun --conditions=react-server scripts/rotate-credential-keys.ts",
-    "telegram:webhook": "bun --conditions=react-server scripts/telegram-webhook.ts",
-    "mh": "bun --conditions=react-server scripts/multihopper.ts"
+    "db:seed": "tsx --env-file-if-exists=.env --conditions=react-server scripts/seed-templates.ts",
+    "thumbnails": "tsx scripts/thumbnails.ts",
+    "keys:rotate": "tsx --env-file-if-exists=.env --conditions=react-server scripts/rotate-credential-keys.ts",
+    "telegram:webhook": "tsx --env-file-if-exists=.env --conditions=react-server scripts/telegram-webhook.ts",
+    "paypal:check": "tsx --env-file-if-exists=.env --conditions=react-server scripts/paypal-check.ts",
+    "paypal:webhook": "tsx --env-file-if-exists=.env --conditions=react-server scripts/paypal-webhook.ts"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.25",
     "@phosphor-icons/react": "^2.1.10",
-    "@solana/wallet-adapter-base": "^0.9.28",
-    "@solana/wallet-adapter-react": "^0.15.40",
-    "@solana/web3.js": "^1.99.0",
     "@xyflow/react": "^12.12.0",
-    "bs58": "^6.0.0",
+    "ag-grid-community": "^36.3.0",
+    "ag-grid-react": "^36.3.0",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
     "motion": "^14.6.0",
@@ -38,22 +37,18 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
+    "tsx": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },
-  "packageManager": "bun@1.4.2",
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "sharp",
-    "unrs-resolver"
-  ]
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.2.16",
+    "@rolldown/binding-win32-x64-msvc": "1.2.16"
+  }
 }

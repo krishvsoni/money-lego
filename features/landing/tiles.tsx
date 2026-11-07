@@ -45,10 +45,11 @@ function Row({ left, right, tone = "text-ink" }: { left: ReactNode; right: React
 }
 
 const CHAIN = [
-  { label: "Webhook", color: "var(--brick-2)", icon: "Webhook" },
+  { label: "PayPal checkout", color: "var(--brick-2)", icon: "ShoppingCart" },
   { label: "Split", color: "var(--brick-5)", icon: "Split" },
+  { label: "AI review", color: "var(--brick-1)", icon: "Sparkles" },
   { label: "Approve", color: "var(--brick-4)", icon: "UserCheck" },
-  { label: "Sign", color: "var(--brick-1)", icon: "PenLine" },
+  { label: "PayPal payout", color: "var(--paypal)", icon: "Banknote" },
 ];
 
 export function ChainVisual() {
@@ -68,7 +69,7 @@ export function ApprovalVisual() {
   return (
     <Panel>
       <p className="font-semibold text-attention">Needs your approval</p>
-      <p className="mt-1 text-ink-2">Pay 2,500 USDC to 4 recipients?</p>
+      <p className="mt-1 text-ink-2">Pay out 86.42 USD to 2 recipients?</p>
       <div className="mt-3 flex gap-2">
         <span className="tactile rounded-full px-3 py-1 font-semibold text-ink">Reject</span>
         <span className="tactile-ink rounded-full px-3 py-1 font-semibold">Approve</span>
@@ -80,11 +81,11 @@ export function ApprovalVisual() {
 export function SignaturesVisual() {
   return (
     <Panel>
-      <Row left="Funding" right="4mGx…Fn7m" tone="text-ink-2" />
-      <Row left="Route setup 1" right="9rTp…Wx2a" tone="text-ink-2" />
-      <Row left="Session setup 1" right="7kLm…Qv4b" tone="text-ink-2" />
+      <Row left="Capture" right="3C67…993F" tone="text-ink-2" />
+      <Row left="Payout batch" right="8YHC…S9VL" tone="text-ink-2" />
+      <Row left="Webhook verified" right="WH-7Y…2K" tone="text-ink-2" />
       <div className="mt-1 border-t border-dashed border-line-strong pt-1">
-        <Row left="4 of 4 recipients" right="Paid" tone="text-success" />
+        <Row left="2 of 2 recipients" right="SUCCESS" tone="text-success" />
       </div>
     </Panel>
   );

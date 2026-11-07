@@ -22,7 +22,7 @@ const KIND_STYLE: Record<Kind, string> = {
 };
 
 // Toasts enter and leave from the same bottom edge. Timers pause while the tab is hidden,
-// so a message isn't missed by someone who switched to their wallet.
+// so a message isn't missed by someone who switched to the PayPal window.
 function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => void }) {
   const [leaving, setLeaving] = useState(false);
   const remaining = useRef(toast.kind === "error" ? 7000 : 4000);

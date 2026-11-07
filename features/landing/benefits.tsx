@@ -20,16 +20,16 @@ interface Equation {
   result: string;
 }
 
-const SPLIT = splitByPercent(100_000_000n, [3_333, 3_333, 3_334]);
-const usdc = (raw: bigint) => formatAmount(raw, 6, 2);
+const SPLIT = splitByPercent(10_000n, [3_333, 3_333, 3_334]);
+const usd = (raw: bigint) => formatAmount(raw, 2, 2);
 const total = SPLIT.reduce((a, b) => a + b, 0n);
 
 // Same order as BENEFITS in content.ts.
 const EQUATIONS: Equation[] = [
   {
-    parts: SPLIT.map((p) => ({ text: usdc(p) })),
+    parts: SPLIT.map((p) => ({ text: usd(p) })),
     op: "+",
-    result: `${usdc(total)} USDC`,
+    result: `${usd(total)} USD`,
   },
   {
     parts: [
@@ -41,14 +41,14 @@ const EQUATIONS: Equation[] = [
     result: "Resumed",
   },
   {
-    parts: [{ text: "Delivery" }, { text: "Retry" }, { text: "Retry" }],
+    parts: [{ text: "Capture" }, { text: "Webhook" }, { text: "Retry" }],
     op: "+",
     result: "1 payout",
   },
   {
-    parts: [{ text: "2,500.00" }, { text: "12.50 fee" }],
+    parts: [{ text: "100.00" }, { text: "3.98 PayPal fee" }],
     op: "−",
-    result: "2,487.50 USDC",
+    result: "96.02 net",
   },
 ];
 

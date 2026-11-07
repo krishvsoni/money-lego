@@ -39,4 +39,4 @@ export const emptyGraph = (): WorkflowGraph => ({ schemaVersion: WORKFLOW_SCHEMA
 
 export type RunStatus = "queued" | "running" | "waiting" | "succeeded" | "failed" | "cancelled";
 export type NodeRunStatus = "pending" | "running" | "waiting" | "succeeded" | "failed" | "skipped" | "cancelled";
-export type WaitKind = "approval" | "wallet" | "delay" | "transfer";
+export type WaitKind = "approval" | "delay" | "provider";

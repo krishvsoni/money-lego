@@ -37,7 +37,7 @@ export class AppError extends Error {
 export const errors = {
   validation: (message: string, issues: FieldIssue[] = []) =>
     new AppError("VALIDATION_FAILED", 400, message, { issues }),
-  unauthenticated: () => new AppError("UNAUTHENTICATED", 401, "Sign in with your wallet to continue."),
+  unauthenticated: () => new AppError("UNAUTHENTICATED", 401, "Sign in to continue."),
   forbidden: () => new AppError("FORBIDDEN", 403, "You don't have access to this."),
   notFound: (what: string) => new AppError("NOT_FOUND", 404, `${what} not found.`),
   conflict: (message: string) => new AppError("CONFLICT", 409, message),
@@ -47,13 +47,8 @@ export const errors = {
   rateLimited: (retryAfterSeconds: number) =>
     new AppError("RATE_LIMITED", 429, "Too many requests. Wait a moment and try again.", { retryAfterSeconds }),
   provider: (message: string, cause?: unknown) => new AppError("PROVIDER_ERROR", 502, message, { cause }),
-  providerUnavailable: (cause?: unknown) =>
-    new AppError(
-      "PROVIDER_UNAVAILABLE",
-      503,
-      "MultiHopper is not responding right now. Nothing was sent. Try again in a minute.",
-      { cause },
-    ),
+  providerUnavailable: (provider = "PayPal", cause?: unknown) =>
+    new AppError("PROVIDER_UNAVAILABLE", 503, `${provider} is not responding right now. Nothing was changed. Try again in a minute.`, { cause }),
   notConfigured: (what: string) =>
     new AppError("NOT_CONFIGURED", 503, `${what} is not configured on this server yet.`),
   internal: (cause?: unknown) =>

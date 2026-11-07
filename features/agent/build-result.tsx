@@ -47,7 +47,7 @@ export function BuildResult({ result, onReset }: { result: SageResult; onReset: 
           Build another
         </Button>
       </div>
-      <p className="text-xs text-ink-3">Every transfer in it waits for your approval and your wallet signature. Nothing has moved.</p>
+      <p className="text-xs text-ink-3">Every PayPal money action in it waits for your approval of exactly what it will do. Nothing has moved.</p>
     </div>
   );
 }

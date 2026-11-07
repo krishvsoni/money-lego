@@ -3,7 +3,7 @@ import { SiteNav } from "@/components/site-nav";
 import { AccountControl } from "@/features/auth/account-control";
 import { AuthGate } from "@/features/auth/auth-gate";
 
-// Everything here is gated on the signed-in wallet, which is only known in the browser,
+// Everything here is gated on the signed-in account, which is only known in the browser,
 // so these routes opt out of instant-navigation validation (Next's documented escape
 // hatch for session-gated segments) instead of prerendering an empty shell.
 export const instant = false;
@@ -11,7 +11,9 @@ export const instant = false;
 const APP_LINKS = [
   { href: "/workflows", label: "Workflows" },
   { href: "/templates", label: "Templates" },
-  { href: "/transfers", label: "Transfers" },
+  { href: "/payments", label: "Payments" },
+  { href: "/shop", label: "Shop AI" },
+  { href: "/paypal", label: "PayPal" },
   { href: "/connections", label: "Connections" },
 ];
 
@@ -19,6 +21,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
       <SiteNav
+        wide
         links={APP_LINKS}
         right={
           <>

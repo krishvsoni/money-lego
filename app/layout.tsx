@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
@@ -21,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 const description =
-  "Payout workflows for Solana teams. Connect signed webhooks, approvals and MultiHopper routing on one canvas, and sign every transfer from your own wallet.";
+  "Describe how money should move. Money Lego builds a PayPal workflow with AI, shows you exactly what it will do, and runs it after you approve every consequential action.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <ClerkProvider>
+          <Providers>{children}</Providers>
+        </ClerkProvider>
       </body>
     </html>
   );

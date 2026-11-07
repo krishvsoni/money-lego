@@ -1,15 +1,14 @@
 import "server-only";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import { moneySafetyIssues } from "@/lib/templates/validate";
-import { supportedTokens } from "@/lib/tokens";
 import { WORKFLOW_SCHEMA_VERSION, type WorkflowGraph, type WorkflowNode } from "@/lib/workflow/types";
 import { validateGraph, type GraphIssue } from "@/lib/workflow/validate";
 import { layoutGraph } from "@/lib/workflow/layout";
 import type { AgentDraft } from "./schema";
 
 // Turns a model's draft into a graph we are willing to save. The model is untrusted: every
-// node and field is checked against the registry, credentials are blanked, and the money
-// path must contain a human approval and a wallet signature before it can be saved.
+// node and field is checked against the registry, credentials are blanked, and every PayPal
+// money action must sit directly behind a human approval before it can be saved.
 
 
 function cleanConfig(type: string, config: Record<string, unknown>): Record<string, unknown> {
@@ -19,10 +18,7 @@ function cleanConfig(type: string, config: Record<string, unknown>): Record<stri
     if (field.kind === "credential") continue;
     const value = config[field.key];
     if (value === undefined || value === null) continue;
-    if (field.kind === "token" && !supportedTokens().some((t) => t.mint === value)) {
-      out[field.key] = supportedTokens()[0]?.mint ?? "";
-      continue;
-    }
+    if (field.kind === "select" && !field.options.some((o) => o.value === value)) continue;
     // Pair rows are edited as text in the inspector, so a model's numbers become strings.
     if (field.kind === "pairs" && Array.isArray(value)) {
       out[field.key] = value
@@ -56,20 +52,12 @@ export function toGraph(draft: AgentDraft): WorkflowGraph {
   return layoutGraph({ schemaVersion: WORKFLOW_SCHEMA_VERSION, nodes, edges });
 }
 
-// Template rules (approval before any transfer, a transfer before any signature) plus one
-// more for drafts: a created quote goes straight to the wallet, never sideways first. The
-// template-only "must contain a payout" rule is dropped; a notify-only draft is fine.
+// Template rules (every PayPal money action directly behind an approval, payout status after
+// a payout). The template-only "must use PayPal" rule is dropped; a notify-only draft is fine.
 function moneyIssues(graph: WorkflowGraph): GraphIssue[] {
-  const issues: GraphIssue[] = moneySafetyIssues(graph)
+  return moneySafetyIssues(graph)
     .filter((m) => m.includes(":"))
     .map((m) => ({ nodeId: m.slice(0, m.indexOf(":")), message: m.slice(m.indexOf(":") + 1).trim() }));
-  const typeOf = new Map(graph.nodes.map((n) => [n.id, n.type]));
-  for (const create of graph.nodes.filter((n) => n.type === "mh.create_transfer")) {
-    if (!graph.edges.some((e) => e.source === create.id && typeOf.get(e.target) === "mh.wallet_sign")) {
-      issues.push({ nodeId: create.id, message: "mh.create_transfer must be followed directly by mh.wallet_sign." });
-    }
-  }
-  return issues;
 }
 
 // Structural problems block saving and go back to the model; missing settings (an empty

@@ -2,19 +2,44 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-// The browser only ever talks to this origin: Solana RPC goes through /api/rpc, so no
-// third-party endpoint or key is reachable from page scripts. Wallet extensions run in
-// their own context and are unaffected.
+// The browser only ever talks to this origin. The one exception is the hosted checkout
+// (/pay/*), which loads PayPal's JS SDK and its buyer windows, with PayPal's documented
+// domains allowed on that route only.
+// Clerk (sign-in) loads from its Frontend API, serves avatars from img.clerk.com and uses
+// Cloudflare Turnstile for bot protection; those are allowed on every page.
+// Production instances use clerk.<your-domain>: add it via CLERK_FRONTEND_API_URL.
+const CLERK = ["https://*.clerk.accounts.dev", process.env.CLERK_FRONTEND_API_URL].filter(Boolean).join(" ");
+const CLERK_FRAMES = "https://challenges.cloudflare.com";
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${CLERK} ${CLERK_FRAMES}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://img.clerk.com",
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${CLERK}${isDev ? " ws:" : ""}`,
+  `frame-src ${CLERK_FRAMES}`,
+  "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "object-src 'none'",
+].join("; ");
+
+const PAYPAL = "https://*.paypal.com https://*.paypalobjects.com";
+const checkoutCsp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL} ${CLERK} ${CLERK_FRAMES}`,
+  `style-src 'self' 'unsafe-inline' ${PAYPAL}`,
+  // https: covers Channel3 product images on /shop, served from many merchant CDNs.
+  `img-src 'self' data: blob: https:`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${PAYPAL} ${CLERK}${isDev ? " ws:" : ""}`,
+  `frame-src ${PAYPAL} ${CLERK_FRAMES}`,
+  "worker-src 'self' blob:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  `form-action 'self' ${PAYPAL}`,
   "object-src 'none'",
 ].join("; ");
 
@@ -45,6 +70,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // Later entries override earlier ones for the same header key.
+      ...["/pay/:path*", "/shop"].map((source) => ({
+        source,
+        headers: [
+          { key: "Content-Security-Policy", value: checkoutCsp },
+          { key: "Permissions-Policy", value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://www.paypal.com" "https://www.sandbox.paypal.com")' },
+          { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
+        ],
+      })),
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }] },
       // Where a connect popup lands after consent; it must keep its link to the opener.
       { source: "/connections/done", headers: [{ key: "Cross-Origin-Opener-Policy", value: "unsafe-none" }] },
