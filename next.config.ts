@@ -57,6 +57,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // PayPal's Agent Toolkit (and its SDK dependencies) load from node_modules at runtime.
+  serverExternalPackages: ["@paypal/agent-toolkit"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

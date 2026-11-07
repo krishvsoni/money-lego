@@ -2,6 +2,7 @@ import { NetworkBadge } from "@/components/network-badge";
 import { SiteNav } from "@/components/site-nav";
 import { AccountControl } from "@/features/auth/account-control";
 import { AuthGate } from "@/features/auth/auth-gate";
+import { AssistantPanel } from "@/features/assistant/assistant-panel";
 
 // Everything here is gated on the signed-in account, which is only known in the browser,
 // so these routes opt out of instant-navigation validation (Next's documented escape
@@ -30,7 +31,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         }
       />
       <main id="main" className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-28 sm:px-5 sm:pt-32">
-        <AuthGate>{children}</AuthGate>
+        <AuthGate>
+          {children}
+          <AssistantPanel />
+        </AuthGate>
       </main>
     </div>
   );

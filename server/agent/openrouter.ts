@@ -3,17 +3,23 @@ import { env } from "../config/env";
 import { AppError, errors } from "../errors";
 import { log } from "../log";
 
-// The only code that talks to OpenRouter. The key stays server-side and the provider's
-// error bodies never reach the browser: callers see one of a few plain app errors. Replies
-// stream, so the crew can show a plan taking shape while the model is still writing it.
+// The only code that talks to model providers. Every call names a tier:
+//  - "main": the agents (Sage's planner and fixer, the Money Lego assistant and its PayPal
+//    sub-agent, AG Studio's dashboard agents) run on OpenAI, falling back to OpenRouter.
+//  - "small": bounded node tasks (AI review, write, pick, run explanations) run on OpenRouter,
+//    falling back to OpenAI's small model.
+// Keys stay server-side and provider error bodies never reach the browser: callers see one of
+// a few plain app errors. JSON replies stream, so the crew can show a plan taking shape.
 
-const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+export type Tier = "main" | "small";
+
+const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
+const OPENAI = "https://api.openai.com/v1/chat/completions";
 // A model that goes quiet for this long is treated as stalled; one that keeps streaming may
 // take up to the hard cap, since reasoning models think for a while before they write.
-const IDLE_MS = 30_000;
-const CAP_MS = 120_000;
-// Free models that support JSON output, strongest first. Free models come and go, so
-// OPENROUTER_MODELS overrides this with up to nine of your own.
+const IDLE_MS = 45_000;
+const CAP_MS = 150_000;
+// Free OpenRouter models that support JSON output, strongest first. OPENROUTER_MODELS overrides.
 const DEFAULT_MODELS = [
   "nvidia/nemotron-3.5-super-vl:free",
   "google/gemma-4-31b-it:free",
@@ -39,14 +45,57 @@ export interface CompletionHooks {
   onLog?: (line: string) => void;
 }
 
-function modelGroups(): string[][] {
+// One place to send a request: a provider, its key and the model(s) to name.
+interface Target {
+  provider: "openai" | "openrouter";
+  label: string;
+  models: string[];
+}
+
+function openRouterGroups(): Target[] {
+  if (!env().OPENROUTER_API_KEY) return [];
   const configured = env().OPENROUTER_MODELS?.split(",").map((m) => m.trim()).filter(Boolean);
   const list = (configured?.length ? configured : DEFAULT_MODELS).slice(0, MAX_MODELS);
-  const groups: string[][] = [];
-  for (let i = 0; i < list.length; i += GROUP_SIZE) groups.push(list.slice(i, i + GROUP_SIZE));
+  const groups: Target[] = [];
+  for (let i = 0; i < list.length; i += GROUP_SIZE) groups.push({ provider: "openrouter", label: "OpenRouter", models: list.slice(i, i + GROUP_SIZE) });
   return groups;
 }
 
+function targetsFor(tier: Tier): Target[] {
+  const e = env();
+  const openai = (model: string): Target[] => (e.OPENAI_API_KEY ? [{ provider: "openai", label: "OpenAI", models: [model] }] : []);
+  const list = tier === "main" ? [...openai(e.OPENAI_MODEL), ...openRouterGroups()] : [...openRouterGroups(), ...openai(e.OPENAI_SMALL_MODEL)];
+  if (!list.length) throw errors.notConfigured("The AI model (OPENAI_API_KEY or OPENROUTER_API_KEY)");
+  return list;
+}
+
+// Reasoning models (gpt-5.x, o-series) take max_completion_tokens and reasoning_effort, and
+// only their default temperature.
+const isReasoningModel = (model: string) => /^(gpt-5|gpt-6|o\d)/.test(model);
+
+function requestFor(t: Target, body: Record<string, unknown>, userTag: string, maxTokens: number): { url: string; headers: Record<string, string>; body: Record<string, unknown> } {
+  const e = env();
+  if (t.provider === "openai") {
+    const model = t.models[0];
+    return {
+      url: OPENAI,
+      headers: { authorization: `Bearer ${e.OPENAI_API_KEY}`, "content-type": "application/json" },
+      // On /v1/chat/completions, OpenAI's reasoning models accept function tools only with
+      // reasoning_effort "none"; plain JSON turns keep a little reasoning.
+      body: {
+        model,
+        ...body,
+        ...(isReasoningModel(model) ? { max_completion_tokens: maxTokens, reasoning_effort: Array.isArray(body.tools) && body.tools.length ? "none" : "low" } : { max_tokens: maxTokens, temperature: 0.2 }),
+        user: userTag,
+      },
+    };
+  }
+  return {
+    url: OPENROUTER,
+    headers: { authorization: `Bearer ${e.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": e.APP_URL, "x-title": "Money Lego" },
+    body: { models: t.models, ...body, temperature: 0.2, max_tokens: maxTokens, reasoning: { effort: "low" }, user: userTag },
+  };
+}
 
 // Models wrap JSON in prose or code fences often enough that we take the outermost object.
 function extractJson(text: string): unknown {
@@ -57,9 +106,9 @@ function extractJson(text: string): unknown {
 }
 
 const unavailable = () => new AppError("AGENT_UNAVAILABLE", 503, "The AI models are busy right now. Try again shortly, or start from a template.");
-const badOutput = () => new AppError("AGENT_BAD_OUTPUT", 502, "The agent's answer wasn't usable. Try rephrasing with the trigger, the data source and who gets paid.");
+const badOutput = () => new AppError("AGENT_BAD_OUTPUT", 502, "The agent's answer wasn't usable. Try rephrasing with what starts it, what PayPal should do and who approves it.");
 
-// Reads OpenRouter's server-sent events: `data: {json}` lines, `: comment` keep-alives and a
+// Reads OpenAI-style server-sent events: `data: {json}` lines, `: comment` keep-alives and a
 // final `data: [DONE]`. An error can also arrive mid-stream as a chunk with `error` set.
 async function readStream(res: Response, hooks: CompletionHooks, alive: () => void): Promise<{ text: string; model: string | null }> {
   const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
@@ -109,11 +158,8 @@ async function readStream(res: Response, hooks: CompletionHooks, alive: () => vo
   return { text, model };
 }
 
-async function completeOnce(messages: ChatMessage[], userTag: string, models: string[], hooks: CompletionHooks): Promise<unknown> {
-  const e = env();
-  if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The workflow agent");
-  hooks.onLog?.("Thinking about how to build it");
-
+async function completeOnce(t: Target, messages: ChatMessage[], userTag: string, hooks: CompletionHooks): Promise<unknown> {
+  hooks.onLog?.(`Thinking about how to build it (${t.label})`);
   const abort = new AbortController();
   const cap = setTimeout(() => abort.abort(), CAP_MS);
   let idle = setTimeout(() => abort.abort(), IDLE_MS);
@@ -126,43 +172,19 @@ async function completeOnce(messages: ChatMessage[], userTag: string, models: st
     clearTimeout(idle);
   };
 
+  const req = requestFor(t, { messages, stream: true, response_format: { type: "json_object" } }, userTag, 8_000);
   let res: Response;
   try {
-    res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${e.OPENROUTER_API_KEY}`,
-        "content-type": "application/json",
-        "http-referer": e.APP_URL,
-        "x-title": "Money Lego",
-      },
-      body: JSON.stringify({
-        models,
-        messages,
-        stream: true,
-        temperature: 0.2,
-        // Free models are often reasoning models whose thinking counts against this limit;
-        // low effort keeps them fast and leaves room for the full plan.
-        max_tokens: 8_000,
-        // Reasoning is streamed but never shown; its arrival is only a sign of life.
-        reasoning: { effort: "low" },
-        response_format: { type: "json_object" },
-        // A hashed, opaque tag lets OpenRouter attribute abuse without learning who the user is.
-        user: userTag,
-      }),
-      signal: abort.signal,
-      cache: "no-store",
-    });
+    res = await fetch(req.url, { method: "POST", headers: req.headers, body: JSON.stringify(req.body), signal: abort.signal, cache: "no-store" });
   } catch (error) {
     stop();
-    log.warn("agent.network", { error: error instanceof Error ? error.name : "unknown" });
+    log.warn("agent.network", { provider: t.provider, error: error instanceof Error ? error.name : "unknown" });
     throw unavailable();
   }
-
   if (!res.ok || !res.body) stop();
   if (res.status === 429) throw errors.rateLimited(Number(res.headers.get("retry-after")) || 20);
   if (!res.ok || !res.body) {
-    log.warn("agent.http", { status: res.status });
+    log.warn("agent.http", { provider: t.provider, status: res.status });
     throw unavailable();
   }
 
@@ -171,7 +193,7 @@ async function completeOnce(messages: ChatMessage[], userTag: string, models: st
     reply = await readStream(res, hooks, alive);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    log.warn("agent.stream", { error: error instanceof Error ? error.name : "unknown" });
+    log.warn("agent.stream", { provider: t.provider, error: error instanceof Error ? error.name : "unknown" });
     throw unavailable();
   } finally {
     stop();
@@ -184,21 +206,20 @@ async function completeOnce(messages: ChatMessage[], userTag: string, models: st
   }
 }
 
-// Each group gets one request. Only failures another model could fix move on to the next
-// group: a timeout or outage, a rate limit, or an unusable answer. Anything else (a missing
-// key) is the same for every model, so it stops at once.
+// Only failures another model could fix move on to the next target: a timeout or outage, a
+// rate limit, or an unusable answer. Anything else is the same everywhere, so it stops.
 const FALL_THROUGH = new Set(["AGENT_UNAVAILABLE", "AGENT_BAD_OUTPUT", "RATE_LIMITED"]);
 
-export async function completeJson(messages: ChatMessage[], userTag: string, hooks: CompletionHooks = {}): Promise<unknown> {
-  let last: unknown;
-  const groups = modelGroups();
-  for (const [i, group] of groups.entries()) {
+export async function completeJson(messages: ChatMessage[], userTag: string, hooks: CompletionHooks = {}, tier: Tier = "main"): Promise<unknown> {
+  let last: unknown = unavailable();
+  const targets = targetsFor(tier);
+  for (const [i, t] of targets.entries()) {
     try {
-      return await completeOnce(messages, userTag, group, hooks);
+      return await completeOnce(t, messages, userTag, hooks);
     } catch (error) {
       if (!(error instanceof AppError) || !FALL_THROUGH.has(error.code)) throw error;
-      log.warn("agent.group_failed", { models: group, code: error.code });
-      if (i < groups.length - 1) hooks.onLog?.(error.code === "AGENT_BAD_OUTPUT" ? "That answer didn't make sense, trying again" : "Busy right now, trying again");
+      log.warn("agent.target_failed", { provider: t.provider, models: t.models, code: error.code });
+      if (i < targets.length - 1) hooks.onLog?.(error.code === "AGENT_BAD_OUTPUT" ? "That answer didn't make sense, trying again" : "Busy right now, trying again");
       last = error;
     }
   }
@@ -206,7 +227,7 @@ export async function completeJson(messages: ChatMessage[], userTag: string, hoo
 }
 
 // One non-streaming chat completion with tool calling, for agents that run their own loop
-// (AG Studio's dashboard agents). Same key handling and model fallback as completeJson.
+// (the Money Lego assistant, the PayPal sub-agent, AG Studio's dashboard agents).
 export interface ChatCompletionBody {
   messages: Array<Record<string, unknown>>;
   tools?: Array<Record<string, unknown>>;
@@ -214,6 +235,7 @@ export interface ChatCompletionBody {
   response_format?: unknown;
 }
 export interface ChatCompletionResult {
+  provider: "openai" | "openrouter";
   model: string | null;
   content: string;
   toolCalls: Array<{ id: string; name: string; arguments: string }>;
@@ -221,22 +243,15 @@ export interface ChatCompletionResult {
   finishReason: string | null;
 }
 
-export async function chatCompletion(body: ChatCompletionBody, userTag: string): Promise<ChatCompletionResult> {
-  const e = env();
-  if (!e.OPENROUTER_API_KEY) throw errors.notConfigured("The AI model");
+export async function chatCompletion(body: ChatCompletionBody, userTag: string, tier: Tier = "main"): Promise<ChatCompletionResult> {
   let last: unknown = unavailable();
-  for (const models of modelGroups()) {
+  for (const t of targetsFor(tier)) {
+    const req = requestFor(t, { ...body }, userTag, 6_000);
     let res: Response;
     try {
-      res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: { authorization: `Bearer ${e.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": e.APP_URL, "x-title": "Money Lego" },
-        body: JSON.stringify({ models, ...body, temperature: 0.2, max_tokens: 6_000, user: userTag }),
-        signal: AbortSignal.timeout(CAP_MS),
-        cache: "no-store",
-      });
+      res = await fetch(req.url, { method: "POST", headers: req.headers, body: JSON.stringify(req.body), signal: AbortSignal.timeout(CAP_MS), cache: "no-store" });
     } catch (error) {
-      log.warn("agent.network", { error: error instanceof Error ? error.name : "unknown" });
+      log.warn("agent.network", { provider: t.provider, error: error instanceof Error ? error.name : "unknown" });
       last = unavailable();
       continue;
     }
@@ -245,7 +260,7 @@ export async function chatCompletion(body: ChatCompletionBody, userTag: string):
       continue;
     }
     if (!res.ok) {
-      log.warn("agent.http", { status: res.status });
+      log.warn("agent.http", { provider: t.provider, status: res.status });
       last = unavailable();
       continue;
     }
@@ -261,9 +276,10 @@ export async function chatCompletion(body: ChatCompletionBody, userTag: string):
       continue;
     }
     return {
+      provider: t.provider,
       model: json.model ?? null,
       content: choice.message.content ?? "",
-      toolCalls: (choice.message.tool_calls ?? []).filter((t) => t.function?.name).map((t, i) => ({ id: t.id || `call_${Date.now()}_${i}`, name: t.function!.name!, arguments: t.function!.arguments || "{}" })),
+      toolCalls: (choice.message.tool_calls ?? []).filter((c) => c.function?.name).map((c, i) => ({ id: c.id || `call_${Date.now()}_${i}`, name: c.function!.name!, arguments: c.function!.arguments || "{}" })),
       usage: json.usage ?? null,
       finishReason: choice.finish_reason ?? null,
     };

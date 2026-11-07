@@ -10,6 +10,7 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 
 | Area | What it does |
 |---|---|
+| **Money Lego assistant** | A main OpenAI agent (floating "Ask Money Lego" on every page) that delegates by tool calls to sub-agents: a **PayPal agent** built on PayPal's official Agent Toolkit (`@paypal/agent-toolkit`, 16 read-only tools: invoices, orders, refunds, disputes, subscriptions, transactions, merchant insights), the workflow builder, run search, Channel3 product search and the payments ledger. Anything that moves money becomes a workflow draft behind a human approval. |
 | **AI workflow copilot (Sage)** | Natural language → schema-checked workflow graph using only registered blocks; guardrails reject any money action not behind an approval; edits ("add an approval before the refund") modify the open graph. |
 | **Canvas editor** | Node catalog, drag/connect, inspector, validation, versions, run panel with per-step input/output and PayPal ids, "Explain this run" (AI). |
 | **PayPal Checkout trigger** | Each workflow gets a hosted checkout page (`/pay/<key>`, PayPal JS SDK). The server sets the price, creates and captures the order; the run starts from PayPal's capture data and the verified `PAYMENT.CAPTURE.COMPLETED` webhook for the same capture never starts a second run. |
@@ -34,7 +35,9 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 | **Render** | `render.yaml` Blueprint: web service + one-minute cron heartbeat for durable runs. |
 | **Postman** | `postman/money-lego-paypal.postman_collection.json`: every PayPal call Money Lego makes, plus our public endpoints. |
 | **Clerk** | Authentication. |
-| **OpenRouter** | AI model provider (OpenAI-compatible); models configurable via `OPENROUTER_MODELS`. |
+| **OpenAI** | Main agents: Sage (planner, fixer), the Money Lego assistant and its PayPal sub-agent (tool calling), AG Studio's dashboard agents. Model set by `OPENAI_MODEL`. |
+| **PayPal Agent Toolkit** | `@paypal/agent-toolkit` (OpenAI integration) powers the PayPal sub-agent, restricted to read-only actions with a second allowlist. |
+| **OpenRouter** | Small tasks: AI review, AI write, AI pick, run explanations (falls back to OpenAI's small model). |
 
 Not used: Bryntum (licensed package needs a trial account), APIMatic, KERNEL, Astropods. We don't claim them.
 

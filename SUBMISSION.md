@@ -26,6 +26,10 @@ Next.js 16 + React 19 + TypeScript, MongoDB, React Flow canvas, a deterministic 
 
 ## How AI is used
 
+Model routing: **OpenAI** runs the main agents (Sage planner/fixer, the Money Lego assistant, its PayPal sub-agent and AG Studio's dashboard agents); **OpenRouter** runs small, bounded node tasks. Each falls back to the other.
+
+0. The Money Lego assistant: a main OpenAI agent that delegates through tool calls to sub-agents. The PayPal agent uses PayPal's official Agent Toolkit (read-only: invoices, orders, refunds, disputes, subscriptions, transactions, merchant insights); the others are the workflow builder, run search, Channel3 product search and the payments ledger.
+
 1. Natural language → workflow graph (schema-constrained JSON, validated against the node registry; a second "fixer" pass repairs flagged safety issues).
 2. Editing an open workflow by instruction.
 3. AI risk review node (combined with deterministic checks) shown to the approver.

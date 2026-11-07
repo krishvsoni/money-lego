@@ -39,7 +39,13 @@ const schema = z.object({
   // The id PayPal assigned to this app's webhook (npm run paypal:webhook prints it).
   PAYPAL_WEBHOOK_ID: z.string().regex(/^[A-Z0-9]{10,40}$/).optional(),
 
-  // The AI model provider (OpenRouter, OpenAI-compatible). Up to nine comma-separated models.
+  // Main agents (Sage planner/fixer, the Money Lego assistant and its PayPal sub-agent, AG Studio's
+  // dashboard agents) run on OpenAI. Small, bounded tasks (AI review/write/pick, run
+  // explanations) run on OpenRouter. Each falls back to the other if one is down.
+  OPENAI_API_KEY: z.string().regex(/^sk-/, "OPENAI_API_KEY should start with sk-").optional(),
+  OPENAI_MODEL: z.string().regex(/^[\w.:-]+$/).default("gpt-5.5"),
+  OPENAI_SMALL_MODEL: z.string().regex(/^[\w.:-]+$/).default("gpt-5.4-mini"),
+  // The small-task provider (OpenRouter, OpenAI-compatible). Up to nine comma-separated models.
   OPENROUTER_API_KEY: z.string().regex(/^sk-or-/, "OPENROUTER_API_KEY should start with sk-or-").optional(),
   OPENROUTER_MODELS: z.string().regex(/^[\w./:-]+(,[\w./:-]+)*$/).optional(),
 
