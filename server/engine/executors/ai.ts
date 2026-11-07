@@ -143,4 +143,36 @@ const write: Executor = async (ctx) => {
   return ok({ ...asObject(ctx.input), draft: { subject: d.subject, message: d.message } });
 };
 
-export const aiExecutors: Record<string, Executor> = { "ai.review": review, "ai.write": write };
+const pickSchema = z.object({ id: z.string().min(1).max(64), reason: z.string().min(1).max(400), alternatives: z.array(z.string().max(64)).max(3).default([]) });
+
+// Chooses one product the search returned. The id must be in the search results; every fact
+// passed on (price, brand, store) is copied from the search, not from the model.
+const pick: Executor = async (ctx) => {
+  const products = (Array.isArray(asObject(ctx.input).products) ? (asObject(ctx.input).products as unknown[]) : []).map(asObject);
+  if (!products.length) throw new NodeError("No products to pick from. Connect this after Channel3 product search.");
+  let answer: z.infer<typeof pickSchema>;
+  try {
+    answer = await askJson({
+      tag: ownerTag(ctx.ownerId),
+      schema: pickSchema,
+      system:
+        "You pick one product for a buyer from the list given (and only from it). Prefer what matches the request and preferences; use only the listed facts. Reply with the chosen product's exact id, one sentence why, and up to 2 alternative ids.",
+      user: JSON.stringify({
+        request: String(ctx.config.request ?? "").slice(0, 300),
+        preferences: String(ctx.config.criteria ?? "").slice(0, 500),
+        products: products.map((p) => ({ id: p.id, title: p.title, brand: p.brand, price: p.price, currency: p.currency, rating: p.rating, merchant: p.merchant, availability: p.availability, features: p.features })),
+        answerShape: { id: "string", reason: "string", alternatives: ["string"] },
+      }),
+    });
+  } catch (error) {
+    throw new NodeError(isAppError(error) ? `The AI couldn't pick a product: ${error.message}` : "The AI couldn't pick a product.");
+  }
+  const chosen = products.find((p) => p.id === answer.id);
+  if (!chosen) throw new NodeError("The AI picked a product that wasn't in the search results, so nothing was chosen. Retry the step.");
+  const alternatives = answer.alternatives.map((id) => products.find((p) => p.id === id)).filter(Boolean);
+  ctx.log(`AI picked "${String(chosen.title).slice(0, 60)}" at ${String(chosen.price)} ${String(chosen.currency)}.`);
+  return ok({ ...asObject(ctx.input), pick: chosen, pickReason: answer.reason, alternatives });
+};
+
+export const aiExecutors: Record<string, Executor> = {
+  "ai.pick": pick, "ai.review": review, "ai.write": write };

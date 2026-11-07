@@ -5,7 +5,7 @@ import { MAIN_IN, MAIN_OUT, type NodeDefinition } from "../types";
 
 export const commerceNodes: NodeDefinition[] = [
   {
-    type: "channel3.search",
+    type: "shop.search",
     summary: "Find real products, prices and offers.",
     title: "Channel3 product search",
     category: "integrations",

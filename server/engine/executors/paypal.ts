@@ -2,7 +2,10 @@ import "server-only";
 import { AmountError, splitByPercent, splitEvenly } from "@/lib/amounts";
 import { MAX_RECIPIENTS } from "@/lib/nodes/catalog/data";
 import { isCurrency, PAYOUT_BATCH_FINAL, PAYOUT_ITEM_PROBLEM, referenceFor, toMinor, toPaypalValue, type Allocation, type AllocationItem } from "@/lib/paypal/types";
+import { env } from "../../config/env";
 import { collections } from "../../db/collections";
+import { getProduct } from "../../integrations/channel3";
+import { PaypalError } from "../../paypal/client";
 import { isAppError } from "../../errors";
 import * as paypal from "../../paypal/api";
 import { maskEmail, minorOf, recordResource } from "../../paypal/resources";
@@ -333,7 +336,91 @@ const sendInvoice: Executor = async (ctx) => {
   return ok({ ...asObject(ctx.input), sent });
 };
 
+// ---------- product checkout (Channel3 -> PayPal) ----------
+
+const checkoutLink: Executor = async (ctx) => {
+  const intent = requireApproved(ctx.node.id, ctx.node.type, ctx.config, ctx.input);
+  if (intent.kind !== "checkout") throw new NodeError("Unexpected action.");
+  const { paypalResources, workflows } = await collections();
+  const requestId = idemKey(ctx);
+  // A checkout this exact step already created is reused, never duplicated.
+  const existing = await paypalResources.findOne({ kind: "order", "detail.checkoutKey": requestId });
+  if (existing) {
+    return ok({ ...asObject(ctx.input), checkout: { orderId: existing.paypalId, approveUrl: existing.detail.approveUrl ?? null, product: intent.title, price: intent.price, currency: intent.currency, status: existing.status } });
+  }
+  // The price charged is Channel3's price right now, and it must still be the price approved.
+  let current;
+  try {
+    current = await getProduct(intent.productId);
+  } catch (error) {
+    throw new NodeError(isAppError(error) ? error.message : "Couldn't re-check the product price with Channel3.");
+  }
+  const now = current.price ? toPaypalValue(toMinor(current.price)) : null;
+  if (now !== intent.price || (current.currency ?? "").toUpperCase() !== intent.currency) {
+    throw new NodeError(`The price changed since approval (${intent.price} ${intent.currency} to ${now ?? "unavailable"} ${current.currency ?? ""}). No checkout was created; re-run to approve the new price.`);
+  }
+  if (current.availability && current.availability !== "InStock") throw new NodeError("The product went out of stock after approval. No checkout was created.");
+  const workflow = await workflows.findOne({ _id: ctx.run.workflowId }, { projection: { webhookKey: 1 } });
+  const base = env().APP_URL;
+  const order = await call(() =>
+    paypal.createOrder({
+      currency: intent.currency as Allocation["currency"],
+      amountMinor: toMinor(intent.price),
+      itemName: intent.title,
+      description: [intent.note, intent.merchant].filter(Boolean).join(" - ") || "Product checkout",
+      customId: referenceFor(workflow?.webhookKey ?? "unknown-workflow-key"),
+      requestId,
+      redirect: { returnUrl: `${base}/pay/done?status=approved`, cancelUrl: `${base}/pay/done?status=cancelled`, brandName: "Money Lego (sandbox)" },
+    }),
+  );
+  const approveUrl = paypal.approveLink(order);
+  await recordResource({
+    kind: "order",
+    paypalId: order.id,
+    status: order.status,
+    amount: { currency_code: intent.currency, value: intent.price },
+    counterparty: intent.merchant,
+    detail: { source: "channel3", channel3Id: intent.productId, product: intent.title.slice(0, 120), checkoutKey: requestId, approveUrl, sideEffect: true },
+    owner: owner(ctx),
+  });
+  ctx.log(`PayPal checkout ${order.id} created for ${intent.title.slice(0, 60)} at ${intent.price} ${intent.currency}. Waiting for the buyer.`);
+  return ok({ ...asObject(ctx.input), checkout: { orderId: order.id, approveUrl, product: intent.title, price: intent.price, currency: intent.currency, status: order.status } });
+};
+
+const waitCheckout: Executor = async (ctx) => {
+  const orderId = text(asObject(asObject(ctx.input).checkout).orderId, 40);
+  if (!/^[A-Z0-9]{6,40}$/i.test(orderId)) throw new NodeError("No checkout to follow. Connect this after PayPal checkout link.");
+  let order = await call(() => paypal.getOrder(orderId));
+  // The buyer approved on PayPal: capture now, once (the request id makes a retry return the same capture).
+  if (order.status === "APPROVED") {
+    try {
+      order = await paypal.captureOrder(orderId, `ml-cap-${orderId}`);
+    } catch (error) {
+      if (error instanceof PaypalError && error.issue === "ORDER_ALREADY_CAPTURED") order = await call(() => paypal.getOrder(orderId));
+      else throw new NodeError(isAppError(error) ? error.message : "PayPal couldn't capture the payment.");
+    }
+  }
+  await recordResource({ kind: "order", paypalId: order.id, status: order.status });
+  const capture = order.purchase_units?.[0]?.payments?.captures?.[0];
+  if (order.status === "COMPLETED" && capture) {
+    await recordResource({ kind: "capture", paypalId: capture.id, status: capture.status, amount: capture.amount, counterparty: maskEmail(order.payer?.email_address), detail: { orderId: order.id, source: "channel3" }, owner: owner(ctx) });
+    if (capture.status !== "COMPLETED") ctx.log(`PayPal reports the capture as ${capture.status}.`, "warn");
+    return ok({ ...asObject(ctx.input), purchase: { orderId: order.id, captureId: capture.id, status: capture.status, amount: capture.amount?.value ?? null, currency: capture.amount?.currency_code ?? null } });
+  }
+  const notPaid = (reason: string) => {
+    const handled = ctx.run.graph.edges.some((e) => e.source === ctx.node.id && e.sourcePort === "failed");
+    if (handled) return ok({ ...asObject(ctx.input), purchase: { orderId, status: order.status, failure: reason } }, "failed");
+    throw new NodeError(reason);
+  };
+  if (order.status === "VOIDED") return notPaid("The checkout was cancelled or expired. Nothing was charged.");
+  const until = ctx.waitState?.until ? new Date(String(ctx.waitState.until)) : new Date(Date.now() + Number(ctx.config.timeoutHours ?? 72) * 3_600_000);
+  if (until.getTime() <= Date.now()) return notPaid("The buyer didn't pay within the time limit. Nothing was charged.");
+  return { kind: "wait", wait: { kind: "provider", until, ref: `order:${orderId}` }, state: { until: until.toISOString(), lastStatus: order.status } };
+};
+
 export const paypalExecutors: Record<string, Executor> = {
+  "paypal.checkout_link": checkoutLink,
+  "paypal.wait_checkout": waitCheckout,
   "data.allocate": async (ctx) => ok({ ...asObject(ctx.input), allocation: allocate(ctx.config) }),
   "paypal.get_order": getOrder,
   "paypal.find_invoices": findInvoices,

@@ -137,3 +137,34 @@ describe("PayPal webhook parsing", () => {
     expect(keyFromReference("ml:short")).toBeNull();
   });
 });
+
+describe("product checkout intent", () => {
+  const products = [
+    { id: "2yh8WH5", title: "Quiet keyboard", price: "129.00", currency: "USD", merchant: "shop.example", availability: "InStock" },
+    { id: "9abcDEF", title: "Other keyboard", price: "99.5", currency: "USD", merchant: "store.example", availability: "InStock" },
+  ];
+  it("describes exactly the picked product at the search price", () => {
+    expect(intentFor("paypal.checkout_link", { productId: "2yh8WH5", note: "For Studio North" }, { products, pick: products[0] })).toEqual({
+      kind: "checkout",
+      productId: "2yh8WH5",
+      title: "Quiet keyboard",
+      merchant: "shop.example",
+      price: "129.00",
+      currency: "USD",
+      note: "For Studio North",
+    });
+    expect(intentFor("paypal.checkout_link", { productId: "9abcDEF" }, { products })).toMatchObject({ price: "99.50" });
+  });
+  it("refuses products the search didn't return, or unsupported currencies", () => {
+    expect(() => intentFor("paypal.checkout_link", { productId: "madeUp1" }, { products })).toThrow(/isn't one the search returned/);
+    expect(() => intentFor("paypal.checkout_link", { productId: "{{ input.pick.id }}" }, { products })).toThrow(/Product didn't resolve/);
+    expect(() => intentFor("paypal.checkout_link", { productId: "2yh8WH5" }, { products: [{ ...products[0], currency: "JPY" }] })).toThrow(/currency/);
+  });
+  it("needs an approval of that exact product and price", () => {
+    const input = { products, pick: products[0] };
+    const hash = intentHash(intentFor("paypal.checkout_link", { productId: "2yh8WH5" }, input));
+    expect(requireApproved("co", "paypal.checkout_link", { productId: "2yh8WH5" }, { ...input, approval: { decision: "approved", actions: { co: hash } } })).toMatchObject({ kind: "checkout" });
+    const repriced = { products: [{ ...products[0], price: "149.00" }], pick: { ...products[0], price: "149.00" } };
+    expect(() => requireApproved("co", "paypal.checkout_link", { productId: "2yh8WH5" }, { ...repriced, approval: { decision: "approved", actions: { co: hash } } })).toThrow(/changed after it was approved/);
+  });
+});

@@ -38,7 +38,7 @@ export const integrationExecutors: Record<string, Executor> = {
     return ok({ ...asObject(input), zapier: { status: String(body.status ?? "success"), attempt: body.attempt ?? null } });
   },
 
-  "channel3.search": async ({ config, input, log }) => {
+  "shop.search": async ({ config, input, log }) => {
     const query = String(config.query ?? "").trim();
     if (!query || query.includes("{{")) throw new NodeError("Looking for didn't resolve to a search request.");
     const maxPrice = Number(String(config.maxPrice ?? "").trim() || 0);

@@ -18,7 +18,8 @@ export const MAX_INVOICES_PER_RUN = 10;
 export type Intent =
   | { kind: "payout"; currency: string; totalMinor: string; total: string; subject: string; items: Array<{ receiver: string; amountMinor: string; amount: string; label: string }> }
   | { kind: "refund"; captureId: string; amountMinor: string | null; amount: string | null; currency: string | null; note: string }
-  | { kind: "invoice_send" | "invoice_remind"; subject: string; invoices: Array<{ invoiceId: string; number: string | null; note: string }> };
+  | { kind: "invoice_send" | "invoice_remind"; subject: string; invoices: Array<{ invoiceId: string; number: string | null; note: string }> }
+  | { kind: "checkout"; productId: string; title: string; merchant: string | null; price: string; currency: string; note: string };
 
 const text = (v: unknown, max = 1000) => (v === undefined || v === null ? "" : String(v)).trim().slice(0, max);
 
@@ -74,7 +75,23 @@ function invoiceIntent(config: Record<string, unknown>, input: unknown): Intent 
   return { kind: config.mode === "send" ? "invoice_send" : "invoice_remind", subject: text(config.subject, 200), invoices };
 }
 
+// A checkout for one product the earlier search returned, at the price that search reported.
+// The executor re-reads the price from Channel3 and refuses if it moved.
+function checkoutIntent(config: Record<string, unknown>, input: unknown): Intent {
+  const o = asObject(input);
+  const productId = text(config.productId, 64);
+  if (!/^[A-Za-z0-9_-]{2,64}$/.test(productId)) throw new NodeError("Product didn't resolve to a Channel3 product id. Connect this after Channel3 search and AI pick product.");
+  const candidates = [o.pick, ...(Array.isArray(o.products) ? o.products : [])].map(asObject);
+  const product = candidates.find((p) => p.id === productId);
+  if (!product) throw new NodeError("That product isn't one the search returned, so it can't be bought here.");
+  const currency = text(product.currency, 3).toUpperCase();
+  if (!isCurrency(currency) || !product.price) throw new NodeError("This product has no price in a currency PayPal checkout supports here.");
+  const price = toPaypalValue(toMinor(text(product.price, 20), "Price"));
+  return { kind: "checkout", productId, title: text(product.title, 200), merchant: product.merchant ? text(product.merchant, 120) : null, price, currency, note: text(config.note, 120) };
+}
+
 const BUILDERS: Record<string, (config: Record<string, unknown>, input: unknown) => Intent> = {
+  "paypal.checkout_link": checkoutIntent,
   "paypal.payout": payoutIntent,
   "paypal.refund": refundIntent,
   "paypal.send_invoice": invoiceIntent,

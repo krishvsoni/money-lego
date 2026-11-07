@@ -132,6 +132,7 @@ ${badgeRow(t.badges)}
 const B = {
   paypal: ["PayPal", "#0070e0"],
   ai: ["AI", "#7c5cff"],
+  channel3: ["Channel3", "#e6edf3"],
   slack: ["Slack", "#e01e5a"],
   schedule: ["Schedule", "#e3a21a"],
 } satisfies Record<string, [string, string]>;
@@ -209,6 +210,21 @@ const THUMBS: Thumb[] = [
     ],
     edges: [["s", "tx"], ["tx", "ai"], ["ai", "slack"]],
     badges: [B.schedule, B.paypal, B.ai, B.slack],
+  },
+  {
+    slug: "paypal-ai-product-sourcing",
+    title: "AI Product Sourcing → PayPal Checkout",
+    category: "Agentic Commerce",
+    cards: [
+      { id: "r", x: 60, y: 210, label: "Shopping request", sub: "need + budget", kind: "trigger", mono: "?" },
+      { id: "c3", x: 380, y: 210, label: "Channel3 search", sub: "real products", kind: "data", mono: "C3" },
+      { id: "ai", x: 720, y: 210, label: "AI picks one", sub: "grounded", kind: "ai", mono: "AI" },
+      { id: "ok", x: 720, y: 430, label: "You approve", sub: "product + price", kind: "logic", mono: "✓" },
+      { id: "co", x: 400, y: 430, label: "PayPal checkout", sub: "link to buyer", kind: "money", mono: "PP" },
+      { id: "paid", x: 60, y: 430, label: "Buyer pays", sub: "captured once", kind: "money", mono: "◷", w: 220 },
+    ],
+    edges: [["r", "c3"], ["c3", "ai"], ["ai", "ok"], ["ok", "co", "approved"], ["co", "paid"]],
+    badges: [B.channel3, B.paypal, B.ai, B.slack],
   },
 ];
 

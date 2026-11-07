@@ -52,7 +52,16 @@ export interface OrderObject {
   create_time?: string;
 }
 
-export function createOrder(input: { currency: Currency; amountMinor: bigint; itemName: string; description: string; customId: string; requestId: string }): Promise<OrderObject> {
+export function createOrder(input: {
+  currency: Currency;
+  amountMinor: bigint;
+  itemName: string;
+  description: string;
+  customId: string;
+  requestId: string;
+  // For orders the buyer approves from a link (not the JS SDK buttons): where PayPal sends them afterwards.
+  redirect?: { returnUrl: string; cancelUrl: string; brandName?: string };
+}): Promise<OrderObject> {
   const value = money(input.currency, input.amountMinor);
   return paypalRequest<OrderObject>({
     path: "/v2/checkout/orders",
@@ -60,6 +69,21 @@ export function createOrder(input: { currency: Currency; amountMinor: bigint; it
     prefer: "return=representation",
     body: {
       intent: "CAPTURE",
+      ...(input.redirect
+        ? {
+            payment_source: {
+              paypal: {
+                experience_context: {
+                  return_url: input.redirect.returnUrl,
+                  cancel_url: input.redirect.cancelUrl,
+                  user_action: "PAY_NOW",
+                  shipping_preference: "NO_SHIPPING",
+                  ...(input.redirect.brandName ? { brand_name: input.redirect.brandName.slice(0, 127) } : {}),
+                },
+              },
+            },
+          }
+        : {}),
       purchase_units: [
         {
           reference_id: "default",
@@ -72,6 +96,10 @@ export function createOrder(input: { currency: Currency; amountMinor: bigint; it
     },
   });
 }
+
+// The link a buyer opens to approve an order: "payer-action" when created with a
+// payment_source, "approve" otherwise.
+export const approveLink = (order: OrderObject) => order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href ?? null;
 
 export const getOrder = (id: string) => paypalRequest<OrderObject>({ path: `/v2/checkout/orders/${encodeURIComponent(id)}` });
 

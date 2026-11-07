@@ -6,6 +6,24 @@ import { MAIN_IN, MAIN_OUT, type NodeDefinition } from "../types";
 
 export const aiNodes: NodeDefinition[] = [
   {
+    type: "ai.pick",
+    summary: "AI picks the best product from a search.",
+    title: "AI pick product",
+    category: "ai",
+    description:
+      "Choose the one product from the previous search that best matches what was asked, and say why. The pick must be one of the products the search returned (checked by id); price, brand and availability come from the search, never from the AI.",
+    icon: "Sparkles",
+    fields: [
+      { key: "request", label: "What the buyer wants", kind: "text", required: true, expression: true, maxLength: 300, placeholder: "{{ trigger.request }}" },
+      { key: "criteria", label: "Prefer", kind: "textarea", maxLength: 500, placeholder: "Best rated within budget, in stock, from a well-known store." },
+    ],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: { request: "{{ trigger.request }}", criteria: "" },
+    retrySafe: true,
+    outputHint: "The input plus { pick: { id, title, brand, price, currency, merchant, image, buyUrl }, pickReason, alternatives }.",
+  },
+  {
     type: "ai.review",
     summary: "AI checks the payment for risks before you approve.",
     title: "AI risk review",

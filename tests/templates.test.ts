@@ -9,7 +9,7 @@ import { WORKFLOW_SCHEMA_VERSION } from "@/lib/workflow/types";
 import { validateGraph } from "@/lib/workflow/validate";
 import { TEMPLATE_DEFINITIONS } from "@/server/templates/definitions";
 
-const SLUGS = ["paypal-sale-revenue-split", "paypal-invoice-reminders", "paypal-subscription-recovery", "paypal-refund-desk", "paypal-weekly-ops-report"];
+const SLUGS = ["paypal-sale-revenue-split", "paypal-invoice-reminders", "paypal-subscription-recovery", "paypal-refund-desk", "paypal-weekly-ops-report", "paypal-ai-product-sourcing"];
 
 describe("template definitions", () => {
   it("are exactly the specified templates", () => {
@@ -23,7 +23,7 @@ describe("template definitions", () => {
   it("all use PayPal, and between them cover payouts, refunds, invoicing, subscriptions and reporting", () => {
     for (const t of TEMPLATE_DEFINITIONS) expect(t.integrations).toContain("paypal");
     const types = new Set(TEMPLATE_DEFINITIONS.flatMap((t) => t.graphDefinition.nodes.map((n) => n.type)));
-    for (const type of ["trigger.paypal_checkout", "trigger.paypal_event", "paypal.payout", "paypal.payout_status", "paypal.refund", "paypal.find_invoices", "paypal.send_invoice", "paypal.get_subscription", "paypal.transactions", "ai.review", "ai.write"]) {
+    for (const type of ["trigger.paypal_checkout", "trigger.paypal_event", "paypal.payout", "paypal.payout_status", "paypal.refund", "paypal.find_invoices", "paypal.send_invoice", "paypal.get_subscription", "paypal.transactions", "paypal.checkout_link", "paypal.wait_checkout", "shop.search", "ai.pick", "ai.review", "ai.write"]) {
       expect(types).toContain(type);
     }
   });

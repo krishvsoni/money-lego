@@ -22,6 +22,45 @@ function invoiceIssues(config: Record<string, unknown>): ConfigIssue[] {
 
 export const paypalNodes: NodeDefinition[] = [
   {
+    type: "paypal.checkout_link",
+    summary: "Create a PayPal checkout for a chosen product.",
+    title: "PayPal checkout link",
+    category: "paypal",
+    provider: "paypal",
+    sideEffect: true,
+    description:
+      "Create a PayPal order for the product picked earlier (from Channel3) at its current price, and return the link the buyer opens to pay. The price is re-read from Channel3 when the order is created; if it changed since you approved, nothing is created. The buyer still approves the payment on PayPal.",
+    icon: "ShoppingCart",
+    fields: [
+      { key: "productId", label: "Product", kind: "text", required: true, expression: true, placeholder: "{{ input.pick.id }}" },
+      { key: "note", label: "Line on the checkout", kind: "text", expression: true, maxLength: 120, placeholder: "Sourced for {{ trigger.client }}" },
+    ],
+    inputs: MAIN_IN,
+    outputs: MAIN_OUT,
+    defaults: { productId: "{{ input.pick.id }}" },
+    retrySafe: true,
+    outputHint: "The input plus { checkout: { orderId, approveUrl, product, price, currency, status } }.",
+  },
+  {
+    type: "paypal.wait_checkout",
+    summary: "Wait for the buyer to pay, then capture.",
+    title: "Wait for buyer & capture",
+    category: "paypal",
+    provider: "paypal",
+    description:
+      "Pause until the buyer approves the PayPal checkout, then capture the payment (once, even if retried). PayPal's CHECKOUT.ORDER.APPROVED webhook wakes it immediately; it also re-checks on its own. A cancelled or expired checkout goes down Not paid when something is connected there.",
+    icon: "Radar",
+    fields: [{ key: "timeoutHours", label: "Give up after (hours)", kind: "number", min: 1, max: 720, required: true }],
+    inputs: MAIN_IN,
+    outputs: [
+      { id: "main", label: "Paid" },
+      { id: "failed", label: "Not paid" },
+    ],
+    defaults: { timeoutHours: 72 },
+    retrySafe: true,
+    outputHint: "The input plus { purchase: { orderId, captureId, status, amount, currency } }.",
+  },
+  {
     type: "paypal.get_order",
     summary: "Load a PayPal order and its capture.",
     title: "Get PayPal order",

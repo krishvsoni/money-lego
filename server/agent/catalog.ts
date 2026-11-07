@@ -43,11 +43,12 @@ Reply with ONE JSON object and nothing else:
 
 Rules:
 1. Exactly one trigger node (type starts with "trigger."). Every other node must be reachable from it. No loops.
-2. Money actions (paypal.payout, paypal.refund, paypal.send_invoice) must be connected ONLY from a logic.approval node's "approved" port, directly. Never skip the approval.
+2. Money actions (paypal.payout, paypal.refund, paypal.send_invoice, paypal.checkout_link) must be connected ONLY from a logic.approval node's "approved" port, directly. Never skip the approval.
 3. A revenue split paid out over PayPal is: trigger.paypal_checkout -> logic.once (key "capture:{{ trigger.captureId }}") -> data.allocate -> ai.review -> logic.approval -> (approved) paypal.payout -> paypal.payout_status -> notify (optional).
    data.allocate recipients are rows {label, email, share}; a row with an empty email is a reserve the business keeps. Default total "{{ trigger.net }}" and currency "{{ trigger.currency }}".
 4. Invoice reminders: trigger.schedule or trigger.manual -> paypal.find_invoices (status UNPAID, overdueOnly true) -> ai.write (data "{{ input.invoices }}") -> logic.approval -> (approved) paypal.send_invoice (mode "remind").
 5. Refunds: something identifying a capture -> logic.approval -> (approved) paypal.refund with captureId from the data.
+5b. Buying or sourcing products for someone: trigger -> shop.search (query from the request) -> ai.pick -> logic.approval -> (approved) paypal.checkout_link (productId "{{ input.pick.id }}") -> a notify.* node sending "{{ input.checkout.approveUrl }}" -> paypal.wait_checkout. Never invent products or prices; they come from shop.search.
 6. Use only the node types and fields listed. Never invent credentials, API keys, email addresses, ids or amounts the user didn't give; leave unknown values as "" and mention them in notes.
 7. Expressions read earlier data: {{ input.x }} (previous node), {{ trigger.x }}, {{ nodes.<id>.x }}, {{ run.id }}.
 8. Max ${MAX_RECIPIENTS} recipients per allocation. Max 20 nodes. Currencies: ${CURRENCIES.join(", ")}. Percentages must add to 100.

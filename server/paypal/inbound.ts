@@ -168,6 +168,8 @@ async function mirror(e: ParsedEvent, owner: Pick<PaypalResourceDoc, "ownerId" |
   if (e.eventType.startsWith("PAYMENT.CAPTURE.") && e.resourceId) {
     const status = e.eventType === "PAYMENT.CAPTURE.REFUNDED" ? "REFUNDED" : String(s.status ?? e.eventType.split(".").pop());
     await recordResource({ kind: "capture", paypalId: e.eventType === "PAYMENT.CAPTURE.REFUNDED" ? String(obj(obj(r.supplementary_data).related_ids).capture_id ?? e.resourceId) : e.resourceId, status, amount, owner: own });
+  } else if (e.eventType.startsWith("CHECKOUT.ORDER.") && e.resourceId) {
+    await recordResource({ kind: "order", paypalId: e.resourceId, status: String(s.status ?? e.eventType.split(".").pop()), owner: own });
   } else if (e.eventType.startsWith("INVOICING.") && e.resourceId) {
     await recordResource({ kind: "invoice", paypalId: e.resourceId, status: String(obj(r.invoice ?? r).status ?? e.eventType.split(".").pop()), owner: own });
   } else if (e.eventType.startsWith("PAYMENT.PAYOUTSBATCH.") && e.resourceId) {
@@ -182,9 +184,11 @@ async function mirror(e: ParsedEvent, owner: Pick<PaypalResourceDoc, "ownerId" |
 // Runs paused on a payout batch re-check as soon as PayPal reports a change to it.
 async function wakePayoutWaiters(e: ParsedEvent): Promise<void> {
   const batchId = e.eventType.startsWith("PAYMENT.PAYOUTSBATCH.") ? e.resourceId : (obj(e.resource).payout_batch_id as string | undefined);
-  if (!batchId) return;
+  const orderId = e.eventType.startsWith("CHECKOUT.ORDER.") ? e.resourceId : null;
+  const ref = batchId ? `payout:${batchId}` : orderId ? `order:${orderId}` : null;
+  if (!ref) return;
   const { workflowRuns } = await collections();
-  const waiting = await workflowRuns.find({ status: "waiting", "waiting.ref": `payout:${batchId}` }, { projection: { _id: 1 } }).limit(10).toArray();
+  const waiting = await workflowRuns.find({ status: "waiting", "waiting.ref": ref }, { projection: { _id: 1 } }).limit(10).toArray();
   for (const r of waiting) {
     await workflowRuns.updateOne({ _id: r._id }, { $set: { nextWakeAt: new Date() } });
     await advanceRun(r._id, 3_000).catch(() => null);

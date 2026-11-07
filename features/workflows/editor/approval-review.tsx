@@ -71,6 +71,12 @@ export function ApprovalReview({ run, nodeId }: { run: RunDTO; nodeId: string })
                   </ul>
                 </div>
               )}
+              {intent.kind === "checkout" && (
+                <p className="px-2 py-1.5 text-ink-2">
+                  Create a PayPal checkout for <span className="font-semibold text-ink">{String(intent.title)}</span>
+                  {intent.merchant ? ` from ${String(intent.merchant)}` : ""} at <span className="font-semibold text-ink">{money(intent.price, intent.currency)}</span>. The buyer still approves the payment on PayPal, and if the price changes before then, nothing is created.
+                </p>
+              )}
               {intent.kind === "refund" && (
                 <p className="px-2 py-1.5 text-ink-2">
                   Refund <span className="font-semibold text-ink">{intent.amount ? money(intent.amount, intent.currency) : "the full amount"}</span> of capture <span className="font-mono text-ink">{String(intent.captureId)}</span>.

@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const uri = process.env.TEST_MONGODB_URI ?? "";
 const local = /^mongodb:\/\/(localhost|127\.0\.0\.1)[:/]/.test(uri);
 const dbName = `money_lego_test_${Date.now()}`;
-const COUNT = 5;
+const COUNT = 6;
 
 describe.skipIf(!local)("templates against MongoDB", () => {
   let mod: {

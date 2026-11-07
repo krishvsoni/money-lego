@@ -59,6 +59,11 @@ const obj = (v: unknown): Obj => (v && typeof v === "object" && !Array.isArray(v
 // The PayPal object a step produced, so the run reads like a ledger: capture, batch, refund, invoices.
 function paypalRef(output: unknown): string | null {
   const o = obj(output);
+  if (obj(o.purchase).captureId) return `Paid · capture ${String(obj(o.purchase).captureId)}`;
+  if (obj(o.purchase).failure) return `Not paid · ${String(obj(o.purchase).status ?? "")}`;
+  if (obj(o.checkout).orderId) return `Checkout ${String(obj(o.checkout).orderId)} · ${String(obj(o.checkout).price ?? "")} ${String(obj(o.checkout).currency ?? "")}`;
+  if (obj(o.pick).title) return `Picked: ${String(obj(o.pick).title).slice(0, 40)} · ${String(obj(o.pick).price ?? "")} ${String(obj(o.pick).currency ?? "")}`;
+  if (typeof o.productCount === "number") return `${o.productCount} product(s) found`;
   if (obj(o.refund).id) return `Refund ${String(obj(o.refund).id)} · ${String(obj(o.refund).status ?? "")}`;
   if (obj(o.payoutStatus).batchId) return `Batch ${String(obj(o.payoutStatus).batchId)} · ${String(obj(o.payoutStatus).status ?? "")}`;
   if (obj(o.payout).batchId) return `Batch ${String(obj(o.payout).batchId)} · ${String(obj(o.payout).status ?? "")}`;
