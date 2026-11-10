@@ -24,6 +24,147 @@
   <text x="250" y="150" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-2" fill="#09090b">Money Lego</text>
   <text x="252" y="200" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" fill="#52525b">Describe how money should move. Approve it. Run it on PayPal.</text>
 
+  <!-- Sage and the crew, standing in a row -->
+<g transform="translate(760 42.16666666666667) scale(1.1666666666666667) translate(4 7)">
+  <defs>
+    <linearGradient id="b7-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b7-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b7-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#4f6bff"/>
+  <circle cx="32" cy="47" r="1.9" fill="#4f6bff"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#4f6bff"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#4f6bff"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#4f6bff"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b7-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b7-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<g transform="translate(846 58.416666666666664) scale(0.9166666666666666) translate(4 7)">
+  <defs>
+    <linearGradient id="b8-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b8-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b8-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#3c8dbc"/>
+  <circle cx="32" cy="47" r="1.9" fill="#3c8dbc"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#3c8dbc"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#3c8dbc"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#3c8dbc"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b8-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b8-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<g transform="translate(914 58.416666666666664) scale(0.9166666666666666) translate(4 7)">
+  <defs>
+    <linearGradient id="b9-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b9-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b9-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#c2412d"/>
+  <circle cx="32" cy="47" r="1.9" fill="#c2412d"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#c2412d"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#c2412d"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#c2412d"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b9-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b9-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<g transform="translate(982 58.416666666666664) scale(0.9166666666666666) translate(4 7)">
+  <defs>
+    <linearGradient id="b10-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b10-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b10-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#e3a21a"/>
+  <circle cx="32" cy="47" r="1.9" fill="#e3a21a"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#e3a21a"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#e3a21a"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#e3a21a"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b10-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b10-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<g transform="translate(1050 58.416666666666664) scale(0.9166666666666666) translate(4 7)">
+  <defs>
+    <linearGradient id="b11-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b11-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b11-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#7d8b2e"/>
+  <circle cx="32" cy="47" r="1.9" fill="#7d8b2e"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#7d8b2e"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#7d8b2e"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#7d8b2e"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b11-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b11-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<g transform="translate(1118 58.416666666666664) scale(0.9166666666666666) translate(4 7)">
+  <defs>
+    <linearGradient id="b12-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b12-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b12-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#7a3e8f"/>
+  <circle cx="32" cy="47" r="1.9" fill="#7a3e8f"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#7a3e8f"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#7a3e8f"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#7a3e8f"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b12-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b12-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+  <rect x="756" y="118" width="424" height="2" rx="1" fill="#e4e4e7"/>
+
   <!-- A workflow in blocks, the product's own visual language -->
   <g font-family="Inter, 'Segoe UI', system-ui, sans-serif" font-size="15" font-weight="600">
     <g transform="translate(252 236)">

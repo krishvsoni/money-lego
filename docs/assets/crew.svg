@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" width="1600" height="720" role="img" aria-label="Meet Sage and the crew: Planner, Guard, Sage, Fixer, Connector and Builder">
+<defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="#dedee3"/></pattern><radialGradient id="glow" cx="0.5" cy="0.42" r="0.6"><stop offset="0" stop-color="#e8ecfc"/><stop offset="1" stop-color="#fafafa" stop-opacity="0"/></radialGradient></defs>
+<rect width="1600" height="720" rx="32" fill="#fafafa"/>
+<rect width="1600" height="720" rx="32" fill="url(#dots)" opacity="0.7"/>
+<rect width="1600" height="720" rx="32" fill="url(#glow)"/>
+<rect x="0.5" y="0.5" width="1599" height="719" rx="31.5" fill="none" stroke="#ececee"/>
+<text x="800.0" y="92" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1.5" fill="#09090b">Meet Sage and the crew</text>
+<text x="800.0" y="138" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="24" fill="#52525b">Five specialists who turn a sentence into a payment workflow you approve.</text>
+<rect x="90" y="430" width="1420" height="4" rx="2" fill="#e4e4e7"/>
+<g transform="translate(99.33333333333331 286.33333333333337) scale(2.3333333333333335) translate(4 7)">
+  <defs>
+    <linearGradient id="b1-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b1-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b1-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#3c8dbc"/>
+  <circle cx="32" cy="47" r="1.9" fill="#3c8dbc"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#3c8dbc"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#3c8dbc"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#3c8dbc"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b1-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b1-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="183.33333333333331" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#09090b">Planner</text>
+<rect x="149.33333333333331" y="496" width="68" height="5" rx="2.5" fill="#3c8dbc"/>
+<text x="183.33333333333331" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Reads your request and</text>
+<text x="183.33333333333331" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">picks the blocks</text>
+<text x="183.33333333333331" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“Say it in a sentence.</text>
+<text x="183.33333333333331" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">I’ll turn it into</text>
+<text x="183.33333333333331" y="656" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">blocks.”</text>
+<g transform="translate(345.99999999999994 286.33333333333337) scale(2.3333333333333335) translate(4 7)">
+  <defs>
+    <linearGradient id="b2-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b2-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b2-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#c2412d"/>
+  <circle cx="32" cy="47" r="1.9" fill="#c2412d"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#c2412d"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#c2412d"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#c2412d"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b2-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b2-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="429.99999999999994" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#09090b">Guard</text>
+<rect x="395.99999999999994" y="496" width="68" height="5" rx="2.5" fill="#c2412d"/>
+<text x="429.99999999999994" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Checks every money step</text>
+<text x="429.99999999999994" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">sits behind an approval</text>
+<text x="429.99999999999994" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“No money moves</text>
+<text x="429.99999999999994" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">without your yes. Not</text>
+<text x="429.99999999999994" y="656" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">on my watch.”</text>
+<g transform="translate(561.6666666666666 230.36111111111111) scale(3.1944444444444446) translate(4 7)">
+  <defs>
+    <linearGradient id="b3-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b3-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b3-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#4f6bff"/>
+  <circle cx="32" cy="47" r="1.9" fill="#4f6bff"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#4f6bff"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#4f6bff"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#4f6bff"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b3-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b3-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="676.6666666666666" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#09090b">Sage</text>
+<rect x="642.6666666666666" y="496" width="68" height="5" rx="2.5" fill="#4f6bff"/>
+<text x="676.6666666666666" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Your copilot, leading</text>
+<text x="676.6666666666666" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">the crew</text>
+<text x="676.6666666666666" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“Tell me how money</text>
+<text x="676.6666666666666" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">should move. The</text>
+<text x="676.6666666666666" y="656" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">crew’s on it.”</text>
+<g transform="translate(839.3333333333334 286.33333333333337) scale(2.3333333333333335) translate(4 7)">
+  <defs>
+    <linearGradient id="b4-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b4-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b4-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#e3a21a"/>
+  <circle cx="32" cy="47" r="1.9" fill="#e3a21a"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#e3a21a"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#e3a21a"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#e3a21a"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b4-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b4-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="923.3333333333334" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#09090b">Fixer</text>
+<rect x="889.3333333333334" y="496" width="68" height="5" rx="2.5" fill="#e3a21a"/>
+<text x="923.3333333333334" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Repairs whatever Guard</text>
+<text x="923.3333333333334" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">flags</text>
+<text x="923.3333333333334" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“Guard finds it, I fix</text>
+<text x="923.3333333333334" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">it. You never see the</text>
+<text x="923.3333333333334" y="656" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">mess.”</text>
+<g transform="translate(1085.9999999999998 286.33333333333337) scale(2.3333333333333335) translate(4 7)">
+  <defs>
+    <linearGradient id="b5-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b5-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b5-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#7d8b2e"/>
+  <circle cx="32" cy="47" r="1.9" fill="#7d8b2e"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#7d8b2e"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#7d8b2e"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#7d8b2e"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b5-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b5-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="1169.9999999999998" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#09090b">Connector</text>
+<rect x="1135.9999999999998" y="496" width="68" height="5" rx="2.5" fill="#7d8b2e"/>
+<text x="1169.9999999999998" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Links the accounts you</text>
+<text x="1169.9999999999998" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">already connected</text>
+<text x="1169.9999999999998" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“Your Slack, your</text>
+<text x="1169.9999999999998" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">PayPal: wired in, no</text>
+<text x="1169.9999999999998" y="656" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">forms.”</text>
+<g transform="translate(1332.6666666666665 286.33333333333337) scale(2.3333333333333335) translate(4 7)">
+  <defs>
+    <linearGradient id="b6-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eceef4"/></linearGradient>
+    <clipPath id="b6-screen"><rect x="15" y="14" width="34" height="22" rx="10"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="60.5" rx="13" ry="2.2" fill="#09090b" opacity="0.1"/>
+  <rect x="20" y="40" width="24" height="16" rx="8" fill="url(#b6-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="26.5" y="47" width="11" height="5" rx="1.6" fill="#7a3e8f"/>
+  <circle cx="32" cy="47" r="1.9" fill="#7a3e8f"/>
+  <g transform="translate(0 -2.4) rotate(-8 9.5 21)"><rect x="6.5" y="19" width="6" height="13" rx="3" fill="#7a3e8f"/></g>
+  <g transform="translate(0 -2.4) rotate(8 54.5 21)"><rect x="51.5" y="19" width="6" height="13" rx="3" fill="#7a3e8f"/></g>
+  <g transform="translate(0 -1.4)">
+    <rect x="31.2" y="3.6" width="1.6" height="5" rx="0.8" fill="#d4d4d8"/>
+    <rect x="28.6" y="1" width="6.8" height="4.4" rx="1.8" fill="#7a3e8f"/>
+  </g>
+  <rect x="10" y="8" width="44" height="34" rx="15" fill="url(#b6-shell)" stroke="#dcdde3" stroke-width="0.8"/>
+  <rect x="15" y="14" width="34" height="22" rx="10" fill="#eef1ff" stroke="#d9def7" stroke-width="0.8"/>
+  <g clip-path="url(#b6-screen)">
+    <g transform="translate(25.5 25) scale(1.06) translate(-25.5 -25)"><rect x="21.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="24.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="25.5" cy="31" r="6.6" fill="#eef1ff"/><g transform="translate(38.5 25) scale(1.06) translate(-38.5 -25)"><rect x="34.5" y="19" width="8" height="12" rx="4" fill="#1d2340"/><circle cx="37.1" cy="22.2" r="1.5" fill="#fff"/></g><circle cx="38.5" cy="31" r="6.6" fill="#eef1ff"/>
+    <g fill="#ff8fb1" opacity="0.6"><ellipse cx="19.5" cy="32" rx="2.6" ry="1.4"/><ellipse cx="44.5" cy="32" rx="2.6" ry="1.4"/></g>
+    <path d="M18 16.5c3-1.6 7-2.1 11-1.6" stroke="#fff" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  </g>
+</g>
+<text x="1416.6666666666665" y="482" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#09090b">Builder</text>
+<rect x="1382.6666666666665" y="496" width="68" height="5" rx="2.5" fill="#7a3e8f"/>
+<text x="1416.6666666666665" y="532" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">Lays out the canvas and</text>
+<text x="1416.6666666666665" y="556" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="18" fill="#52525b">saves it, turned off</text>
+<text x="1416.6666666666665" y="604" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">“Neat canvas, saved,</text>
+<text x="1416.6666666666665" y="630" text-anchor="middle" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="19" font-style="italic" font-weight="600" fill="#09090b">off until you say go.”</text>
+</svg>

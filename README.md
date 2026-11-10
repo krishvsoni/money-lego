@@ -10,6 +10,7 @@
 <p align="center">
   <a href="#the-problem">Problem</a> ·
   <a href="#what-money-lego-does">Product</a> ·
+  <a href="#meet-sage-and-the-crew">Meet the crew</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#use-case-ai-product-sourcing-with-channel3">Channel3 use case</a> ·
   <a href="#the-payments-dashboard-ag-grid-and-ag-studio">AG Studio dashboard</a> ·
@@ -66,6 +67,25 @@ Money Lego turns a payment process into a **workflow you can see, check and appr
 | Approved Refund Desk | Refund request → AI check → you approve → refund once per capture |
 | Weekly PayPal Ops Digest | Every Friday: AI summary of the week's transactions → Slack |
 | AI Product Sourcing → PayPal Checkout | Request → Channel3 products → AI pick → you approve → checkout link → buyer pays |
+
+## Meet Sage and the crew
+
+<p align="center">
+  <img src="docs/assets/crew.png" alt="Sage and the crew: Planner, Guard, Sage, Fixer, Connector and Builder, each with their job and a one-line motto" width="100%" />
+</p>
+
+When you describe a workflow, you watch this crew build it live: each bot lights up while it works, hands off to the next, and the blocks appear on the canvas as they agree on them.
+
+| Bot | Job | In its own words |
+| --- | --- | --- |
+| **Sage** | Your copilot. Takes your request and leads the crew. | "Tell me how money should move. The crew's on it." |
+| **Planner** | Reads the request and picks the blocks and wiring. | "Say it in a sentence. I'll turn it into blocks." |
+| **Guard** | Checks every money step sits behind an approval, and health-checks settings, accounts and recent runs. | "No money moves without your yes. Not on my watch." |
+| **Fixer** | Repairs whatever Guard flags that doesn't need your input. | "Guard finds it, I fix it. You never see the mess." |
+| **Connector** | Links the accounts you already connected (Slack, PayPal and more). | "Your Slack, your PayPal: wired in, no forms." |
+| **Builder** | Lays out the canvas in the order money flows and saves it, turned off. | "Neat canvas, saved, off until you say go." |
+
+In the editor, the same crew sits in the Sage panel: ask a question in words, or tap one bot to have it do its one job on the open workflow.
 
 ## How it works
 
