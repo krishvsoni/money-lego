@@ -16,7 +16,7 @@ import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
 import { WorkflowRow } from "@/features/workflows/list/workflow-row";
 import { ShareDialog } from "@/features/workflows/share/share-dialog";
 
-type List = { workflows: WorkflowDTO[]; sharedCounts: Record<string, number> };
+type List = { workflows: WorkflowDTO[]; sharedCounts: Record<string, number>; sharedWith?: Record<string, { names: string[]; invited: number }> };
 
 const SHELVES: Shelf[] = ["active", "shared", "archived"];
 
@@ -145,9 +145,9 @@ export function View() {
 
           <div className="mt-4">
             {list.loading && !list.data ? (
-              <div className="flex flex-col gap-2" aria-busy>
+              <div className="grid gap-2.5" aria-busy>
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl bg-sunken" />
+                  <div key={i} className="h-[92px] animate-pulse rounded-2xl bg-sunken" />
                 ))}
               </div>
             ) : list.error ? (
@@ -155,13 +155,14 @@ export function View() {
                 {list.error}
               </p>
             ) : shown.length ? (
-              <ul className="-mx-3 divide-y divide-line">
+              <ul className="grid gap-2.5">
                 {shown.map((w) => (
                   <WorkflowRow
                     key={w.id}
                     workflow={w}
                     busy={busy === w.id}
                     sharedWith={counts[w.id]}
+                    sharedPeople={active.data?.sharedWith?.[w.id]}
                     onShare={() => setShareTarget(w)}
                     onLeave={() => act(w, () => api(`/api/workflows/${w.id}/shares/me`, { method: "DELETE" }), "Removed from your shared list")}
                     onDuplicate={() => act(w, () => api(`/api/workflows/${w.id}/duplicate`, { body: {} }), "Copy created")}

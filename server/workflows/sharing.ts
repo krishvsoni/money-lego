@@ -1,7 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
-import { accessFor, MAX_SHARES, withoutCredentials, type ShareDTO, type SharingDTO, type WorkflowRole } from "@/lib/workflow/sharing";
+import { accessFor, MAX_SHARES, withoutCredentials, type ShareDTO, type ShareRole, type SharingDTO, type WorkflowRole } from "@/lib/workflow/sharing";
 import type { SessionUser } from "../auth/session";
 import { collections, EMAIL_COLLATION, isDuplicateKeyError } from "../db/collections";
 import { parseId } from "../db/ids";
@@ -13,7 +13,8 @@ import { deactivateTrigger } from "./activation";
 import { toWorkflowDTO, type WorkflowDTO } from "./service";
 
 // Sharing a workflow by email. Two things can be given:
-//   view access   a share row per address; the person sees a read-only copy and can duplicate it.
+//   access        a share row per address, as a viewer (read-only, can duplicate it) or an
+//                 editor (can change it too; running, sharing and archiving stay with the owner).
 //   ownership     a transfer: the workflow moves to the other account, switched off and with
 //                 its connection slots emptied, and the former owner keeps view access.
 // Runs, approvals and PayPal records stay with the account that made them in both cases.
@@ -48,11 +49,11 @@ export async function getSharing(user: SessionUser, id: string): Promise<Sharing
   return sharingOf((await authorizeWorkflow(user, id, "share")).doc);
 }
 
-const viewerShare = (workflowId: ObjectId, email: string, invitedBy: ObjectId, now: Date): WorkflowShareDoc => ({ _id: new ObjectId(), workflowId, email, role: "viewer", invitedBy, createdAt: now });
+const newShare = (workflowId: ObjectId, email: string, invitedBy: ObjectId, now: Date, role: ShareRole = "viewer"): WorkflowShareDoc => ({ _id: new ObjectId(), workflowId, email, role, invitedBy, createdAt: now });
 
 // Sharing with an address that already has access changes nothing and succeeds, so a double
 // click or a retried request can never fail or add a second row.
-export async function shareWorkflow(user: SessionUser, id: string, email: string): Promise<{ sharing: SharingDTO; created: boolean }> {
+export async function shareWorkflow(user: SessionUser, id: string, email: string, role: ShareRole = "viewer"): Promise<{ sharing: SharingDTO; created: boolean }> {
   const { doc } = await authorizeWorkflow(user, id, "share");
   if (email === user.email) throw emailIssue("That's you. You already own this workflow.");
   if (doc.status !== "active") throw errors.invalidState("Restore this workflow before sharing it.");
@@ -60,18 +61,30 @@ export async function shareWorkflow(user: SessionUser, id: string, email: string
   const { workflowShares } = await collections();
   const filter = { workflowId: doc._id, email };
   let created = false;
-  if (!(await workflowShares.findOne(filter, { projection: { _id: 1 } }))) {
+  const existing = await workflowShares.findOne(filter, { projection: { _id: 1, role: 1 } });
+  // Inviting someone who already has access sets their access to what was picked now.
+  if (existing && existing.role !== role) await workflowShares.updateOne({ _id: existing._id }, { $set: { role } });
+  if (!existing) {
     if ((await workflowShares.countDocuments({ workflowId: doc._id })) >= MAX_SHARES) {
       throw errors.invalidState(`A workflow can be shared with up to ${MAX_SHARES} people. Remove someone to add another.`);
     }
     try {
-      await workflowShares.insertOne(viewerShare(doc._id, email, user.userId, new Date()));
+      await workflowShares.insertOne(newShare(doc._id, email, user.userId, new Date(), role));
       created = true;
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
     }
   }
   return { sharing: await sharingOf(doc), created };
+}
+
+// The owner switches someone between viewing and editing.
+export async function setShareRole(user: SessionUser, id: string, shareId: string, role: ShareRole): Promise<{ sharing: SharingDTO }> {
+  const { doc } = await authorizeWorkflow(user, id, "share");
+  const { workflowShares } = await collections();
+  const r = await workflowShares.updateOne({ _id: parseId(shareId, "Share"), workflowId: doc._id }, { $set: { role } });
+  if (!r.matchedCount) throw errors.notFound("Share");
+  return { sharing: await sharingOf(doc) };
 }
 
 // The owner removes anyone; "me" is how a viewer leaves. Removing access that is already
@@ -138,7 +151,7 @@ export async function transferWorkflow(user: SessionUser, id: string, email: str
     await workflowVersions.insertOne({ _id: new ObjectId(), workflowId: doc._id, ownerId: recipient._id, version: next.currentVersion, graph, createdAt: now }, { session });
     await workflowShares.deleteOne({ workflowId: doc._id, email }, { session });
     if (user.email) {
-      const mine = viewerShare(doc._id, user.email, recipient._id, now);
+      const mine = newShare(doc._id, user.email, recipient._id, now);
       await workflowShares.updateOne({ workflowId: doc._id, email: user.email }, { $setOnInsert: mine }, { upsert: true, session });
     }
     return next;
@@ -152,12 +165,79 @@ export async function transferWorkflow(user: SessionUser, id: string, email: str
 export async function listSharedWorkflows(user: SessionUser): Promise<WorkflowDTO[]> {
   if (!user.email) return [];
   const { users, workflows, workflowShares } = await collections();
-  const ids = (await workflowShares.find({ email: user.email }, { projection: { workflowId: 1 } }).limit(200).toArray()).map((s) => s.workflowId);
+  const rows = await workflowShares.find({ email: user.email }, { projection: { workflowId: 1, role: 1 } }).limit(200).toArray();
+  const roleOf = new Map(rows.map((s) => [s.workflowId.toHexString(), s.role === "editor" ? ("editor" as const) : ("viewer" as const)]));
+  const ids = rows.map((s) => s.workflowId);
   if (!ids.length) return [];
   const docs = await workflows.find({ _id: { $in: ids }, status: "active", ownerId: { $ne: user.userId } }).sort({ updatedAt: -1 }).toArray();
   const owners = await users.find({ _id: { $in: docs.map((d) => d.ownerId) } }, { projection: { name: 1 } }).toArray();
   const nameOf = new Map(owners.map((o) => [o._id.toHexString(), o.name]));
-  return docs.map((d) => toWorkflowDTO(d, accessFor("viewer", nameOf.get(d.ownerId.toHexString()) ?? null)));
+  return docs.map((d) => toWorkflowDTO(d, accessFor(roleOf.get(d._id.toHexString()) ?? "viewer", nameOf.get(d.ownerId.toHexString()) ?? null)));
+}
+
+// Shares to this address, newest first, for the notification bell: who shared what, and
+// whether it's to view or to edit. Only workflows still active and not already yours.
+export interface ShareNoticeDTO {
+  shareId: string;
+  workflowId: string;
+  workflowName: string;
+  ownerName: string;
+  role: ShareRole;
+  sharedAt: string;
+}
+
+export async function listShareNotices(user: SessionUser): Promise<ShareNoticeDTO[]> {
+  if (!user.email) return [];
+  const { users, workflows, workflowShares } = await collections();
+  const rows = await workflowShares.find({ email: user.email }).sort({ createdAt: -1 }).limit(20).toArray();
+  if (!rows.length) return [];
+  const docs = await workflows.find({ _id: { $in: rows.map((r) => r.workflowId) }, status: "active", ownerId: { $ne: user.userId } }, { projection: { name: 1, ownerId: 1 } }).toArray();
+  const byId = new Map(docs.map((d) => [d._id.toHexString(), d]));
+  const owners = await users.find({ _id: { $in: docs.map((d) => d.ownerId) } }, { projection: { name: 1 } }).toArray();
+  const nameOf = new Map(owners.map((o) => [o._id.toHexString(), o.name]));
+  return rows.flatMap((r) => {
+    const d = byId.get(r.workflowId.toHexString());
+    if (!d) return [];
+    return [
+      {
+        shareId: r._id.toHexString(),
+        workflowId: d._id.toHexString(),
+        workflowName: d.name,
+        ownerName: nameOf.get(d.ownerId.toHexString()) ?? "Someone",
+        role: r.role === "editor" ? "editor" : "viewer",
+        sharedAt: r.createdAt.toISOString(),
+      },
+    ];
+  });
+}
+
+// Who each of these workflows is shared with, for the card's "Shared with …" line: the names
+// of people who have joined (oldest invite first), and how many invites are still waiting.
+// Email addresses never leave the share dialog.
+export interface SharedPeople {
+  names: string[];
+  invited: number;
+}
+
+export async function sharedPeople(workflowIds: string[]): Promise<Record<string, SharedPeople>> {
+  if (!workflowIds.length) return {};
+  const { users, workflowShares } = await collections();
+  const rows = await workflowShares
+    .find({ workflowId: { $in: workflowIds.map((id) => new ObjectId(id)) } }, { projection: { workflowId: 1, email: 1 } })
+    .sort({ createdAt: 1 })
+    .toArray();
+  const members = rows.length
+    ? await users.find(verifiedMember([...new Set(rows.map((r) => r.email))]), { collation: EMAIL_COLLATION, projection: { email: 1, name: 1 } }).toArray()
+    : [];
+  const nameOf = new Map(members.map((m) => [String(m.email).toLowerCase(), m.name]));
+  const out: Record<string, SharedPeople> = {};
+  for (const r of rows) {
+    const entry = (out[r.workflowId.toHexString()] ??= { names: [], invited: 0 });
+    const name = nameOf.get(r.email);
+    if (name) entry.names.push(name);
+    else entry.invited += 1;
+  }
+  return out;
 }
 
 // How many people each of these workflows is shared with, for the list's "Shared" marker.

@@ -69,7 +69,7 @@ function placeholders(value: unknown, path: string[] = []): string[] {
 
 export async function diagnose(user: SessionUser, workflowId: string, graph: WorkflowGraph, opts: { onLog?: (area: FindingArea, line: string) => void } = {}): Promise<Diagnosis> {
   const say = opts.onLog ?? (() => undefined);
-  const workflow = toWorkflowDTO(await getWorkflowDoc(user, workflowId));
+  const workflow = toWorkflowDTO(await getWorkflowDoc(user, workflowId, "edit"));
   const findings: Finding[] = [];
   const actions: SageAction[] = [];
   const action = <A extends Omit<SageAction, "id">>(a: A): string => {

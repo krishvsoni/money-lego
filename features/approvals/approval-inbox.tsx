@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, CircleCheck, CircleX, ShieldCheck, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, CircleX, Eye, Pencil, Share2, ShieldCheck, X } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
 import { BlurSwap } from "@/components/ui/blur-swap";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api-client";
+import { relativeTime } from "@/lib/format";
 import type { RunDTO } from "@/lib/workflow/dto";
 import { ApprovalReview } from "@/features/workflows/editor/approval-review";
 import { useNow } from "./approval-bell";
 import { actionable, expiry, URGENCY_TONE, waitingFor } from "./approval-meta";
-import { closeReview, openReview, refreshApprovals, snooze, useApprovals, type PendingApproval } from "./approvals-store";
+import { closeReview, markSharesSeen, openReview, refreshApprovals, snooze, useApprovals, type PendingApproval, type ShareNotice } from "./approvals-store";
 
 // The approval inbox follows you around the app. When a run from any workflow pauses on a
 // Human approval, a notice slides in at the top-right corner of whatever page you're on and
@@ -227,11 +229,79 @@ function ReviewDialog({ item, queue, onClose, onDecided, onGo }: { item: Pending
   );
 }
 
+// "Someone shared a workflow with you", the way a phone shows a message: who (their initials
+// on their colour), what (the workflow as a small file chip with its role), when, and one
+// clear action. Calm by design: no stripe, no alarm colour; it's good news, not a task.
+function ShareNoticeCard({ share, leaving, placement, onDismiss }: { share: ShareNotice; leaving: boolean; placement: "nav" | "edge"; onDismiss: () => void }) {
+  const href = `/workflows/${share.workflowId}`;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-leaving={leaving ? "" : undefined}
+      className={`approval-toast fixed right-4 z-[60] w-[min(372px,calc(100vw-2rem))] rounded-[20px] bg-paper/95 p-3.5 shadow-[0_0_0_1px_rgb(9_9_11/0.06),0_24px_60px_-22px_rgb(9_9_11/0.45),0_4px_12px_-6px_rgb(9_9_11/0.12)] backdrop-blur-xl sm:right-6 ${
+        placement === "nav" ? "top-[96px]" : "top-4"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="toast-icon relative">
+          <Avatar name={share.ownerName} size={38} />
+          <span className="absolute -right-1 -bottom-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink text-paper shadow-[0_0_0_2px_var(--paper)]" aria-hidden>
+            <Share2 className="h-2.5 w-2.5" strokeWidth={2.5} />
+          </span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate text-[0.8125rem] leading-tight text-ink">
+              <span className="font-semibold">{share.ownerName}</span> <span className="text-ink-2">shared a workflow</span>
+            </p>
+            <span className="shrink-0 text-[0.6875rem] text-ink-3">{relativeTime(share.sharedAt)}</span>
+          </div>
+
+          <Link
+            href={href}
+            onClick={onDismiss}
+            className="group mt-2 flex items-center gap-2.5 rounded-xl bg-surface p-2 shadow-[inset_0_0_0_1px_var(--line)] transition-shadow duration-150 hover:shadow-[inset_0_0_0_1px_var(--line-strong)]"
+          >
+            <span aria-hidden className="grid h-9 w-11 shrink-0 grid-cols-3 content-center gap-[3px] rounded-md bg-paper p-1.5 shadow-[0_0_0_1px_var(--line)]">
+              {["var(--brick-2)", "var(--brick-5)", "var(--brick-4)", "var(--brick-1)", "var(--brick-3)", "var(--brick-6)"].map((c) => (
+                <span key={c} className="h-1.5 rounded-[2px]" style={{ background: c }} />
+              ))}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.8125rem] font-semibold text-ink group-hover:underline">{share.workflowName}</span>
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem] font-medium text-ink-2">
+                {share.role === "editor" ? <Pencil className="h-3 w-3" aria-hidden /> : <Eye className="h-3 w-3" aria-hidden />}
+                {share.role === "editor" ? "You can edit" : "You can view"}
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-ink-3 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
+          </Link>
+
+          <div className="mt-3 flex items-center justify-end gap-1.5">
+            <button type="button" onClick={onDismiss} className="press h-8 rounded-full px-3 text-xs font-semibold text-ink-2 hover:bg-sunken hover:text-ink">
+              Dismiss
+            </button>
+            <Link href={href} onClick={onDismiss} className="press inline-flex h-8 items-center gap-1 rounded-full bg-ink px-3.5 text-xs font-semibold text-paper hover:bg-[#27272a]">
+              Open workflow
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // `edge` sits the notice against the top of the window (the editor has no nav); `nav` keeps
 // it clear of the floating nav bar.
 export function ApprovalInbox({ placement = "nav" }: { placement?: "nav" | "edge" }) {
   const pathname = usePathname();
-  const { items, later, review } = useApprovals();
+  const { items, later, review, shares, seenShares } = useApprovals();
+  useEffect(() => {
+    const here = shares.filter((sh) => pathname === `/workflows/${sh.workflowId}` && !seenShares.includes(sh.shareId));
+    if (here.length) markSharesSeen(here.map((sh) => sh.shareId));
+  }, [pathname, shares, seenShares]);
+  const newShare = shares.find((s) => !seenShares.includes(s.shareId) && pathname !== `/workflows/${s.workflowId}`);
   const now = useNow(true);
   // The notice slides back out before "Later" hides it.
   const [leaving, setLeaving] = useState<string | null>(null);
@@ -300,6 +370,21 @@ export function ApprovalInbox({ placement = "nav" }: { placement?: "nav" | "edge
             </button>
           </div>
         </div>
+      )}
+      {!first && !review && newShare && (
+        <ShareNoticeCard
+          key={newShare.shareId}
+          share={newShare}
+          leaving={leaving === newShare.shareId}
+          placement={placement}
+          onDismiss={() => {
+            setLeaving(newShare.shareId);
+            setTimeout(() => {
+              markSharesSeen([newShare.shareId]);
+              setLeaving(null);
+            }, 220);
+          }}
+        />
       )}
       {review && <ReviewDialog key={review.runId} item={review} queue={reviewQueue} onClose={closeReview} onDecided={refreshApprovals} onGo={openReview} />}
     </>

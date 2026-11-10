@@ -29,6 +29,8 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
   const [copying, setCopying] = useState(false);
   const router = useRouter();
   const readOnly = editor.readOnly;
+  // Editors change the workflow; running it, turning it on and sharing it stay with the owner.
+  const canRun = initial.access.can.run;
 
   const copy = async () => {
     setCopying(true);
@@ -95,6 +97,12 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
     await runs.startTest();
   };
 
+  // After a fix in the run panel: always save the just-edited graph (save() reads the newest
+  // copy, unlike the save state captured in this render), then start a new run.
+  const runAgainAfterFix = async () => {
+    if (await editor.save()) await runs.startTest();
+  };
+
   const setEnabled = async (enabled: boolean) => {
     if (enabled === editor.workflow.enabled) return;
     setToggling(true);
@@ -130,16 +138,20 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1">
             <Canvas editor={editor} statuses={runs.statuses} onRefuse={(m) => toast(m, "error")} />
-            {!readOnly && <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo, setEnabled, testRun: test }} />}
+            {!readOnly && (
+              <SageDock
+                bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo, ...(canRun ? { setEnabled, testRun: test } : {}) }}
+              />
+            )}
           </div>
-          {!readOnly && <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />}
+          {canRun && <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} onUpdateNode={editor.updateNode} onRunAgain={runAgainAfterFix} />}
         </div>
         {/* Disabling the fieldset disables every control in the inspector for viewers. */}
         <fieldset disabled={readOnly} className="contents">
           <Inspector editor={editor} credentials={credentials} onCredentialCreated={(c) => setCredentials((list) => [c, ...list])} onRefreshCredentials={refreshCredentials} nodeRun={nodeRun} />
         </fieldset>
       </div>
-      {!readOnly && <ShareDialog workflowId={initial.id} workflowName={editor.name || "Untitled workflow"} open={sharing} onClose={() => setSharing(false)} onTransferred={() => window.location.reload()} />}
+      {initial.access.can.share && <ShareDialog workflowId={initial.id} workflowName={editor.name || "Untitled workflow"} open={sharing} onClose={() => setSharing(false)} onTransferred={() => window.location.reload()} />}
     </div>
   );
 }

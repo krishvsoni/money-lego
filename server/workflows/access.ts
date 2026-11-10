@@ -12,6 +12,7 @@ import { errors } from "../errors";
 
 const DENIED: Partial<Record<WorkflowAction, string>> = {
   edit: "You can view this workflow, but only its owner can change or run it. Make a copy to work on your own.",
+  run: "Only the owner can run this workflow or turn it on, because runs use the owner's connections and PayPal.",
   share: "Only the owner can share this workflow.",
 };
 
@@ -20,8 +21,8 @@ export async function roleOn(doc: WorkflowDoc, user: SessionUser): Promise<Workf
   if (doc.ownerId.equals(user.userId)) return "owner";
   if (doc.status !== "active" || !user.email) return null;
   const { workflowShares } = await collections();
-  const share = await workflowShares.findOne({ workflowId: doc._id, email: user.email }, { projection: { _id: 1 } });
-  return share ? "viewer" : null;
+  const share = await workflowShares.findOne({ workflowId: doc._id, email: user.email }, { projection: { role: 1 } });
+  return share ? (share.role === "editor" ? "editor" : "viewer") : null;
 }
 
 // No access at all reads exactly like a workflow that doesn't exist, so ids reveal nothing.

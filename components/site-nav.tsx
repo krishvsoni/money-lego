@@ -15,7 +15,24 @@ export interface NavLink {
 // sandbox badge and account in the app) pinned right, so new items never resize or shift the bar.
 // The current page is marked. On small screens the hamburger rotates into an X and the links rise into
 // a full-screen glass sheet one at a time.
-export function SiteNav({ links, right, mobileExtra, homeHref = "/", wide = false }: { links: NavLink[]; right: ReactNode; mobileExtra?: NavLink; homeHref?: string; wide?: boolean }) {
+// `pinned` sits in the bar at every size and is rendered exactly once (the notification bell):
+// `right` is drawn twice, in the bar and again in the phone sheet, which is fine for links and
+// badges but not for something with its own state, popover and notices.
+export function SiteNav({
+  links,
+  right,
+  pinned,
+  mobileExtra,
+  homeHref = "/",
+  wide = false,
+}: {
+  links: NavLink[];
+  right: ReactNode;
+  pinned?: ReactNode;
+  mobileExtra?: NavLink;
+  homeHref?: string;
+  wide?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -42,17 +59,20 @@ export function SiteNav({ links, right, mobileExtra, homeHref = "/", wide = fals
           <Suspense fallback={<DesktopLinks links={links} pathname={null} wide={wide} />}>
             <CurrentDesktopLinks links={links} wide={wide} />
           </Suspense>
-          <div className={`hidden min-w-0 shrink-0 items-center justify-end gap-3 justify-self-end ${wide ? "lg:flex" : "sm:flex"}`}>{right}</div>
-          <button
-            onClick={() => setOpen((o) => !o)}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            aria-label={open ? "Close menu" : "Open menu"}
-            className={`press relative h-9 w-9 rounded-full hover:bg-sunken ${wide ? "lg:hidden" : "sm:hidden"}`}
-          >
-            <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "rotate-45" : "-translate-y-1"}`} />
-            <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "-rotate-45" : "translate-y-1"}`} />
-          </button>
+          <div className="flex min-w-0 shrink-0 items-center justify-end gap-3 justify-self-end">
+            {pinned}
+            <div className={`hidden min-w-0 items-center gap-3 ${wide ? "lg:flex" : "sm:flex"}`}>{right}</div>
+            <button
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+              className={`press relative h-9 w-9 rounded-full hover:bg-sunken ${wide ? "lg:hidden" : "sm:hidden"}`}
+            >
+              <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "rotate-45" : "-translate-y-1"}`} />
+              <span className={`fluid absolute left-2.5 top-1/2 h-0.5 w-4 rounded-full bg-ink transition-transform ${open ? "-rotate-45" : "translate-y-1"}`} />
+            </button>
+          </div>
         </div>
       </nav>
 

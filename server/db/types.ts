@@ -70,7 +70,7 @@ export interface WorkflowShareDoc {
   workflowId: ObjectId;
   // Lower-cased. Unique per workflow.
   email: string;
-  role: "viewer";
+  role: "viewer" | "editor";
   invitedBy: ObjectId;
   createdAt: Date;
 }

@@ -5,7 +5,7 @@ import { nodeDefinition } from "@/lib/nodes/registry";
 import { cloneForImport, TemplateImportError } from "@/lib/templates/import";
 import type { TemplateChecklistItem } from "@/lib/templates/types";
 import { nextRunAt, scheduleKey } from "@/lib/workflow/schedule";
-import { accessFor, withoutCredentials, type WorkflowAccessDTO } from "@/lib/workflow/sharing";
+import { accessFor, keepOwnerCredentials, withoutCredentials, type WorkflowAccessDTO, type WorkflowAction } from "@/lib/workflow/sharing";
 import { emptyGraph, type WorkflowGraph } from "@/lib/workflow/types";
 import { validateGraph } from "@/lib/workflow/validate";
 import type { SessionUser } from "../auth/session";
@@ -86,9 +86,10 @@ export async function listWorkflows(user: SessionUser, status: "active" | "archi
   return docs.map((d) => toWorkflowDTO(d));
 }
 
-// The workflow as its owner, for anything that changes or runs it.
-export async function getWorkflowDoc(user: SessionUser, id: string): Promise<WorkflowDoc> {
-  return (await authorizeWorkflow(user, id, "edit")).doc;
+// The workflow for something the caller must be allowed to do: running, turning it on and
+// archiving are the owner's ("run"); changing it is open to editors too ("edit").
+export async function getWorkflowDoc(user: SessionUser, id: string, action: WorkflowAction = "run"): Promise<WorkflowDoc> {
+  return (await authorizeWorkflow(user, id, action)).doc;
 }
 
 // The workflow as whoever is asking: the owner's full copy, or a viewer's read-only one.
@@ -97,7 +98,7 @@ export async function getWorkflow(user: SessionUser, id: string): Promise<Workfl
   if (role === "owner") return toWorkflowDTO(doc);
   const { users } = await collections();
   const owner = await users.findOne({ _id: doc.ownerId }, { projection: { name: 1 } });
-  return toWorkflowDTO(doc, accessFor("viewer", owner?.name ?? null));
+  return toWorkflowDTO(doc, accessFor(role, owner?.name ?? null));
 }
 
 interface NewWorkflow {
@@ -186,7 +187,9 @@ export async function saveWorkflow(
 ): Promise<{ workflow: WorkflowDTO; disabledBecauseInvalid: boolean; disabledReason: string | null }> {
   const { workflows, workflowVersions } = await collections();
   const workflowId = parseId(id, "Workflow");
-  const current = await getWorkflowDoc(user, id);
+  const { doc: current, role } = await authorizeWorkflow(user, id, "edit");
+  // An editor works on the owner's workflow: the owner's connections are kept as they were.
+  if (role !== "owner") input = { ...input, graph: keepOwnerCredentials(input.graph, current.graph) };
   const invalid = validateGraph(input.graph).length > 0;
   // Editing a live trigger (say, the repository) turns the workflow off instead of
   // re-registering webhooks on every autosave; turning it on again applies the change.
@@ -198,7 +201,7 @@ export async function saveWorkflow(
 
   const saved = await inTransaction(async (session) => {
     const next = await workflows.findOneAndUpdate(
-      { _id: workflowId, ownerId: user.userId, status: "active", currentVersion: input.expectedVersion },
+      { _id: workflowId, ownerId: current.ownerId, status: "active", currentVersion: input.expectedVersion },
       {
         $set: {
           name: input.name,
@@ -215,7 +218,7 @@ export async function saveWorkflow(
     );
     if (!next) return null;
     await workflowVersions.insertOne(
-      { _id: new ObjectId(), workflowId, ownerId: user.userId, version: next.currentVersion, graph: input.graph, createdAt: now },
+      { _id: new ObjectId(), workflowId, ownerId: current.ownerId, version: next.currentVersion, graph: input.graph, createdAt: now },
       { session },
     );
     return next;
@@ -225,7 +228,8 @@ export async function saveWorkflow(
     if (current.status === "archived") throw errors.invalidState("Restore this workflow before editing it.");
     throw errors.staleWrite();
   }
-  return { workflow: toWorkflowDTO(saved), disabledBecauseInvalid: current.enabled && !enabled, disabledReason };
+  const access = role === "owner" ? undefined : accessFor(role, (await (await collections()).users.findOne({ _id: current.ownerId }, { projection: { name: 1 } }))?.name ?? null);
+  return { workflow: toWorkflowDTO(saved, access), disabledBecauseInvalid: current.enabled && !enabled, disabledReason };
 }
 
 export async function setWorkflowEnabled(user: SessionUser, id: string, enabled: boolean): Promise<WorkflowDTO> {

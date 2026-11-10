@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, ChevronUp, CircleCheck, CircleX, Clock, Hourglass, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheck, CircleX, Clock, Hourglass, Info, Play, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
 import { BlurSwap } from "@/components/ui/blur-swap";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api-client";
@@ -95,6 +96,142 @@ type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => (v && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : {});
 
 // The PayPal object a step produced, so the run reads like a ledger: capture, batch, refund, invoices.
+// When a payout failed because someone in Split allocation has no PayPal email, ask for the
+// missing emails right here, save them into that block and run again, instead of sending the
+// owner hunting through the inspector. The same fix can be asked of Sage in words.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// What each missing recipient would get, when the split is a plain percentage or fixed amount
+// of a typed-in total (not an expression that only resolves during a run).
+function shareAmount(config: Record<string, unknown>, row: Record<string, string>, rows: Array<Record<string, string>>): string | null {
+  const total = Number(String(config.total ?? ""));
+  const currency = String(config.currency ?? "");
+  if (!Number.isFinite(total) || total <= 0 || !/^[A-Z]{3}$/.test(currency)) return null;
+  const share = Number(row.share);
+  const value = config.mode === "percent" ? (total * share) / 100 : config.mode === "even" ? total / Math.max(1, rows.length) : share;
+  if (!Number.isFinite(value)) return null;
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+  } catch {
+    return `${value.toFixed(2)} ${currency}`;
+  }
+}
+
+function FixRecipients({ graph, onUpdateNode, onRunAgain }: { graph: WorkflowGraph; onUpdateNode: (id: string, patch: { config: Record<string, unknown> }) => void; onRunAgain: () => Promise<void> | void }) {
+  const node = graph.nodes.find((n) => n.type === "data.allocate" && Array.isArray(n.config.recipients) && (n.config.recipients as Array<Record<string, string>>).some((r) => !String(r.email ?? "").trim()));
+  const rows = (node?.config.recipients as Array<Record<string, string>> | undefined) ?? [];
+  const [emails, setEmails] = useState<Record<number, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!node) return null;
+  const missing = rows.map((r, i) => ({ r, i })).filter(({ r }) => !String(r.email ?? "").trim());
+  const valid = (i: number) => EMAIL_RE.test((emails[i] ?? "").trim());
+  const ready = missing.some(({ i }) => valid(i)) && missing.every(({ i }) => !(emails[i] ?? "").trim() || valid(i));
+  const who = missing.length === 1 ? missing[0].r.label || "this recipient" : `${missing.length} recipients`;
+
+  const save = async () => {
+    const bad = missing.find(({ i }) => (emails[i] ?? "").trim() && !valid(i));
+    if (bad) return setError(`${bad.r.label || "That recipient"}: that doesn't look like an email address.`);
+    if (!ready) return setError("Add a PayPal email to pay someone.");
+    setError(null);
+    setBusy(true);
+    try {
+      const recipients = rows.map((r, i) => (valid(i) ? { ...r, email: emails[i].trim().toLowerCase() } : r));
+      onUpdateNode(node.id, { config: { ...node.config, recipients } });
+      await onRunAgain();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section aria-label="Add the missing PayPal email" className="reveal mb-3 overflow-hidden rounded-2xl bg-paper text-xs shadow-[0_0_0_1px_var(--line),0_10px_28px_-18px_rgb(9_9_11/0.3)]">
+      <header className="flex items-start gap-3 px-4 pt-4 pb-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--progress-wash)] text-[var(--progress)]" aria-hidden>
+          <Wallet className="h-4.5 w-4.5" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink">
+            Add {missing.length === 1 ? `${missing[0].r.label || "the recipient"}'s` : "the"} PayPal email{missing.length === 1 ? "" : "s"}
+          </p>
+          <p className="mt-0.5 leading-relaxed text-ink-2">
+            &ldquo;{node.label || "Split allocation"}&rdquo; has nowhere to send money for {who}, so this run stopped before anything was paid. Add it and run again.
+          </p>
+        </div>
+      </header>
+
+      <form
+        className="flex flex-col"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+      >
+        <ul className="mx-4 flex flex-col divide-y divide-line rounded-xl bg-surface shadow-[inset_0_0_0_1px_var(--line)]">
+          {missing.map(({ r, i }) => {
+            const amount = shareAmount(node.config, r, rows);
+            const name = r.label || `Recipient ${i + 1}`;
+            const typed = (emails[i] ?? "").trim();
+            return (
+              <li key={i} className="flex items-center gap-3 p-2.5">
+                <Avatar name={name} size={32} />
+                <span className="w-24 min-w-0 shrink-0">
+                  <span className="block truncate text-[0.8125rem] font-semibold text-ink">{name}</span>
+                  <span className="num block truncate text-[0.6875rem] text-ink-3">
+                    {[r.share ? `${r.share}${node.config.mode === "percent" ? "%" : ""}` : null, amount].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                <label className="relative min-w-0 flex-1">
+                  <span className="sr-only">{name}&apos;s PayPal email</span>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    spellCheck={false}
+                    autoComplete="off"
+                    placeholder="name@personal.example.com"
+                    value={emails[i] ?? ""}
+                    onChange={(e) => {
+                      setEmails((m) => ({ ...m, [i]: e.target.value }));
+                      setError(null);
+                    }}
+                    aria-invalid={Boolean(typed && !valid(i)) || undefined}
+                    className="h-9 w-full rounded-lg bg-paper pr-9 pl-3 font-mono text-xs text-ink shadow-[0_0_0_1px_var(--line-strong)] transition-shadow duration-150 outline-none placeholder:font-sans placeholder:text-ink-3 focus:shadow-[0_0_0_1.5px_var(--ink)] aria-[invalid=true]:shadow-[0_0_0_1.5px_var(--danger)]"
+                  />
+                  {valid(i) && (
+                    <span className="decide-pop absolute top-1/2 right-2.5 flex h-4.5 w-4.5 -translate-y-1/2 items-center justify-center rounded-full bg-success text-paper" aria-label="Looks good">
+                      <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                    </span>
+                  )}
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mx-4 mt-2.5 flex items-start gap-1.5 leading-relaxed text-ink-3">
+          <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>Sandbox: use a sandbox personal account (developer.paypal.com → Sandbox → Accounts). A real inbox isn&apos;t paid in the sandbox.</span>
+        </p>
+        {error && (
+          <p role="alert" className="mx-4 mt-2 font-semibold text-danger">
+            {error}
+          </p>
+        )}
+
+        <footer className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-2.5">
+          <p className="text-ink-3">
+            Prefer words? Tell Sage <span className="font-medium text-ink-2">&ldquo;{missing[0]?.r.label || "Neha"}&apos;s PayPal email is …&rdquo;</span>
+          </p>
+          <Button type="submit" className="h-8 gap-1.5 px-3.5 text-xs" busy={busy} disabled={!ready}>
+            <Play className="h-3 w-3" aria-hidden />
+            Save and run again
+          </Button>
+        </footer>
+      </form>
+    </section>
+  );
+}
+
 // Marks a run started from the trigger's test data (made-up capture ids). Its PayPal steps
 // still run for real in the sandbox; the badge only says where the run's data came from.
 function TestBadge() {
@@ -337,7 +474,18 @@ function useResizableHeight() {
   return { height, dragging: live !== null, handle };
 }
 
-export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; workflowId?: string }) {
+export function RunPanel({
+  runs,
+  graph,
+  onUpdateNode,
+  onRunAgain,
+}: {
+  runs: Runs;
+  graph: WorkflowGraph;
+  workflowId?: string;
+  onUpdateNode?: (id: string, patch: { config: Record<string, unknown> }) => void;
+  onRunAgain?: () => Promise<void> | void;
+}) {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<"runs" | "log">("runs");
   const { height, dragging, handle } = useResizableHeight();
@@ -454,7 +602,8 @@ export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; wo
                 {run.waiting && <WaitingCard run={run} runs={runs} graph={graph} />}
                 <PurchaseCard key={`p-${run.id}`} run={run} />
                 {run.status !== "queued" && run.status !== "running" && <ExplainRun key={run.id} run={run} />}
-                {run.error && <p className="mb-3 rounded-lg bg-danger-wash px-3 py-2 text-xs text-danger">{run.error}</p>}
+                {run.error && <p className="mb-3 rounded-lg bg-danger-wash px-3 py-2 text-xs leading-relaxed break-words text-danger">{run.error}</p>}
+                {run.status === "failed" && onUpdateNode && onRunAgain && <FixRecipients key={`fix-${run.id}`} graph={graph} onUpdateNode={onUpdateNode} onRunAgain={onRunAgain} />}
                 <ol className="overflow-hidden rounded-xl border border-line bg-paper text-xs" aria-label="Steps">
                   {[...(run.nodes ?? [])]
                     .sort((a, b) => order.indexOf(a.nodeId) - order.indexOf(b.nodeId))
@@ -463,14 +612,15 @@ export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; wo
                       const ms = n.startedAt && n.finishedAt ? new Date(n.finishedAt).getTime() - new Date(n.startedAt).getTime() : null;
                       const ref = n.error ?? paypalRef(n.output);
                       return (
-                        <li key={n.nodeId} className="grid grid-cols-[0.5rem_minmax(8rem,12rem)_5rem_3.5rem_1fr] items-center gap-3 border-t border-line px-3 py-2 first:border-t-0">
-                          <span className={`h-2 w-2 rounded-full ${RUN_TONE[n.status === "skipped" || n.status === "pending" ? "cancelled" : n.status] ?? "bg-ink-3"}`} aria-hidden />
+                        <li key={n.nodeId} className="grid grid-cols-[0.5rem_minmax(8rem,12rem)_5rem_3.5rem_1fr] items-start gap-3 border-t border-line px-3 py-2 first:border-t-0">
+                          <span className={`mt-1 h-2 w-2 rounded-full ${RUN_TONE[n.status === "skipped" || n.status === "pending" ? "cancelled" : n.status] ?? "bg-ink-3"}`} aria-hidden />
                           <span className="truncate font-semibold text-ink" title={g?.label || undefined}>
                             {g?.label || nodeDefinition(g?.type ?? n.nodeType)?.title || n.nodeId}
                           </span>
                           <span className={STEP_TEXT[n.status] ?? "text-ink-3"}>{STEP_LABEL[n.status] ?? n.status}</span>
                           <span className="num text-right text-ink-3">{duration(ms)}</span>
-                          <span className={`num min-w-0 truncate ${n.error ? "text-danger" : "text-ink-2"}`} title={ref ?? undefined}>
+                          {/* Errors wrap so the whole reason is readable; references stay on one line. */}
+                          <span className={`num min-w-0 ${n.error ? "break-words leading-relaxed text-danger" : "truncate text-ink-2"}`} title={ref ?? undefined}>
                             {ref}
                           </span>
                         </li>

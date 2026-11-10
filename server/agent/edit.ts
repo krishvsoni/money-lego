@@ -72,7 +72,7 @@ export async function runEdit(
   emit: Emit,
 ): Promise<void> {
   const crew = new Crew(user, emit);
-  const doc = await getWorkflowDoc(user, input.workflowId);
+  const doc = await getWorkflowDoc(user, input.workflowId, "edit");
   const current = input.graph;
 
   if (input.action === "link") {

@@ -24,9 +24,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <SiteNav
         wide
         links={APP_LINKS}
+        pinned={<ApprovalBell />}
         right={
           <>
-            <ApprovalBell />
             <NetworkBadge />
             <AccountControl />
           </>
