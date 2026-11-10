@@ -1,6 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { CircleAlert, CircleCheck } from "lucide-react";
 import { formatMoney, toMinor } from "@/lib/paypal/types";
+import { nodeDefinition } from "@/lib/nodes/registry";
 import type { RunDTO } from "@/lib/workflow/dto";
 
 type Obj = Record<string, unknown>;
@@ -16,6 +19,24 @@ function money(value: unknown, currency: unknown): string {
   }
 }
 
+const RISK: Record<string, { label: string; pill: string }> = {
+  high: { label: "High risk", pill: "bg-danger-wash text-danger ring-danger/25" },
+  medium: { label: "Medium risk", pill: "bg-attention-wash text-attention ring-attention/25" },
+  low: { label: "Low risk", pill: "bg-success-wash text-success ring-success/25" },
+};
+
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-line">
+      <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-3 py-2">
+        <h4 className="text-xs font-bold text-ink">{title}</h4>
+        {aside}
+      </header>
+      <div className="px-3 py-2.5">{children}</div>
+    </section>
+  );
+}
+
 // Exactly what approving will do, read from the approval's persisted plan: every PayPal
 // action on the Approved branch with its recipients, amounts, capture or invoices, plus the
 // AI review and the fingerprint each action re-checks before it touches PayPal.
@@ -24,101 +45,108 @@ export function ApprovalReview({ run, nodeId }: { run: RunDTO; nodeId: string })
   const actions = list(nodeRun?.waitState?.actions);
   const review = obj(obj(nodeRun?.input).review);
   const hash = nodeRun?.waitState?.payloadHash;
-  const trigger = run.trigger.type.replace("trigger.", "").replace("_", " ");
+  // Failed checks first: they are what the approver has to weigh.
+  const checks = list(review.checks).sort((a, b) => Number(Boolean(a.ok)) - Number(Boolean(b.ok)));
+  const risk = RISK[String(review.risk)] ?? null;
 
   return (
-    <details className="mt-2 w-full rounded-md bg-paper/70 text-xs" open>
-      <summary className="cursor-pointer px-2.5 py-1.5 font-semibold text-ink">
-        {actions.length ? `Approving runs ${actions.length} PayPal action${actions.length > 1 ? "s" : ""}` : "Approving continues the workflow (no PayPal money action on this branch)"}
-      </summary>
-      <div className="flex flex-col gap-3 px-2.5 pb-2.5">
-        {review.risk ? (
-          <div className={`rounded-md px-2.5 py-2 ${review.risk === "high" ? "bg-danger-wash text-danger" : review.risk === "medium" ? "bg-attention-wash text-attention" : "bg-success-wash text-success"}`}>
-            <p className="font-bold">AI risk review: {String(review.risk)}</p>
-            <p className="mt-0.5 text-ink-2">{String(review.summary ?? "")}</p>
-            {list(review.checks).length > 0 && (
-              <ul className="mt-1.5 grid gap-0.5 text-ink-2 sm:grid-cols-2">
-                {list(review.checks).map((c, i) => (
-                  <li key={i}>
-                    <span className={c.ok ? "text-success" : "text-danger"}>{c.ok ? "✓" : "✗"}</span> {String(c.name)}: {String(c.detail)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
-
-        {actions.map((a, i) => {
-          const intent = obj(a.intent);
-          return (
-            <div key={i} className="rounded border border-line">
-              <p className="border-b border-line px-2 py-1.5 font-semibold text-ink">{String(a.title)}</p>
-              {intent.kind === "payout" && (
-                <div className="px-2 py-1.5">
-                  <p className="text-ink-2">
-                    PayPal Payouts batch of <span className="font-semibold text-ink">{money(intent.total, intent.currency)}</span> to {list(intent.items).length} recipient(s), from the merchant&apos;s PayPal balance.
-                  </p>
-                  <ul className="mt-1.5 max-h-36 overflow-auto">
-                    {list(intent.items).map((it, k) => (
-                      <li key={k} className="flex items-center justify-between gap-2 border-t border-line py-1 first:border-0">
-                        <span className="min-w-0 truncate">
-                          {it.label ? <span className="mr-1 font-semibold text-ink">{String(it.label)}</span> : null}
-                          <span className="font-mono text-ink-2">{String(it.receiver)}</span>
-                        </span>
-                        <span className="shrink-0 font-semibold text-ink">{money(it.amount, intent.currency)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {intent.kind === "checkout" && (
-                <p className="px-2 py-1.5 text-ink-2">
-                  Create a PayPal checkout for <span className="font-semibold text-ink">{String(intent.title)}</span>
-                  {intent.merchant ? ` from ${String(intent.merchant)}` : ""} at <span className="font-semibold text-ink">{money(intent.price, intent.currency)}</span>. The buyer still approves the payment on PayPal, and if the price changes before then, nothing is created.
-                </p>
-              )}
-              {intent.kind === "refund" && (
-                <p className="px-2 py-1.5 text-ink-2">
-                  Refund <span className="font-semibold text-ink">{intent.amount ? money(intent.amount, intent.currency) : "the full amount"}</span> of capture <span className="font-mono text-ink">{String(intent.captureId)}</span>.
-                  {intent.note ? ` Note to buyer: “${String(intent.note)}”` : ""}
-                </p>
-              )}
-              {(intent.kind === "invoice_send" || intent.kind === "invoice_remind") && (
-                <div className="px-2 py-1.5">
-                  <p className="text-ink-2">
-                    {intent.kind === "invoice_send" ? "Send" : "Remind"} {list(intent.invoices).length} invoice(s) through PayPal. Subject: “{String(intent.subject)}”
-                  </p>
-                  <ul className="mt-1.5 max-h-44 overflow-auto">
-                    {list(intent.invoices).map((inv, k) => (
-                      <li key={k} className="border-t border-line py-1 first:border-0">
-                        <span className="font-mono font-semibold text-ink">{String(inv.number ?? inv.invoiceId)}</span>
-                        <span className="block whitespace-pre-wrap text-ink-2">{String(inv.note || "(default note)")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ink-2">
-          <dt>Started by</dt>
-          <dd className="text-ink">
-            {trigger} at {new Date(run.trigger.at).toLocaleString()}
-          </dd>
-          <dt>Environment</dt>
-          <dd className="text-ink">PayPal Sandbox</dd>
-          {typeof hash === "string" && (
-            <>
-              <dt>Fingerprint</dt>
-              <dd className="font-mono text-ink" title="Each PayPal action recomputes this and refuses to run if anything changed after you approved.">
-                {hash.slice(0, 16)}…
-              </dd>
-            </>
+    <div className="mt-3 flex flex-col gap-3 text-xs">
+      {review.risk ? (
+        <Section
+          title="AI risk review"
+          aside={risk && <span className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-bold ring-1 ring-inset ${risk.pill}`}>{risk.label}</span>}
+        >
+          {review.summary ? <p className="max-w-[80ch] leading-relaxed text-ink-2">{String(review.summary)}</p> : null}
+          {checks.length > 0 && (
+            <ul className="mt-2.5 flex flex-col gap-1.5">
+              {checks.map((c, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  {c.ok ? (
+                    <CircleCheck className="mt-px h-3.5 w-3.5 shrink-0 text-success" aria-label="Passed" />
+                  ) : (
+                    <CircleAlert className="mt-px h-3.5 w-3.5 shrink-0 text-danger" aria-label="Flagged" />
+                  )}
+                  <span className="min-w-0 leading-relaxed text-ink-2">
+                    <span className={`font-semibold ${c.ok ? "text-ink" : "text-danger"}`}>{String(c.name)}</span>: {String(c.detail)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
-        </dl>
-      </div>
-    </details>
+        </Section>
+      ) : null}
+
+      {actions.length === 0 && <p className="text-ink-2">Approving continues the workflow. No PayPal money moves on this branch.</p>}
+
+      {actions.map((a, i) => {
+        const intent = obj(a.intent);
+        return (
+          <Section key={i} title={String(a.title ?? "PayPal action")} aside={intent.kind === "payout" ? <span className="num font-bold text-ink">{money(intent.total, intent.currency)}</span> : undefined}>
+            {intent.kind === "payout" && (
+              <>
+                <p className="text-ink-2">
+                  Sent from the merchant&apos;s PayPal balance to {list(intent.items).length} recipient{list(intent.items).length === 1 ? "" : "s"}.
+                </p>
+                <ul className="mt-2 max-h-40 overflow-auto rounded-md border border-line">
+                  {list(intent.items).map((it, k) => (
+                    <li key={k} className="flex items-center justify-between gap-3 border-t border-line px-2.5 py-1.5 first:border-t-0">
+                      <span className="min-w-0">
+                        {it.label ? <span className="block font-semibold text-ink">{String(it.label)}</span> : null}
+                        <span className="block truncate font-mono text-[0.6875rem] text-ink-3">{String(it.receiver)}</span>
+                      </span>
+                      <span className="num shrink-0 font-semibold text-ink">{money(it.amount, intent.currency)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {intent.kind === "checkout" && (
+              <p className="leading-relaxed text-ink-2">
+                Create a PayPal checkout for <span className="font-semibold text-ink">{String(intent.title)}</span>
+                {intent.merchant ? ` from ${String(intent.merchant)}` : ""} at <span className="font-semibold text-ink">{money(intent.price, intent.currency)}</span>. The buyer still approves the payment on PayPal, and if the price changes before then, nothing is created.
+              </p>
+            )}
+            {intent.kind === "refund" && (
+              <p className="leading-relaxed text-ink-2">
+                Refund <span className="font-semibold text-ink">{intent.amount ? money(intent.amount, intent.currency) : "the full amount"}</span> of capture <span className="font-mono text-ink">{String(intent.captureId)}</span>.
+                {intent.note ? ` Note to buyer: “${String(intent.note)}”` : ""}
+              </p>
+            )}
+            {(intent.kind === "invoice_send" || intent.kind === "invoice_remind") && (
+              <>
+                <p className="text-ink-2">
+                  {intent.kind === "invoice_send" ? "Send" : "Remind"} {list(intent.invoices).length} invoice(s) through PayPal. Subject: “{String(intent.subject)}”
+                </p>
+                <ul className="mt-2 max-h-44 overflow-auto rounded-md border border-line">
+                  {list(intent.invoices).map((inv, k) => (
+                    <li key={k} className="border-t border-line px-2.5 py-1.5 first:border-t-0">
+                      <span className="font-mono font-semibold text-ink">{String(inv.number ?? inv.invoiceId)}</span>
+                      <span className="block whitespace-pre-wrap text-ink-2">{String(inv.note || "(default note)")}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Section>
+        );
+      })}
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-0.5 text-ink-3">
+        <dt>Started by</dt>
+        <dd className="text-ink-2">
+          {nodeDefinition(run.trigger.type)?.title ?? run.trigger.type} · {new Date(run.trigger.at).toLocaleString()}
+        </dd>
+        <dt>Environment</dt>
+        <dd className="text-ink-2">PayPal Sandbox</dd>
+        {typeof hash === "string" && (
+          <>
+            <dt>Fingerprint</dt>
+            <dd className="font-mono text-ink-2" title="Each PayPal action recomputes this and refuses to run if anything changed after you approved.">
+              {hash.slice(0, 16)}…
+            </dd>
+          </>
+        )}
+      </dl>
+    </div>
   );
 }

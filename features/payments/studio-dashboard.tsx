@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { AgReportState, AgStudioApi, AgStudioMode } from "ag-studio";
 import { Button } from "@/components/ui/button";
-import { moneyLegoStudioAdapter, STUDIO_PROMPTS } from "./studio-ai";
+import { statusLabel, triggerLabel } from "@/lib/paypal/labels";
 import type { PaymentsOverview } from "@/server/paypal/status";
+
+// AG Studio touches the DOM as it loads, so the canvas renders in the browser only.
+const StudioCanvas = dynamic(() => import("./studio-canvas"), {
+  ssr: false,
+  loading: () => <div className="flex h-full items-center justify-center text-sm text-ink-3">Loading the dashboard…</div>,
+});
 
 // The Payments analytics dashboard, built on AG Studio (AG Grid's embedded analytics). Money
 // Lego supplies two tables (PayPal objects and workflow runs) with ready-made measure columns,
 // plus a prebuilt report; operators can switch to Edit to drag in their own charts, grids and
 // KPIs, and the layout they build is remembered in this browser.
 
-const STORAGE_KEY = "ml.payments.studio.v1";
+// v2: rows are 32px tall and the default report was re-spaced for them; v1 layouts were squashed.
+const STORAGE_KEY = "ml.payments.studio.v2";
 const KIND_LABEL: Record<string, string> = {
   order: "Order",
   capture: "Capture",
@@ -31,7 +39,7 @@ function paymentRows(data: PaymentsOverview) {
       id: r.id,
       type: KIND_LABEL[r.kind] ?? r.kind,
       paypal_id: r.paypalId,
-      status: r.status,
+      status: statusLabel(r.status),
       currency: r.currency ?? "",
       amount,
       // Measure columns, so KPI tiles are a plain sum with no widget filters to configure.
@@ -50,8 +58,8 @@ function runRows(data: PaymentsOverview) {
   return data.runs.map((r) => ({
     run_id: r.id,
     run_workflow: r.workflowName,
-    run_status: r.status,
-    trigger: r.trigger.replace("trigger.", "").replace("_", " "),
+    run_status: statusLabel(r.status),
+    trigger: triggerLabel(r.trigger),
     succeeded: r.status === "succeeded" ? 1 : 0,
     failed: r.status === "failed" ? 1 : 0,
     started: new Date(r.startedAt),
@@ -108,7 +116,8 @@ function dataDefinition(data: PaymentsOverview) {
 }
 
 const f = (id: string, aggregation?: "sum" | "count" | "countd" | "avg") => ({ id, ...(aggregation ? { aggregation } : {}) });
-const title = (text: string) => ({ title: { enabled: true, text } });
+// Titles at UI size: Studio's default title size is meant for slide-like pages, not a dense dashboard.
+const title = (text: string) => ({ title: { enabled: true, text, typography: { fontSize: 13, fontWeight: "bold" } } });
 const kpi = (field: string, label: string, aggregation: "sum" | "count" = "sum") => ({ type: "value", dataMapping: { value: [f(field, aggregation)] }, format: { ...title(label) } });
 
 // The report a new operator sees first. Field references are table-qualified (table.field).
@@ -135,76 +144,39 @@ function defaultReport(): AgReportState {
           },
         },
         widgetLayout: {
-          captured: { xTrack: 0, yTrack: 0, xSpan: 2, ySpan: 2 },
-          paid_out: { xTrack: 2, yTrack: 0, xSpan: 2, ySpan: 2 },
-          refunded: { xTrack: 4, yTrack: 0, xSpan: 2, ySpan: 2 },
-          problems: { xTrack: 6, yTrack: 0, xSpan: 2, ySpan: 2 },
-          runs_ok: { xTrack: 8, yTrack: 0, xSpan: 2, ySpan: 2 },
-          runs_failed: { xTrack: 10, yTrack: 0, xSpan: 2, ySpan: 2 },
-          by_type: { xTrack: 0, yTrack: 2, xSpan: 5, ySpan: 5 },
-          over_time: { xTrack: 5, yTrack: 2, xSpan: 4, ySpan: 5 },
-          by_status: { xTrack: 9, yTrack: 2, xSpan: 3, ySpan: 5 },
-          ledger: { xTrack: 0, yTrack: 7, xSpan: 12, ySpan: 6 },
+          // 12 columns x 32px rows: KPI tiles 3 rows, charts 9, ledger 10 (about 700px in all).
+          captured: { xTrack: 0, yTrack: 0, xSpan: 2, ySpan: 3 },
+          paid_out: { xTrack: 2, yTrack: 0, xSpan: 2, ySpan: 3 },
+          refunded: { xTrack: 4, yTrack: 0, xSpan: 2, ySpan: 3 },
+          problems: { xTrack: 6, yTrack: 0, xSpan: 2, ySpan: 3 },
+          runs_ok: { xTrack: 8, yTrack: 0, xSpan: 2, ySpan: 3 },
+          runs_failed: { xTrack: 10, yTrack: 0, xSpan: 2, ySpan: 3 },
+          by_type: { xTrack: 0, yTrack: 3, xSpan: 5, ySpan: 9 },
+          over_time: { xTrack: 5, yTrack: 3, xSpan: 4, ySpan: 9 },
+          by_status: { xTrack: 9, yTrack: 3, xSpan: 3, ySpan: 9 },
+          ledger: { xTrack: 0, yTrack: 12, xSpan: 12, ySpan: 10 },
         },
       },
     ],
   } as unknown as AgReportState;
 }
 
-function savedReport(): AgReportState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AgReportState) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function StudioDashboard({ data }: { data: PaymentsOverview }) {
-  const host = useRef<HTMLDivElement>(null);
   const api = useRef<AgStudioApi | null>(null);
   const [mode, setMode] = useState<AgStudioMode>("view");
-  const [error, setError] = useState<string | null>(null);
+  const definition = useMemo(() => dataDefinition(data), [data]);
+  const editing = mode === "edit";
 
-  // Create once; later data refreshes update the data sources in place.
+  // Editing opens full screen: Studio's Filters, Compose and Data panels need the room, and the
+  // page behind can't scroll away from the canvas you're working on.
   useEffect(() => {
-    let cancelled = false;
-    import("ag-studio")
-      .then(({ createStudio, createAiHarness, AgStudioLicenseManager, enableStudioDevValidations }) => {
-        if (cancelled || !host.current) return;
-        const key = process.env.NEXT_PUBLIC_AG_STUDIO_LICENSE_KEY;
-        if (key) AgStudioLicenseManager.setLicenseKey(key);
-        if (process.env.NODE_ENV !== "production") enableStudioDevValidations();
-        const base = {
-          data: dataDefinition(data) as never,
-          mode: "view" as const,
-          layout: { columns: 12 },
-          loadThemeGoogleFonts: false,
-          // AG Studio's own dashboard agents, running on Money Lego's server-side model.
-          ai: (params: { api: unknown }) => createAiHarness(params.api as AgStudioApi, { adapter: moneyLegoStudioAdapter, promptStarters: STUDIO_PROMPTS }),
-        };
-        try {
-          api.current = createStudio(host.current, { ...base, initialState: savedReport() ?? defaultReport() });
-        } catch (e) {
-          // A saved layout from an older version that no longer loads: start from a blank canvas.
-          console.warn("AG Studio: saved report rejected, starting blank", e);
-          localStorage.removeItem(STORAGE_KEY);
-          host.current.innerHTML = "";
-          api.current = createStudio(host.current, base);
-        }
-      })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "AG Studio failed to load."));
+    if (!editing) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      cancelled = true;
-      api.current?.destroy();
-      api.current = null;
+      document.body.style.overflow = prev;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- created once; data updates below
-  }, []);
-
-  useEffect(() => {
-    api.current?.updateProperties({ data: dataDefinition(data) as never });
-  }, [data]);
+  }, [editing]);
 
   const switchMode = (next: AgStudioMode) => {
     if (next === "view" && api.current) {
@@ -214,7 +186,6 @@ export function StudioDashboard({ data }: { data: PaymentsOverview }) {
         // Saving the layout is a convenience; a private window simply won't remember it.
       }
     }
-    api.current?.updateProperties({ mode: next });
     setMode(next);
   };
 
@@ -230,20 +201,38 @@ export function StudioDashboard({ data }: { data: PaymentsOverview }) {
   return (
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-ink-3">Analytics by AG Studio. {mode === "edit" ? "Drag widgets and fields, or ask the AI assistant to build pages for you. Done saves the layout in this browser." : "Click a chart to cross-filter the rest of the page. Customize to edit it yourself or with AI."}</p>
-        <div className="flex gap-2">
-          {mode === "edit" && (
-            <Button variant="quiet" className="h-8" onClick={reset}>
-              Reset
-            </Button>
-          )}
-          <Button variant="secondary" className="h-8" onClick={() => switchMode(mode === "edit" ? "view" : "edit")}>
-            {mode === "edit" ? "Done" : "Customize dashboard"}
-          </Button>
+        <p className="text-xs text-ink-3">Click a chart to filter the rest of the page. Customize it to add your own charts, or ask AI to build them.</p>
+        <Button variant="secondary" className="h-8" onClick={() => switchMode("edit")}>
+          Customize dashboard
+        </Button>
+      </div>
+      {/* One element for both modes, so Studio isn't recreated when you start or finish editing. */}
+      <div
+        role={editing ? "dialog" : undefined}
+        aria-modal={editing || undefined}
+        aria-label={editing ? "Customize the payments dashboard" : undefined}
+        className={editing ? "fixed inset-0 z-50 flex flex-col bg-paper" : "flex h-[860px] w-full flex-col overflow-hidden rounded-xl border border-line bg-surface"}
+      >
+        {editing && (
+          <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-ink">Customize dashboard</p>
+              <p className="truncate text-xs text-ink-3">Drag widgets and fields, or ask the AI assistant to build pages. Done saves the layout in this browser.</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="quiet" className="h-9" onClick={reset}>
+                Reset
+              </Button>
+              <Button className="h-9" onClick={() => switchMode("view")}>
+                Done
+              </Button>
+            </div>
+          </header>
+        )}
+        <div className="min-h-0 flex-1">
+          <StudioCanvas data={definition} mode={mode} storageKey={STORAGE_KEY} defaultReport={defaultReport} onApi={(a) => (api.current = a)} />
         </div>
       </div>
-      {error && <p className="rounded-md bg-danger-wash px-3 py-2 text-sm text-danger">{error}</p>}
-      <div ref={host} className="h-[860px] w-full overflow-hidden rounded-xl border border-line bg-surface" />
     </section>
   );
 }

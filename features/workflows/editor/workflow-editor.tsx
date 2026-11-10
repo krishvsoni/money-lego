@@ -77,11 +77,12 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
     await runs.startTest();
   };
 
-  const toggleEnabled = async () => {
+  const setEnabled = async (enabled: boolean) => {
+    if (enabled === editor.workflow.enabled) return;
     setToggling(true);
     try {
       if (editor.saveState !== "saved" && !(await editor.save())) return;
-      const { workflow } = await api<{ workflow: WorkflowDTO }>(`/api/workflows/${initial.id}/enabled`, { body: { enabled: !editor.workflow.enabled } });
+      const { workflow } = await api<{ workflow: WorkflowDTO }>(`/api/workflows/${initial.id}/enabled`, { body: { enabled } });
       editor.setWorkflow(workflow);
       toast(workflow.enabled ? "Workflow is on. Its trigger is live." : "Workflow is off.", "success");
     } catch (e) {
@@ -95,14 +96,14 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper">
-      <Toolbar editor={editor} onTest={test} testing={runs.busy === "test"} onToggleEnabled={toggleEnabled} toggling={toggling} />
+      <Toolbar editor={editor} onTest={test} testing={runs.busy === "test"} onToggleEnabled={() => void setEnabled(!editor.workflow.enabled)} toggling={toggling} />
       {editor.saveError && editor.saveState !== "conflict" && <p className="border-b border-line bg-attention-wash px-4 py-1.5 text-xs text-attention">{editor.saveError}</p>}
       <div className="flex min-h-0 flex-1">
         <Catalog ref={catalog} onAdd={addFromCatalog} />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1">
             <Canvas editor={editor} statuses={runs.statuses} onRefuse={(m) => toast(m, "error")} />
-            <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo }} />
+            <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo, setEnabled, testRun: test }} />
           </div>
           <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />
         </div>

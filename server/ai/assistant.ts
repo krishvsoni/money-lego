@@ -98,7 +98,7 @@ export async function runAssistant(user: SessionUser, history: Array<{ role: "us
     switch (name) {
       case "ask_paypal_agent": {
         const question = String(args.question ?? "").slice(0, 1_000);
-        const res = await runPaypalAgent(question, tag);
+        const res = await runPaypalAgent(question, tag, user.userId);
         const used = res.calls.map((c) => c.tool).join(", ");
         steps.push({ agent: "PayPal agent", detail: used ? `Used ${used}` : "Answered without a lookup", ok: res.calls.every((c) => c.ok) });
         return { answer: res.answer, toolsUsed: res.calls };

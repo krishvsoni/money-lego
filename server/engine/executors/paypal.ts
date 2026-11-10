@@ -8,6 +8,7 @@ import { getProduct } from "../../integrations/channel3";
 import { PaypalError } from "../../paypal/client";
 import { isAppError } from "../../errors";
 import * as paypal from "../../paypal/api";
+import { FOREIGN_OBJECT, ownedByAnother, ownPaypalIds, ownsPaypalAccount } from "../../paypal/ownership";
 import { maskEmail, minorOf, recordResource } from "../../paypal/resources";
 import { requireApproved } from "../intents";
 import { asObject, NodeError, ok, type ExecContext, type Executor } from "../types";
@@ -111,6 +112,7 @@ const getOrder: Executor = async (ctx) => {
     return ok({ ...asObject(ctx.input), order: { id, status: "COMPLETED", captureId: t.captureId ?? null, captureStatus: t.status ?? "COMPLETED", currency: t.currency ?? null, amount: t.amount ?? null, amountMinor: t.amountMinor ?? null, fee: t.fee ?? null, net: t.net ?? null, netMinor: t.netMinor ?? null, test: true } });
   }
   if (!/^[A-Z0-9-]{6,40}$/i.test(id)) throw new NodeError("Order ID didn't resolve to a PayPal order id.");
+  if (await ownedByAnother(id, ctx.ownerId, ["order"])) throw new NodeError(FOREIGN_OBJECT);
   const order = await call(() => paypal.getOrder(id));
   const capture = order.purchase_units?.[0]?.payments?.captures?.[0];
   const summary = { id: order.id, status: order.status, ...captureSummary(capture) };
@@ -128,7 +130,7 @@ const findInvoices: Executor = async (ctx) => {
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
   const limit = Math.min(20, Math.max(1, Number(ctx.config.limit ?? 10)));
   const result = await call(() => paypal.searchInvoices({ statuses, dueBefore: ctx.config.overdueOnly ? yesterday : undefined, pageSize: limit }));
-  const invoices = (result.items ?? [])
+  const found = (result.items ?? [])
     .map((inv) => {
       const due = inv.detail?.payment_term?.due_date ?? null;
       const daysOverdue = due ? Math.floor((Date.parse(today) - Date.parse(due)) / 86_400_000) : null;
@@ -145,8 +147,11 @@ const findInvoices: Executor = async (ctx) => {
         recipientName: inv.primary_recipients?.[0]?.billing_info?.name?.given_name ?? null,
       };
     })
-    .filter((i) => !ctx.config.overdueOnly || (i.daysOverdue !== null && i.daysOverdue > 0))
-    .slice(0, limit);
+    .filter((i) => !ctx.config.overdueOnly || (i.daysOverdue !== null && i.daysOverdue > 0));
+  // The PayPal account is shared: only its owner sees every invoice; others see the ones
+  // their own workflows created or sent.
+  const visible = ownsPaypalAccount(ctx.ownerId) ? null : await ownPaypalIds(ctx.ownerId, ["invoice"]);
+  const invoices = (visible ? found.filter((i) => visible.has(i.id)) : found).slice(0, limit);
   for (const inv of invoices) await recordResource({ kind: "invoice", paypalId: inv.id, status: inv.status, amount: inv.amount && inv.currency ? { value: inv.amount, currency_code: inv.currency } : null, detail: { number: inv.number, dueDate: inv.dueDate } });
   ctx.log(`Found ${invoices.length} invoice${invoices.length === 1 ? "" : "s"}.`);
   return ok({ ...asObject(ctx.input), invoices, invoiceCount: invoices.length });
@@ -189,6 +194,7 @@ const createInvoice: Executor = async (ctx) => {
 const getSubscription: Executor = async (ctx) => {
   const id = text(ctx.config.subscriptionId, 40);
   if (!/^I-[A-Z0-9]{6,30}$/i.test(id)) throw new NodeError("Subscription ID didn't resolve to a PayPal subscription id (I-…).");
+  if (await ownedByAnother(id, ctx.ownerId, ["subscription"])) throw new NodeError(FOREIGN_OBJECT);
   const s = await call(() => paypal.getSubscription(id));
   const b = s.billing_info;
   const subscription = {
@@ -217,7 +223,11 @@ const transactions: Executor = async (ctx) => {
   const end = new Date();
   const start = new Date(end.getTime() - days * 86_400_000);
   const result = await call(() => paypal.searchTransactions({ start, end, pageSize: 100 }));
-  const rows = (result.transaction_details ?? []).map((t) => t.transaction_info ?? {});
+  const all = (result.transaction_details ?? []).map((t) => t.transaction_info ?? {});
+  // Shared PayPal account: its owner sees every transaction; others only the captures,
+  // refunds and payout items their own workflows made.
+  const visible = ownsPaypalAccount(ctx.ownerId) ? null : await ownPaypalIds(ctx.ownerId, ["capture", "refund", "payout_item"]);
+  const rows = visible ? all.filter((t) => t.transaction_id && visible.has(t.transaction_id)) : all;
   const byStatus: Record<string, { count: number; totals: Record<string, string> }> = {};
   for (const t of rows) {
     const status = t.transaction_status ?? "?";
@@ -282,6 +292,7 @@ const payout: Executor = async (ctx) => {
 const payoutStatus: Executor = async (ctx) => {
   const batchId = text(asObject(asObject(ctx.input).payout).batchId, 40);
   if (!batchId) throw new NodeError("No payout batch to follow. Connect this after PayPal payout.");
+  if (await ownedByAnother(batchId, ctx.ownerId, ["payout_batch"])) throw new NodeError(FOREIGN_OBJECT);
   const batch = await call(() => paypal.getPayoutBatch(batchId));
   const status = batch.batch_header.batch_status;
   const items = (batch.items ?? []).map((i) => ({ receiver: maskEmail(i.payout_item.receiver), amount: i.payout_item.amount.value, currency: i.payout_item.amount.currency, status: i.transaction_status ?? "PENDING", error: i.errors?.message ?? null }));
@@ -309,6 +320,8 @@ const payoutStatus: Executor = async (ctx) => {
 const refund: Executor = async (ctx) => {
   const intent = requireApproved(ctx.node.id, ctx.node.type, ctx.config, ctx.input);
   if (intent.kind !== "refund") throw new NodeError("Unexpected action.");
+  // Never refund money another account's workflow collected.
+  if (await ownedByAnother(intent.captureId, ctx.ownerId, ["capture", "order"])) throw new NodeError(FOREIGN_OBJECT);
   const r = await call(() =>
     paypal.refundCapture({ captureId: intent.captureId, currency: (intent.currency ?? undefined) as Allocation["currency"] | undefined, amountMinor: intent.amountMinor ? BigInt(intent.amountMinor) : null, note: intent.note, requestId: idemKey(ctx) }),
   );
@@ -321,6 +334,12 @@ const sendInvoice: Executor = async (ctx) => {
   const intent = requireApproved(ctx.node.id, ctx.node.type, ctx.config, ctx.input);
   if (intent.kind !== "invoice_send" && intent.kind !== "invoice_remind") throw new NodeError("Unexpected action.");
   const { paypalResources } = await collections();
+  // Only invoices this account may act on: never another account's, and (unless this account
+  // owns the PayPal app) only ones its own workflows created or found as its own.
+  const mine = ownsPaypalAccount(ctx.ownerId) ? null : await ownPaypalIds(ctx.ownerId, ["invoice"]);
+  for (const inv of intent.invoices) {
+    if ((mine && !mine.has(inv.invoiceId)) || (await ownedByAnother(inv.invoiceId, ctx.ownerId, ["invoice"]))) throw new NodeError(FOREIGN_OBJECT);
+  }
   const sent: Array<{ invoiceId: string; action: string; status: string }> = [];
   for (const inv of intent.invoices) {
     const requestId = idemKey(ctx, inv.invoiceId);

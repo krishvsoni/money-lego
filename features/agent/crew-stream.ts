@@ -23,7 +23,19 @@ export type CrewEvent =
   | { type: "plan"; nodes: PlanNode[] }
   | { type: "result"; workflow: WorkflowDTO; notes: string[]; setupIssues: number; linked: string[]; missing: string[] }
   | { type: "edited"; graph: WorkflowGraph; name: string | null; notes: string[]; summary: string; linked: string[]; missing: string[] }
+  | { type: "answer"; text: string; steps: string[]; findings: SageFinding[]; actions: SageAction[] }
   | { type: "error"; message: string };
+
+// Sage's health-check findings and the one-click actions it may offer (server/agent/doctor.ts).
+export interface SageFinding {
+  level: "blocker" | "warn" | "ok";
+  area: "workflow" | "connection" | "paypal" | "runs" | "server";
+  text: string;
+}
+
+export type SageAction =
+  | { id: string; kind: "enable" | "fix" | "link" | "test"; label: string }
+  | { id: string; kind: "open"; label: string; href: string };
 
 export async function readCrewStream(url: string, body: unknown, onEvent: (event: CrewEvent) => void): Promise<boolean> {
   let res: Response;
@@ -54,7 +66,7 @@ export async function readCrewStream(url: string, body: unknown, onEvent: (event
     for (const line of lines) {
       if (!line.trim()) continue;
       const event = JSON.parse(line) as CrewEvent;
-      if (event.type === "result" || event.type === "edited" || event.type === "error") finished = true;
+      if (event.type === "result" || event.type === "edited" || event.type === "answer" || event.type === "error") finished = true;
       onEvent(event);
     }
   }

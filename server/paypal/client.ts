@@ -37,6 +37,10 @@ export class PaypalError extends AppError {
 function explain(status: number, name: string, issue: string | null, description: string | null): string {
   const tail = description ? ` (${description.slice(0, 200)})` : "";
   if (status === 401) return "PayPal rejected the app credentials. Check PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.";
+  // The merchant account's country can't send Payouts (India, for one). No app setting fixes this.
+  if (name === "PAYOUT_NOT_AVAILABLE" || /country that is not allowed/i.test(description ?? "")) {
+    return "PayPal doesn't allow Payouts from this merchant account's country, so nothing was sent. Use a PayPal app whose business account is in a Payouts country (a US sandbox business account works) and update PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.";
+  }
   if (status === 403 || name === "NOT_AUTHORIZED" || name === "PERMISSION_DENIED" || name === "AUTHORIZATION_ERROR") {
     return `This PayPal app isn't allowed to do that yet${tail}. Enable the feature on the app in the PayPal Developer Dashboard, or ask PayPal to grant it for sandbox.`;
   }

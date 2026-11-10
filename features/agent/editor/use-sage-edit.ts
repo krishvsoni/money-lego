@@ -2,16 +2,15 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { errorMessage } from "@/lib/api-client";
-import { moneySafetyIssues } from "@/lib/templates/validate";
 import { layoutGraph } from "@/lib/workflow/layout";
 import type { WorkflowGraph } from "@/lib/workflow/types";
-import { validateGraph } from "@/lib/workflow/validate";
 import type { LogLine } from "../activity-log";
 import { idleCrew, type CrewId, type CrewState } from "../crew";
-import { readCrewStream, type CrewEvent } from "../crew-stream";
+import { readCrewStream, type CrewEvent, type SageAction, type SageFinding } from "../crew-stream";
 
-// Sage and the crew working on the workflow open in the editor. Edit, Fix and Link run on
-// the server and stream back; Check (Guard) and Tidy (Builder) are instant and local. Every
+// Sage and the crew working on the workflow open in the editor. Asking Sage runs a health
+// check first, then answers (steps plus one-click actions) or makes the change; Fix, Link and
+// Check run on the server and stream back; Tidy (Builder) is instant and local. Every
 // change lands through the editor's own commit, so it is one undoable step and autosaves
 // like any edit; the crew never writes to the database behind the editor's back.
 
@@ -22,6 +21,8 @@ export interface ThreadItem {
   list?: string[];
   undoable?: boolean;
   tone?: "error";
+  findings?: SageFinding[];
+  actions?: SageAction[];
 }
 
 export interface EditorBridge {
@@ -30,6 +31,9 @@ export interface EditorBridge {
   applyGraph: (graph: WorkflowGraph) => void;
   rename: (name: string) => void;
   undo: () => void;
+  // Lets Sage's one-click actions use the editor's own controls (same checks, same toasts).
+  setEnabled?: (on: boolean) => Promise<void>;
+  testRun?: () => Promise<void>;
 }
 
 let nextId = 1;
@@ -58,13 +62,15 @@ export function useSageEdit(bridge: EditorBridge) {
         if (changed) live.current.applyGraph(event.graph);
         if (event.name) live.current.rename(event.name);
         say({ from: "sage", text: event.summary, list: [...event.missing, ...event.notes], undoable: changed });
+      } else if (event.type === "answer") {
+        say({ from: event.findings.length || event.steps.length ? "sage" : "guard", text: event.text, list: event.steps, findings: event.findings, actions: event.actions });
       } else if (event.type === "error") say({ from: "sage", text: event.message, tone: "error" });
     },
     [say],
   );
 
   const run = useCallback(
-    async (action: "edit" | "fix" | "link", prompt?: string) => {
+    async (action: "assist" | "edit" | "fix" | "link", prompt?: string) => {
       if (inFlight.current) return;
       inFlight.current = true;
       setBusy(true);
@@ -85,17 +91,9 @@ export function useSageEdit(bridge: EditorBridge) {
     [apply, say],
   );
 
-  // Guard, on the spot: every setting the editor would flag plus the money rules.
-  const check = useCallback(() => {
-    const g = live.current.graph;
-    const problems = [...validateGraph(g).map((i) => i.message), ...moneySafetyIssues(g).filter((m) => m.includes(":")).map((m) => m.slice(m.indexOf(":") + 1).trim())];
-    setCrew((c) => ({ ...c, guard: { status: "done", detail: problems.length ? `${problems.length} to look at` : "All clear" } }));
-    say(
-      problems.length
-        ? { from: "guard", text: `I found ${problems.length} thing${problems.length === 1 ? "" : "s"} to look at. Fixer can repair what doesn't need your input.`, list: problems.slice(0, 6) }
-        : { from: "guard", text: "All clear. Every PayPal money action waits for your approval." },
-    );
-  }, [say]);
+  // Guard: the full health check on the server — settings, whether the trigger is live, every
+  // connected account tested live, the PayPal app, recent runs and the scheduler.
+  const check = useCallback(() => run("assist"), [run]);
 
   // Builder, on the spot: lay the canvas out left to right in the order money flows.
   const tidy = useCallback(() => {
@@ -104,5 +102,5 @@ export function useSageEdit(bridge: EditorBridge) {
     say({ from: "builder", text: "Tidied the canvas so it reads left to right.", undoable: true });
   }, [say]);
 
-  return { crew, logs, thread, busy, ask: (prompt: string) => run("edit", prompt), fix: () => run("fix"), link: () => run("link"), check, tidy };
+  return { crew, logs, thread, busy, ask: (prompt: string) => run("assist", prompt), plan: (prompt: string) => run("edit", prompt), fix: () => run("fix"), link: () => run("link"), check, tidy };
 }

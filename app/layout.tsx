@@ -34,7 +34,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} h-full`}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} h-full`}
+    >
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
           <Providers>{children}</Providers>

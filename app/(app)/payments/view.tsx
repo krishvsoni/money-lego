@@ -8,6 +8,7 @@ import { AgGridReact } from "ag-grid-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/lib/format";
+import { statusLabel, triggerLabel } from "@/lib/paypal/labels";
 import { formatMoney } from "@/lib/paypal/types";
 import { useResource } from "@/lib/use-resource";
 import type { PaymentsOverview } from "@/server/paypal/status";
@@ -43,9 +44,10 @@ const KIND_LABEL: Record<string, string> = {
 const GOOD = ["COMPLETED", "SUCCESS", "PAID", "MARKED_AS_PAID", "ACTIVE", "succeeded", "APPROVED", "SENT", "REMINDED"];
 const BAD = ["DENIED", "FAILED", "DECLINED", "RETURNED", "BLOCKED", "REVERSED", "CANCELED", "CANCELLED", "failed", "UNCLAIMED", "SUSPENDED"];
 
+
 function StatusChip({ value }: { value: string }) {
   const tone = GOOD.includes(value) ? "bg-success-wash text-success" : BAD.includes(value) ? "bg-danger-wash text-danger" : "bg-attention-wash text-attention";
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{value.replace(/_/g, " ")}</span>;
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{statusLabel(value)}</span>;
 }
 
 function totals(map: Record<string, string>): string {
@@ -91,7 +93,7 @@ function RunSearch() {
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       {result && (
         <div className="mt-3">
-          <p className="text-[11px] text-ink-3">{result.engine === "elastic" ? "Searched with Elastic" : "Searched with MongoDB (set ELASTIC_URL for full-text search)"} · {result.hits.length} result(s)</p>
+          <p className="text-[11px] text-ink-3">{result.hits.length === 0 ? "No matching runs." : `${result.hits.length} matching run${result.hits.length === 1 ? "" : "s"}`}</p>
           <ul className="mt-1 divide-y divide-line text-sm">
             {result.hits.map((h) => (
               <li key={h.runId} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
@@ -164,8 +166,8 @@ export function View() {
     () => [
       { field: "workflowName", headerName: "Workflow", flex: 1, minWidth: 180 },
       { field: "status", width: 130, cellRenderer: (p: ICellRendererParams<Run>) => <StatusChip value={String(p.value ?? "")} /> },
-      { field: "trigger", width: 170, valueFormatter: (p: ValueFormatterParams<Run>) => String(p.value).replace("trigger.", "").replace("_", " ") },
-      { field: "error", flex: 1.5, minWidth: 200, tooltipField: "error", valueFormatter: (p: ValueFormatterParams<Run>) => String(p.value ?? "") },
+      { field: "trigger", headerName: "Started by", width: 180, valueFormatter: (p: ValueFormatterParams<Run>) => triggerLabel(String(p.value ?? "")) },
+      { field: "error", headerName: "What went wrong", flex: 1.5, minWidth: 200, tooltip: (p) => (p.data?.error ? String(p.data.error) : undefined), valueFormatter: (p: ValueFormatterParams<Run>) => String(p.value ?? "") },
       { field: "startedAt", headerName: "Started", width: 140, sort: "desc", valueFormatter: (p: ValueFormatterParams<Run>) => relativeTime(String(p.value)) },
       {
         headerName: "",
@@ -267,7 +269,7 @@ export function View() {
           />
         )}
       </div>
-      <p className="text-xs text-ink-3">Grid by AG Grid Community. Amounts are exact cents from PayPal; statuses update when PayPal sends webhooks or a workflow re-checks.</p>
+      <p className="text-xs text-ink-3">Amounts are exact, straight from PayPal. Statuses update on their own as PayPal reports changes.</p>
     </div>
   );
 }

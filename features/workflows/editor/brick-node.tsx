@@ -30,12 +30,13 @@ function BrickNodeView({ data, selected }: NodeProps<BrickNodeType>) {
     <div className={`relative w-[232px] ${faded ? "opacity-55" : ""}`} style={{ ["--brick" as string]: color }}>
       <span className="absolute -top-[6px] left-6 h-[7px] w-7 rounded-t-[3px] bg-[var(--brick)]" aria-hidden />
       <span className="absolute -top-[6px] left-[68px] h-[7px] w-7 rounded-t-[3px] bg-[var(--brick)]" aria-hidden />
+      {/* No overflow-hidden here: multi-output handles live inside the card's rows and must not be clipped. */}
       <div
-        className={`overflow-hidden rounded-[10px] border bg-surface shadow-[inset_0_-2px_0_rgb(0_0_0/0.06),0_6px_16px_-10px_rgb(23_32_51/0.45)] transition-[box-shadow,border-color] duration-150 ${
+        className={`rounded-[10px] border bg-surface shadow-[inset_0_-2px_0_rgb(0_0_0/0.06),0_6px_16px_-10px_rgb(23_32_51/0.45)] transition-[box-shadow,border-color] duration-150 ${
           selected ? "border-action" : "border-line-strong"
         } ${status?.ring ?? ""}`}
       >
-        <div className="h-[6px] bg-[var(--brick)]" />
+        <div className="h-[6px] rounded-t-[9px] bg-[var(--brick)]" />
         <div className="flex items-start gap-2.5 px-3 py-2.5">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--brick)_16%,transparent)] text-[var(--brick)]">
             <NodeIcon name={def?.icon ?? "Hash"} className="h-4 w-4" />
@@ -45,6 +46,17 @@ function BrickNodeView({ data, selected }: NodeProps<BrickNodeType>) {
             <p className="truncate text-xs text-ink-3">{data.node.label ? def?.title : def ? CATEGORY_META[def.category].title : "Unknown"}</p>
           </div>
         </div>
+        {multiOut && (
+          // Branch outputs as labelled rows inside the card, so labels never wrap into each other or sit under edges.
+          <div className="border-t border-line py-1">
+            {def!.outputs.map((p) => (
+              <div key={p.id} className="relative flex h-6 items-center justify-end pr-4 pl-3">
+                <span className="truncate text-[0.6875rem] font-semibold text-ink-2">{p.label}</span>
+                <Handle id={p.id} type="source" position={Position.Right} className="!-right-px !h-3.5 !w-3.5 !rounded-[4px] !border-2 !border-surface !bg-[var(--brick)]" />
+              </div>
+            ))}
+          </div>
+        )}
         {(status || data.issueCount > 0) && (
           <div className="flex items-center justify-between border-t border-line px-3 py-1.5 text-[0.6875rem] font-semibold">
             {status ? <span className={status.tone}>{status.label}</span> : <span />}
@@ -56,19 +68,10 @@ function BrickNodeView({ data, selected }: NodeProps<BrickNodeType>) {
       {(def?.inputs ?? []).map((p) => (
         <Handle key={p.id} id={p.id} type="target" position={Position.Left} className="!h-3.5 !w-3.5 !rounded-[4px] !border-2 !border-surface !bg-[var(--brick)]" />
       ))}
-      {(def?.outputs ?? []).map((p, i, all) => {
-        const top = multiOut ? `${((i + 1) / (all.length + 1)) * 100}%` : "50%";
-        return (
-          <div key={p.id}>
-            <Handle id={p.id} type="source" position={Position.Right} style={{ top }} className="!h-3.5 !w-3.5 !rounded-[4px] !border-2 !border-surface !bg-[var(--brick)]" />
-            {multiOut && (
-              <span className="pointer-events-none absolute left-full ml-3 -translate-y-1/2 text-[0.6875rem] font-semibold text-ink-2" style={{ top }}>
-                {p.label}
-              </span>
-            )}
-          </div>
-        );
-      })}
+      {!multiOut &&
+        (def?.outputs ?? []).map((p) => (
+          <Handle key={p.id} id={p.id} type="source" position={Position.Right} className="!h-3.5 !w-3.5 !rounded-[4px] !border-2 !border-surface !bg-[var(--brick)]" />
+        ))}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export type EditAction = "edit" | "fix" | "link";
 
 // What the model sees of the current workflow: ids, types, labels and settings, but never a
 // credential id, which means nothing to it and isn't its business.
-function describeForModel(graph: WorkflowGraph, name: string): string {
+export function describeForModel(graph: WorkflowGraph, name: string): string {
   const nodes = graph.nodes.map((n) => {
     const def = nodeDefinition(n.type);
     const hidden = new Set(def?.fields.filter((f) => f.kind === "credential").map((f) => f.key));

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { workflowGraphSchema } from "@/lib/workflow/types";
+import { runAssist } from "@/server/agent/assist";
 import { runEdit } from "@/server/agent/edit";
 import { crewStream } from "@/server/agent/stream-response";
 import { route } from "@/server/http/handler";
@@ -13,8 +14,14 @@ const body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("edit"), workflowId: z.string().regex(/^[0-9a-f]{24}$/), graph: workflowGraphSchema, prompt: z.string().trim().min(4, "Say what to change.").max(1_200) }),
   z.object({ action: z.literal("fix"), workflowId: z.string().regex(/^[0-9a-f]{24}$/), graph: workflowGraphSchema }),
   z.object({ action: z.literal("link"), workflowId: z.string().regex(/^[0-9a-f]{24}$/), graph: workflowGraphSchema }),
+  // Sage's front door: health check, then answer or hand off to "edit". No prompt = check only.
+  z.object({ action: z.literal("assist"), workflowId: z.string().regex(/^[0-9a-f]{24}$/), graph: workflowGraphSchema, prompt: z.string().trim().min(2).max(1_200).optional() }),
 ]);
 
 export const POST = route({ auth: true, rate: RATE_RULES.agent, body }, async ({ user, body, requestId }) =>
-  crewStream(requestId, (emit) => runEdit(user, { workflowId: body.workflowId, graph: body.graph, action: body.action, prompt: "prompt" in body ? body.prompt : undefined }, emit)),
+  crewStream(requestId, (emit) =>
+    body.action === "assist"
+      ? runAssist(user, { workflowId: body.workflowId, graph: body.graph, prompt: body.prompt }, emit)
+      : runEdit(user, { workflowId: body.workflowId, graph: body.graph, action: body.action, prompt: "prompt" in body ? body.prompt : undefined }, emit),
+  ),
 );

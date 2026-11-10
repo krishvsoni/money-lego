@@ -1,0 +1,44 @@
+spec: blueprint/v1
+name: money-lego
+
+agent:
+  build:
+    context: .
+    dockerfile: astropods/Dockerfile
+  interfaces:
+    messaging: true
+  inputs:
+    - name: MONEY_LEGO_ACCOUNT_ID
+      datatype: string
+      description: Money Lego account id this agent acts as (its workflows, runs and PayPal objects only)
+    - name: MONGODB_URI
+      datatype: string
+      secret: true
+      description: Money Lego's MongoDB connection string
+    - name: MONGODB_DB
+      datatype: string
+      default: money_lego
+      description: Money Lego's database name
+    - name: OPENAI_API_KEY
+      datatype: string
+      secret: true
+      description: OpenAI key for the assistant, the PayPal agent and the workflow builder
+    - name: OPENROUTER_API_KEY
+      datatype: string
+      secret: true
+      description: OpenRouter key for small tasks and fallback models
+    - name: PAYPAL_CLIENT_ID
+      datatype: string
+      secret: true
+      description: PayPal sandbox REST app client id
+    - name: PAYPAL_CLIENT_SECRET
+      datatype: string
+      secret: true
+      description: PayPal sandbox REST app secret
+    - name: PAYPAL_ACCOUNT_OWNER_IDS
+      datatype: string
+      description: Money Lego account id(s) that own the PayPal app (full view of the PayPal account)
+    - name: APP_URL
+      datatype: string
+      default: http://localhost:3000
+      description: Where the Money Lego app runs, for links to drafted workflows

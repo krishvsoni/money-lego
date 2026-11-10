@@ -1,0 +1,14 @@
+# Never bake secrets or local state into an image: keys reach the agent as Astropods inputs.
+.env
+.env.*
+!.env.example
+node_modules
+.next
+.git
+tests
+postman
+public
+scripts
+*.png
+*.log
+tsconfig.tsbuildinfo

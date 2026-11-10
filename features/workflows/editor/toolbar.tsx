@@ -65,8 +65,11 @@ export function Toolbar({
         {blocked ? `${issues.length} to fix` : "Ready"}
       </button>
 
-      <label className="flex items-center gap-2 text-xs font-semibold text-ink-2">
-        <span className="hidden sm:inline">{workflow.enabled ? "On" : "Off"}</span>
+      {/* A div, not a label: a label around a button re-fires the click and selects the text on double-click. */}
+      <div className="mr-1 flex shrink-0 select-none items-center gap-2 text-xs font-semibold text-ink-2">
+        <span className="hidden w-6 text-right sm:inline" aria-hidden>
+          {workflow.enabled ? "On" : "Off"}
+        </span>
         <button
           role="switch"
           aria-checked={workflow.enabled}
@@ -74,11 +77,14 @@ export function Toolbar({
           onClick={onToggleEnabled}
           disabled={toggling}
           title={workflow.enabled ? "Triggers are live" : "Triggers are off. Test runs still work."}
-          className={`press relative h-6 w-10 rounded-full transition-colors duration-150 disabled:opacity-60 ${workflow.enabled ? "bg-success" : "bg-line-strong"}`}
+          className={`press relative block h-6 w-10 shrink-0 overflow-hidden rounded-full p-0 transition-colors duration-150 disabled:opacity-60 ${workflow.enabled ? "bg-success" : "bg-line-strong"}`}
         >
-          <span className="absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-transform duration-200" style={{ transform: `translateX(${workflow.enabled ? 18 : 2}px)`, transitionTimingFunction: "var(--ease-out)" }} />
+          <span
+            className="absolute left-0 top-0.5 block h-5 w-5 rounded-full bg-surface shadow transition-transform duration-200"
+            style={{ transform: `translateX(${workflow.enabled ? 18 : 2}px)`, transitionTimingFunction: "var(--ease-out)" }}
+          />
         </button>
-      </label>
+      </div>
 
       <Button onClick={onTest} busy={testing} disabled={blocked} title={blocked ? "Fix the listed issues first" : "Runs the saved workflow now"}>
         <Play className="h-3.5 w-3.5" aria-hidden />

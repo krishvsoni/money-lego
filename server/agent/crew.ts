@@ -8,6 +8,7 @@ import { AppError } from "../errors";
 import { log } from "../log";
 import type { WorkflowDTO } from "../workflows/service";
 import { linkConnections, type LinkResult } from "./connector";
+import type { FindingArea, FindingLevel, SageAction } from "./doctor";
 import { reviewGraph } from "./guardrails";
 import { completeJson, type ChatMessage } from "./openrouter";
 import { agentDraftSchema, type AgentDraft } from "./schema";
@@ -32,7 +33,8 @@ export type CrewEvent =
   | { type: "sketch"; types: string[] }
   | { type: "plan"; nodes: PlanNode[] }
   | { type: "result"; workflow: WorkflowDTO; notes: string[]; setupIssues: number; linked: string[]; missing: string[] }
-  | { type: "edited"; graph: WorkflowGraph; name: string | null; notes: string[]; summary: string; linked: string[]; missing: string[] };
+  | { type: "edited"; graph: WorkflowGraph; name: string | null; notes: string[]; summary: string; linked: string[]; missing: string[] }
+  | { type: "answer"; text: string; steps: string[]; findings: Array<{ level: FindingLevel; area: FindingArea; text: string }>; actions: SageAction[] };
 
 export type Emit = (event: CrewEvent) => void;
 

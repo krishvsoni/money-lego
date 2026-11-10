@@ -38,6 +38,9 @@ const schema = z.object({
   PAYPAL_CLIENT_SECRET: z.string().min(10).optional(),
   // The id PayPal assigned to this app's webhook (npm run paypal:webhook prints it).
   PAYPAL_WEBHOOK_ID: z.string().regex(/^[A-Z0-9]{10,40}$/).optional(),
+  // Money Lego account id(s) (comma-separated) that own the PayPal app above. Only they see the
+  // whole PayPal account (all invoices, transactions); everyone else sees only their own objects.
+  PAYPAL_ACCOUNT_OWNER_IDS: z.string().optional(),
 
   // Main agents (Sage planner/fixer, the Money Lego assistant and its PayPal sub-agent, AG Studio's
   // dashboard agents) run on OpenAI. Small, bounded tasks (AI review/write/pick, run

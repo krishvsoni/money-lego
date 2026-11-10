@@ -40,6 +40,15 @@ export async function recordResource(u: ResourceUpdate): Promise<void> {
   for (const [k, v] of Object.entries(u.detail ?? {})) set[`detail.${k}`] = v;
   if (u.owner) Object.assign(set, { ownerId: u.owner.ownerId, workflowId: u.owner.workflowId, runId: u.owner.runId, nodeId: u.owner.nodeId });
   try {
+    // An object never moves between accounts: if another account already owns it, this
+    // account's workflow doesn't get to re-stamp it (and so pull it into its own ledger).
+    if (u.owner) {
+      const taken = await paypalResources.findOne({ kind: u.kind, paypalId: u.paypalId, ownerId: { $nin: [null, u.owner.ownerId] } }, { projection: { _id: 1 } });
+      if (taken) {
+        log.warn("paypal.resource_owner_conflict", { kind: u.kind });
+        return;
+      }
+    }
     await paypalResources.updateOne(
       { kind: u.kind, paypalId: u.paypalId },
       {
