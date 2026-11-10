@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 export const inputClass =
   "h-10 w-full rounded-md border border-line-strong bg-surface px-3 text-sm text-ink placeholder:text-ink-3 transition-[border-color] duration-150 hover:border-ink-3 focus:border-action focus:outline-none aria-[invalid=true]:border-danger";
@@ -21,6 +21,6 @@ export function Field({ label, hint, error, htmlFor, children }: { label: string
   );
 }
 
-export function TextInput({ invalid, ...props }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+export function TextInput({ invalid, ...props }: ComponentProps<"input"> & { invalid?: boolean }) {
   return <input {...props} aria-invalid={invalid || undefined} aria-describedby={invalid ? `${props.id}-error` : undefined} className={`${inputClass} ${props.className ?? ""}`} />;
 }

@@ -16,6 +16,9 @@ export interface UserDoc {
   name: string;
   // Shown to the owner only. Never sent to the AI model.
   email: string | null;
+  // Whether Clerk had verified that address at sign-up. Only a verified address can receive
+  // shared workflows; records from before this field existed count as verified.
+  emailVerified?: boolean;
   createdAt: Date;
   lastSignedInAt: Date;
 }
@@ -58,6 +61,18 @@ export interface WorkflowDoc {
   lastRunAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// View access to one workflow for one email address. Keyed by address rather than member id,
+// so a share can be made before the person has signed up and applies the moment they do.
+export interface WorkflowShareDoc {
+  _id: ObjectId;
+  workflowId: ObjectId;
+  // Lower-cased. Unique per workflow.
+  email: string;
+  role: "viewer";
+  invitedBy: ObjectId;
+  createdAt: Date;
 }
 
 export interface WorkflowVersionDoc {

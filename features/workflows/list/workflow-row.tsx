@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Archive, ArrowCounterClockwise, Copy, Trash } from "@phosphor-icons/react";
+import { Archive, ArrowCounterClockwise, Copy, Eye, ShareNetwork, SignOut, Trash, Users } from "@phosphor-icons/react";
 import { relativeTime } from "@/lib/format";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import { CATEGORY_META } from "@/lib/nodes/types";
@@ -26,35 +26,58 @@ function BrickStrip({ workflow, muted }: { workflow: WorkflowDTO; muted?: boolea
 interface Props {
   workflow: WorkflowDTO;
   busy: boolean;
+  sharedWith?: number;
   onDuplicate: () => void;
   onArchive: () => void;
   onRestore: () => void;
   onDelete: () => void;
+  onShare: () => void;
+  onLeave: () => void;
 }
 
-export function WorkflowRow({ workflow: w, busy, onDuplicate, onArchive, onRestore, onDelete }: Props) {
+export function WorkflowRow({ workflow: w, busy, sharedWith = 0, onDuplicate, onArchive, onRestore, onDelete, onShare, onLeave }: Props) {
   const archived = w.status === "archived";
+  const viewer = w.access.role === "viewer";
   const trigger = w.triggerType ? nodeDefinition(w.triggerType)?.title.toLowerCase() : "no trigger";
-  const meta = archived
-    ? `Archived ${relativeTime(w.updatedAt)}. ${w.runCount ? `${w.runCount} ${w.runCount === 1 ? "run" : "runs"} kept in history.` : "Never run."}`
-    : `${w.graph.nodes.length} nodes, ${trigger}. ${w.runCount ? `Ran ${relativeTime(w.lastRunAt)}.` : "Not run yet."}`;
+  const meta = viewer
+    ? `Shared by ${w.access.ownerName ?? "another member"}. View only, updated ${relativeTime(w.updatedAt)}.`
+    : archived
+      ? `Archived ${relativeTime(w.updatedAt)}. ${w.runCount ? `${w.runCount} ${w.runCount === 1 ? "run" : "runs"} kept in history.` : "Never run."}`
+      : `${w.graph.nodes.length} nodes, ${trigger}. ${w.runCount ? `Ran ${relativeTime(w.lastRunAt)}.` : "Not run yet."}`;
 
   return (
     <li className="group flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl px-3 py-4 transition-colors duration-150 hover:bg-surface">
       <Link href={`/workflows/${w.id}`} className="min-w-0 flex-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brick-1)]">
         <span className="flex items-center gap-2">
-          {archived ? (
+          {viewer ? (
+            <Eye size={14} className="shrink-0 text-ink-3" aria-label="View only" />
+          ) : archived ? (
             <Archive size={14} className="shrink-0 text-ink-3" aria-label="Archived" />
           ) : (
             <span className={`h-2 w-2 shrink-0 rounded-full ${w.enabled ? "bg-success" : "bg-line-strong"}`} title={w.enabled ? "On" : "Off"} />
           )}
           <span className={`truncate font-bold ${archived ? "text-ink-2" : "group-hover:text-action"}`}>{w.name}</span>
+          {sharedWith > 0 && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-ink-2" title={`Shared with ${sharedWith} ${sharedWith === 1 ? "person" : "people"}`}>
+              <Users size={12} aria-hidden />
+              <span className="num">{sharedWith}</span>
+            </span>
+          )}
         </span>
         <span className="mt-0.5 block text-sm text-ink-2">{meta}</span>
       </Link>
       <BrickStrip workflow={w} muted={archived} />
       <span className="flex items-center gap-1">
-        {archived ? (
+        {viewer ? (
+          <>
+            <IconButton label="Make a copy" onClick={onDuplicate} disabled={busy}>
+              <Copy size={16} aria-hidden />
+            </IconButton>
+            <IconButton label="Leave" onClick={onLeave} disabled={busy}>
+              <SignOut size={16} aria-hidden />
+            </IconButton>
+          </>
+        ) : archived ? (
           <>
             <IconButton label="Restore" onClick={onRestore} disabled={busy}>
               <ArrowCounterClockwise size={16} aria-hidden />
@@ -63,6 +86,9 @@ export function WorkflowRow({ workflow: w, busy, onDuplicate, onArchive, onResto
           </>
         ) : (
           <>
+            <IconButton label="Share" onClick={onShare} disabled={busy}>
+              <ShareNetwork size={16} aria-hidden />
+            </IconButton>
             <IconButton label="Duplicate" onClick={onDuplicate} disabled={busy}>
               <Copy size={16} aria-hidden />
             </IconButton>

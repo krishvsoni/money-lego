@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useToast } from "@/components/toast";
 import { api, errorMessage } from "@/lib/api-client";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import type { CredentialDTO, WorkflowDTO } from "@/lib/workflow/dto";
 import { SageDock } from "@/features/agent/editor/sage-dock";
+import { ShareDialog } from "@/features/workflows/share/share-dialog";
 import { Canvas } from "./canvas";
 import { Catalog, type CatalogHandle } from "./catalog";
 import { Inspector } from "./inspector";
@@ -23,6 +25,22 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
   const { getViewport } = useReactFlow();
   const [credentials, setCredentials] = useState<CredentialDTO[]>([]);
   const [toggling, setToggling] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const router = useRouter();
+  const readOnly = editor.readOnly;
+
+  const copy = async () => {
+    setCopying(true);
+    try {
+      const { workflow } = await api<{ workflow: WorkflowDTO }>(`/api/workflows/${initial.id}/duplicate`, { body: {} });
+      toast("Copy created. It's yours to edit; connect your own accounts.", "success");
+      router.push(`/workflows/${workflow.id}`);
+    } catch (e) {
+      toast(errorMessage(e), "error");
+      setCopying(false);
+    }
+  };
 
   const refreshCredentials = useCallback(async () => {
     const r = await api<{ credentials: CredentialDTO[] }>("/api/credentials").catch(() => null);
@@ -96,19 +114,32 @@ function EditorShell({ initial, initialRunId }: { initial: WorkflowDTO; initialR
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper">
-      <Toolbar editor={editor} onTest={test} testing={runs.busy === "test"} onToggleEnabled={() => void setEnabled(!editor.workflow.enabled)} toggling={toggling} />
+      <Toolbar
+        editor={editor}
+        onTest={test}
+        testing={runs.busy === "test"}
+        onToggleEnabled={() => void setEnabled(!editor.workflow.enabled)}
+        toggling={toggling}
+        onShare={() => setSharing(true)}
+        onCopy={() => void copy()}
+        copying={copying}
+      />
       {editor.saveError && editor.saveState !== "conflict" && <p className="border-b border-line bg-attention-wash px-4 py-1.5 text-xs text-attention">{editor.saveError}</p>}
       <div className="flex min-h-0 flex-1">
-        <Catalog ref={catalog} onAdd={addFromCatalog} />
+        {!readOnly && <Catalog ref={catalog} onAdd={addFromCatalog} />}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1">
             <Canvas editor={editor} statuses={runs.statuses} onRefuse={(m) => toast(m, "error")} />
-            <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo, setEnabled, testRun: test }} />
+            {!readOnly && <SageDock bridge={{ workflowId: initial.id, graph: editor.graph, applyGraph: editor.applyGraph, rename: editor.rename, undo: editor.undo, setEnabled, testRun: test }} />}
           </div>
-          <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />
+          {!readOnly && <RunPanel runs={runs} graph={editor.graph} workflowId={initial.id} />}
         </div>
-        <Inspector editor={editor} credentials={credentials} onCredentialCreated={(c) => setCredentials((list) => [c, ...list])} onRefreshCredentials={refreshCredentials} nodeRun={nodeRun} />
+        {/* Disabling the fieldset disables every control in the inspector for viewers. */}
+        <fieldset disabled={readOnly} className="contents">
+          <Inspector editor={editor} credentials={credentials} onCredentialCreated={(c) => setCredentials((list) => [c, ...list])} onRefreshCredentials={refreshCredentials} nodeRun={nodeRun} />
+        </fieldset>
       </div>
+      {!readOnly && <ShareDialog workflowId={initial.id} workflowName={editor.name || "Untitled workflow"} open={sharing} onClose={() => setSharing(false)} onTransferred={() => window.location.reload()} />}
     </div>
   );
 }

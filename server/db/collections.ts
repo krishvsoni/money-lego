@@ -14,13 +14,14 @@ import type {
   UserDoc,
   WorkflowDoc,
   WorkflowRunDoc,
+  WorkflowShareDoc,
   WorkflowTemplateDoc,
   WorkflowVersionDoc,
 } from "./types";
 
 import { COLLECTIONS } from "./names";
 
-export { COLLECTIONS, isDuplicateKeyError } from "./names";
+export { COLLECTIONS, EMAIL_COLLATION, isDuplicateKeyError } from "./names";
 
 export interface Collections {
   db: Db;
@@ -28,6 +29,7 @@ export interface Collections {
   rateLimits: Collection<RateLimitDoc>;
   locks: Collection<LockDoc>;
   workflows: Collection<WorkflowDoc>;
+  workflowShares: Collection<WorkflowShareDoc>;
   workflowVersions: Collection<WorkflowVersionDoc>;
   workflowRuns: Collection<WorkflowRunDoc>;
   nodeRuns: Collection<NodeRunDoc>;
@@ -47,6 +49,7 @@ export function collectionsOf(db: Db): Collections {
     rateLimits: db.collection<RateLimitDoc>(COLLECTIONS.rateLimits),
     locks: db.collection<LockDoc>(COLLECTIONS.locks),
     workflows: db.collection<WorkflowDoc>(COLLECTIONS.workflows),
+    workflowShares: db.collection<WorkflowShareDoc>(COLLECTIONS.workflowShares),
     workflowVersions: db.collection<WorkflowVersionDoc>(COLLECTIONS.workflowVersions),
     workflowRuns: db.collection<WorkflowRunDoc>(COLLECTIONS.workflowRuns),
     nodeRuns: db.collection<NodeRunDoc>(COLLECTIONS.nodeRuns),

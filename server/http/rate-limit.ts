@@ -20,6 +20,8 @@ export const RATE_RULES = {
   webhook: { name: "webhook", limit: 600, windowSeconds: 60 },
   read: { name: "read", limit: 120, windowSeconds: 60 },
   agent: { name: "agent", limit: 6, windowSeconds: 60 },
+  // Sharing tells the caller whether an address has an account, so it is kept slow.
+  share: { name: "share", limit: 20, windowSeconds: 60 },
   // One dashboard request makes several model turns (plan, then tool calls).
   studio: { name: "studio", limit: 60, windowSeconds: 60 },
 } satisfies Record<string, RateRule>;
