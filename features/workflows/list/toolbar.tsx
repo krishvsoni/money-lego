@@ -5,7 +5,7 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { BrickGlyph } from "@/features/workflows/node-icon";
 import type { Integration } from "./integrations";
 
-export type Shelf = "active" | "archived";
+export type Shelf = "active" | "shared" | "archived";
 
 interface Props {
   shelf: Shelf;
@@ -18,7 +18,9 @@ interface Props {
   onIntegration: (type: string | null) => void;
 }
 
-// Search, the active/archived switch and integration filters in one row. "/" focuses search.
+const SHELF_LABEL: Record<Shelf, string> = { active: "Active", shared: "Shared with me", archived: "Archived" };
+
+// Search, the active/shared/archived switch and integration filters in one row. "/" focuses search.
 export function Toolbar({ shelf, counts, onShelf, query, onQuery, integrations, integration, onIntegration }: Props) {
   const input = useRef<HTMLInputElement>(null);
 
@@ -58,7 +60,7 @@ export function Toolbar({ shelf, counts, onShelf, query, onQuery, integrations, 
         </label>
 
         <div className="tab-track ml-auto flex gap-0.5 rounded-full p-1" role="tablist" aria-label="Show workflows">
-          {(["active", "archived"] as const).map((s) => {
+          {(["active", "shared", "archived"] as const).map((s) => {
             const active = shelf === s;
             return (
               <button
@@ -68,7 +70,7 @@ export function Toolbar({ shelf, counts, onShelf, query, onQuery, integrations, 
                 onClick={() => onShelf(s)}
                 className={`press relative inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium ${active ? "tactile-ink" : "text-ink-2 hover:text-ink"}`}
               >
-                {s === "active" ? "Active" : "Archived"}
+                {SHELF_LABEL[s]}
                 {counts[s] !== null && <span className={`num text-xs ${active ? "text-white/70" : "text-ink-3"}`}>{counts[s]}</span>}
               </button>
             );

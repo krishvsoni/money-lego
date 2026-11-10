@@ -1,14 +1,18 @@
 import "server-only";
 import type { Db, IndexDescription } from "mongodb";
 import { log } from "../log";
-import { COLLECTIONS } from "./names";
+import { COLLECTIONS, EMAIL_COLLATION } from "./names";
 
 // Indexes are declared here and created on connect with the official mongodb driver. createIndexes
 // is idempotent and allowed for a plain readWrite user, so there is no migration step.
 // Shapes and invariants are enforced in the app with zod, not by database validators.
 
 const INDEXES: Record<string, IndexDescription[]> = {
-  [COLLECTIONS.users]: [{ key: { identityKey: 1 }, name: "identity_unique", unique: true }],
+  [COLLECTIONS.users]: [
+    { key: { identityKey: 1 }, name: "identity_unique", unique: true },
+    // Sharing looks members up by address, whatever its capitalisation.
+    { key: { email: 1 }, name: "email_ci", collation: EMAIL_COLLATION },
+  ],
   // TTL indexes: Mongo's background monitor deletes expired rows, so no instance runs a cleanup job.
   [COLLECTIONS.rateLimits]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
   [COLLECTIONS.locks]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 300 }],
@@ -30,6 +34,11 @@ const INDEXES: Record<string, IndexDescription[]> = {
     { key: { inboundRoute: 1 }, name: "inbound_route", partialFilterExpression: { enabled: true, inboundRoute: { $type: "string" } } },
     // A double-clicked "Use template" with the same request key creates one workflow.
     { key: { ownerId: 1, createRequestKey: 1 }, name: "owner_create_request_unique", unique: true, partialFilterExpression: { createRequestKey: { $type: "string" } } },
+  ],
+  [COLLECTIONS.workflowShares]: [
+    // Sharing with the same address twice is one share.
+    { key: { workflowId: 1, email: 1 }, name: "workflow_email_unique", unique: true },
+    { key: { email: 1 }, name: "by_email" },
   ],
   [COLLECTIONS.workflowVersions]: [{ key: { workflowId: 1, version: 1 }, name: "workflow_version_unique", unique: true }],
   [COLLECTIONS.workflowRuns]: [

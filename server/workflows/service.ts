@@ -5,6 +5,7 @@ import { nodeDefinition } from "@/lib/nodes/registry";
 import { cloneForImport, TemplateImportError } from "@/lib/templates/import";
 import type { TemplateChecklistItem } from "@/lib/templates/types";
 import { nextRunAt, scheduleKey } from "@/lib/workflow/schedule";
+import { accessFor, withoutCredentials, type WorkflowAccessDTO } from "@/lib/workflow/sharing";
 import { emptyGraph, type WorkflowGraph } from "@/lib/workflow/types";
 import { validateGraph } from "@/lib/workflow/validate";
 import type { SessionUser } from "../auth/session";
@@ -14,6 +15,7 @@ import { inTransaction } from "../db/transaction";
 import type { WorkflowDoc } from "../db/types";
 import { errors } from "../errors";
 import { getTemplateDoc } from "../templates/service";
+import { authorizeWorkflow } from "./access";
 import { activateTrigger, deactivateTrigger, triggerFingerprint } from "./activation";
 
 export interface WorkflowDTO {
@@ -33,25 +35,33 @@ export interface WorkflowDTO {
   updatedAt: string;
   description: string;
   sourceTemplate: { slug: string; revision: number; setupChecklist: TemplateChecklistItem[] } | null;
+  // What the person reading this may do with it.
+  access: WorkflowAccessDTO;
 }
 
-export function toWorkflowDTO(d: WorkflowDoc): WorkflowDTO {
+const OWNER_ACCESS = accessFor("owner");
+
+// A viewer gets the shape of the workflow and nothing that acts for its owner: the webhook
+// key (which starts runs) is withheld, connection slots are emptied and run stats are hidden.
+export function toWorkflowDTO(d: WorkflowDoc, access: WorkflowAccessDTO = OWNER_ACCESS): WorkflowDTO {
+  const owner = access.role === "owner";
   return {
     id: d._id.toHexString(),
     name: d.name,
     status: d.status,
     enabled: d.enabled,
     version: d.currentVersion,
-    graph: d.graph,
+    graph: owner ? d.graph : withoutCredentials(d.graph),
     triggerType: d.triggerType,
-    webhookPath: `/api/hooks/${d.webhookKey}`,
-    checkoutPath: `/pay/${d.webhookKey}`,
-    nextScheduledAt: d.schedule?.nextAt.toISOString() ?? null,
-    runCount: d.runCount,
-    lastRunAt: d.lastRunAt?.toISOString() ?? null,
+    webhookPath: owner ? `/api/hooks/${d.webhookKey}` : "",
+    checkoutPath: owner ? `/pay/${d.webhookKey}` : "",
+    nextScheduledAt: owner ? (d.schedule?.nextAt.toISOString() ?? null) : null,
+    runCount: owner ? d.runCount : 0,
+    lastRunAt: owner ? (d.lastRunAt?.toISOString() ?? null) : null,
     updatedAt: d.updatedAt.toISOString(),
     description: d.description ?? "",
     sourceTemplate: d.sourceTemplate ? { slug: d.sourceTemplate.slug, revision: d.sourceTemplate.revision, setupChecklist: d.sourceTemplate.setupChecklist } : null,
+    access,
   };
 }
 
@@ -73,14 +83,21 @@ function scheduleFor(graph: WorkflowGraph, enabled: boolean, previous: WorkflowD
 export async function listWorkflows(user: SessionUser, status: "active" | "archived"): Promise<WorkflowDTO[]> {
   const { workflows } = await collections();
   const docs = await workflows.find({ ownerId: user.userId, status }).sort({ updatedAt: -1 }).limit(200).toArray();
-  return docs.map(toWorkflowDTO);
+  return docs.map((d) => toWorkflowDTO(d));
 }
 
+// The workflow as its owner, for anything that changes or runs it.
 export async function getWorkflowDoc(user: SessionUser, id: string): Promise<WorkflowDoc> {
-  const { workflows } = await collections();
-  const doc = await workflows.findOne({ _id: parseId(id, "Workflow"), ownerId: user.userId });
-  if (!doc) throw errors.notFound("Workflow");
-  return doc;
+  return (await authorizeWorkflow(user, id, "edit")).doc;
+}
+
+// The workflow as whoever is asking: the owner's full copy, or a viewer's read-only one.
+export async function getWorkflow(user: SessionUser, id: string): Promise<WorkflowDTO> {
+  const { doc, role } = await authorizeWorkflow(user, id, "view");
+  if (role === "owner") return toWorkflowDTO(doc);
+  const { users } = await collections();
+  const owner = await users.findOne({ _id: doc.ownerId }, { projection: { name: 1 } });
+  return toWorkflowDTO(doc, accessFor("viewer", owner?.name ?? null));
 }
 
 interface NewWorkflow {
@@ -235,9 +252,12 @@ export async function setWorkflowEnabled(user: SessionUser, id: string, enabled:
   return toWorkflowDTO(next);
 }
 
+// The copy always belongs to whoever made it. A viewer's copy starts with empty connection
+// slots, since the original's connections are its owner's.
 export async function duplicateWorkflow(user: SessionUser, id: string): Promise<WorkflowDTO> {
-  const source = await getWorkflowDoc(user, id);
-  return toWorkflowDTO(await insertWorkflow(user, { name: `${source.name} (copy)`.slice(0, 80), graph: source.graph, description: source.description, sourceTemplate: source.sourceTemplate ?? null }));
+  const { doc: source, role } = await authorizeWorkflow(user, id, "copy");
+  const graph = role === "owner" ? source.graph : withoutCredentials(source.graph);
+  return toWorkflowDTO(await insertWorkflow(user, { name: `${source.name} (copy)`.slice(0, 80), graph, description: source.description, sourceTemplate: source.sourceTemplate ?? null }));
 }
 
 export async function setWorkflowStatus(user: SessionUser, id: string, status: "active" | "archived"): Promise<WorkflowDTO> {
@@ -260,7 +280,7 @@ export async function setWorkflowStatus(user: SessionUser, id: string, status: "
 // Transfers (executions) are kept: they are the money record and stay on the Transfers page.
 export async function deleteWorkflow(user: SessionUser, id: string): Promise<void> {
   const workflowId = parseId(id, "Workflow");
-  const { workflows, workflowVersions, workflowRuns, nodeRuns } = await collections();
+  const { workflows, workflowVersions, workflowShares, workflowRuns, nodeRuns } = await collections();
   const doc = await workflows.findOne({ _id: workflowId, ownerId: user.userId }, { projection: { status: 1 } });
   if (!doc) throw errors.notFound("Workflow");
   if (doc.status !== "archived") throw errors.invalidState("Archive the workflow before deleting it.");
@@ -272,6 +292,7 @@ export async function deleteWorkflow(user: SessionUser, id: string): Promise<voi
     await nodeRuns.deleteMany({ runId: { $in: runIds } }, { session });
     await workflowRuns.deleteMany({ workflowId }, { session });
     await workflowVersions.deleteMany({ workflowId }, { session });
+    await workflowShares.deleteMany({ workflowId }, { session });
     await workflows.deleteOne({ _id: workflowId, ownerId: user.userId }, { session });
   });
 }

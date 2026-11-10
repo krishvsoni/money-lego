@@ -16,6 +16,8 @@ let counter = 0;
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${(counter++).toString(36)}`;
 
 export function useWorkflowEditor(initial: WorkflowDTO) {
+  // Viewers get the same editor with every change refused, so nothing can drift from the saved copy.
+  const readOnly = !initial.access.can.edit;
   const [workflow, setWorkflow] = useState(initial);
   const [graph, setGraph] = useState<WorkflowGraph>(initial.graph);
   const [name, setName] = useState(initial.name);
@@ -42,6 +44,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
   // can never record a step twice.
   const commit = useCallback(
     (next: WorkflowGraph | ((g: WorkflowGraph) => WorkflowGraph)) => {
+      if (readOnly) return;
       const current = latest.current.graph;
       const value = typeof next === "function" ? next(current) : next;
       if (value === current) return;
@@ -51,7 +54,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
       syncHistory();
       setSaveState("dirty");
     },
-    [setCurrentGraph],
+    [setCurrentGraph, readOnly],
   );
 
   const undo = useCallback(() => {
@@ -73,6 +76,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
   }, [setCurrentGraph]);
 
   const save = useCallback(async () => {
+    if (readOnly) return null;
     setSaveState("saving");
     try {
       const { workflow: saved, disabledReason } = await api<{ workflow: WorkflowDTO; disabledReason: string | null }>(`/api/workflows/${workflow.id}`, {
@@ -91,7 +95,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
       setSaveError(conflict ? "Someone saved this workflow elsewhere. Reload to get their version." : errorMessage(e));
       return null;
     }
-  }, [workflow.id, graph, name]);
+  }, [workflow.id, graph, name, readOnly]);
 
   useEffect(() => {
     if (saveState !== "dirty") return;
@@ -151,6 +155,7 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
   const dragStart = useRef<WorkflowGraph | null>(null);
   const moveNodes = useCallback(
     (positions: Record<string, { x: number; y: number }>, finished: boolean) => {
+      if (readOnly) return;
       const current = latest.current.graph;
       if (Object.keys(positions).length) {
         dragStart.current ??= current;
@@ -164,16 +169,18 @@ export function useWorkflowEditor(initial: WorkflowDTO) {
         setSaveState("dirty");
       }
     },
-    [setCurrentGraph],
+    [setCurrentGraph, readOnly],
   );
 
   const rename = useCallback((value: string) => {
+    if (readOnly) return;
     latest.current = { ...latest.current, name: value };
     setName(value);
     setSaveState("dirty");
-  }, []);
+  }, [readOnly]);
 
   return {
+    readOnly,
     workflow,
     setWorkflow,
     graph,

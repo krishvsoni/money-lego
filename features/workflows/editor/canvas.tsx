@@ -110,7 +110,7 @@ export function Canvas({ editor, statuses, onRefuse }: { editor: Editor; statuse
   const onDrop = useCallback(
     (e: DragEvent) => {
       const type = e.dataTransfer.getData(DRAG_MIME);
-      if (!type) return;
+      if (!type || editor.readOnly) return;
       e.preventDefault();
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       editor.addNode(type, { x: p.x - 116, y: p.y - 32 });
@@ -129,7 +129,9 @@ export function Canvas({ editor, statuses, onRefuse }: { editor: Editor; statuse
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onPaneClick={() => editor.setSelectedId(null)}
-        deleteKeyCode={["Backspace", "Delete"]}
+        nodesDraggable={!editor.readOnly}
+        nodesConnectable={!editor.readOnly}
+        deleteKeyCode={editor.readOnly ? null : ["Backspace", "Delete"]}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1, minZoom: 0.6 }}
         minZoom={0.25}
@@ -152,7 +154,7 @@ export function Canvas({ editor, statuses, onRefuse }: { editor: Editor; statuse
         />
         )}
       </ReactFlow>
-      {graph.nodes.length === 0 && (
+      {graph.nodes.length === 0 && !editor.readOnly && (
         <EmptyCanvas
           onPick={(type) => {
             editor.addNode(type, { x: 0, y: 0 });

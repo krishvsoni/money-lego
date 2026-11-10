@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   rateLimits: "rate_limits",
   locks: "locks",
   workflows: "workflows",
+  workflowShares: "workflow_shares",
   workflowVersions: "workflow_versions",
   workflowRuns: "workflow_runs",
   nodeRuns: "node_runs",
@@ -19,6 +20,10 @@ export const COLLECTIONS = {
   paypalEvents: "paypal_events",
   paypalResources: "paypal_resources",
 } as const;
+
+// Case-insensitive comparison for member email lookups; queries must pass the same collation
+// to use the index built with it.
+export const EMAIL_COLLATION = { locale: "en", strength: 2 } as const;
 
 export function isDuplicateKeyError(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: number }).code === 11000;

@@ -38,7 +38,7 @@ export const errors = {
   validation: (message: string, issues: FieldIssue[] = []) =>
     new AppError("VALIDATION_FAILED", 400, message, { issues }),
   unauthenticated: () => new AppError("UNAUTHENTICATED", 401, "Sign in to continue."),
-  forbidden: () => new AppError("FORBIDDEN", 403, "You don't have access to this."),
+  forbidden: (message = "You don't have access to this.") => new AppError("FORBIDDEN", 403, message),
   notFound: (what: string) => new AppError("NOT_FOUND", 404, `${what} not found.`),
   conflict: (message: string) => new AppError("CONFLICT", 409, message),
   staleWrite: () =>

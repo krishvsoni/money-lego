@@ -14,12 +14,17 @@ import { SageComposer } from "@/features/agent/sage-composer";
 import { TemplateGrid } from "@/features/workflows/list/template-grid";
 import { Toolbar, type Shelf } from "@/features/workflows/list/toolbar";
 import { WorkflowRow } from "@/features/workflows/list/workflow-row";
+import { ShareDialog } from "@/features/workflows/share/share-dialog";
 
-type List = { workflows: WorkflowDTO[] };
+type List = { workflows: WorkflowDTO[]; sharedCounts: Record<string, number> };
+
+const SHELVES: Shelf[] = ["active", "shared", "archived"];
 
 export function View() {
   const active = useResource<List>("/api/workflows");
   const archived = useResource<List>("/api/workflows?status=archived");
+  const shared = useResource<List>("/api/workflows?scope=shared");
+  const [shareTarget, setShareTarget] = useState<WorkflowDTO | null>(null);
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
@@ -28,7 +33,7 @@ export function View() {
   // a workflow and coming back without flooding history with keystrokes.
   const params = useSearchParams();
   const pathname = usePathname();
-  const shelf: Shelf = params.get("shelf") === "archived" ? "archived" : "active";
+  const shelf: Shelf = SHELVES.find((s) => s !== "active" && s === params.get("shelf")) ?? "active";
   const integration = params.get("integration");
   const setParams = useCallback(
     (next: Record<string, string | null>, mode: "push" | "replace") => {
@@ -51,12 +56,13 @@ export function View() {
   };
   const setIntegration = (type: string | null) => setParams({ integration: type }, "replace");
 
-  const list = shelf === "active" ? active : archived;
+  const list = { active, shared, archived }[shelf];
+  const counts = active.data?.sharedCounts ?? {};
   const all = useMemo(() => list.data?.workflows ?? [], [list.data]);
   const integrations = useMemo(() => integrationsIn(all), [all]);
   const q = query.trim().toLowerCase();
   const shown = all.filter((w) => (!q || w.name.toLowerCase().includes(q)) && (!integration || integrationsOf(w).some((i) => i.type === integration)));
-  const firstTime = active.data?.workflows.length === 0 && archived.data !== null;
+  const firstTime = active.data?.workflows.length === 0 && archived.data !== null && shared.data?.workflows.length === 0;
 
   const createBlank = async () => {
     setBusy("blank");
@@ -76,6 +82,7 @@ export function View() {
       toast(done, "success");
       active.reload();
       archived.reload();
+      shared.reload();
     } catch (e) {
       toast(errorMessage(e), "error");
     } finally {
@@ -84,7 +91,7 @@ export function View() {
   };
 
   const switchShelf = (s: Shelf) => {
-    if (s !== shelf) setParams({ shelf: s === "archived" ? "archived" : null, integration: null }, "push");
+    if (s !== shelf) setParams({ shelf: s === "active" ? null : s, integration: null }, "push");
   };
 
   const sage = <SageComposer onManual={createBlank} manualBusy={busy === "blank"} />;
@@ -118,6 +125,7 @@ export function View() {
               counts={{
                 active: active.data?.workflows.length ?? null,
                 archived: archived.data?.workflows.length ?? null,
+                shared: shared.data?.workflows.length ?? null,
               }}
               onShelf={switchShelf}
               query={query}
@@ -153,6 +161,9 @@ export function View() {
                     key={w.id}
                     workflow={w}
                     busy={busy === w.id}
+                    sharedWith={counts[w.id]}
+                    onShare={() => setShareTarget(w)}
+                    onLeave={() => act(w, () => api(`/api/workflows/${w.id}/shares/me`, { method: "DELETE" }), "Removed from your shared list")}
                     onDuplicate={() => act(w, () => api(`/api/workflows/${w.id}/duplicate`, { body: {} }), "Copy created")}
                     onArchive={() =>
                       act(
@@ -190,6 +201,22 @@ export function View() {
 
         {shelf === "active" && <TemplateGrid />}
       </div>
+      {shareTarget && (
+        <ShareDialog
+          workflowId={shareTarget.id}
+          workflowName={shareTarget.name}
+          open
+          onClose={() => {
+            setShareTarget(null);
+            active.reload();
+          }}
+          onTransferred={() => {
+            setShareTarget(null);
+            active.reload();
+            shared.reload();
+          }}
+        />
+      )}
     </WithSage>
   );
 }
@@ -208,6 +235,12 @@ function WithSage({ sage, children }: { sage: React.ReactNode; children: React.R
   );
 }
 
+const EMPTY: Record<Shelf, { title: string; body: string }> = {
+  active: { title: "No active workflows", body: "Everything is archived. Create a new one or start from a template below." },
+  shared: { title: "Nothing shared with you", body: "When someone shares a workflow with your sign-in email, it shows up here, view only. Make a copy to edit your own." },
+  archived: { title: "Nothing archived", body: "Workflows you archive land here, turned off, until you restore or delete them." },
+};
+
 function EmptyState({ shelf, filtered, onClear }: { shelf: Shelf; filtered: boolean; onClear: () => void }) {
   if (filtered) {
     return (
@@ -222,10 +255,8 @@ function EmptyState({ shelf, filtered, onClear }: { shelf: Shelf; filtered: bool
   return (
     <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line-strong px-6 py-12 text-center">
       <Archive size={24} className="text-ink-3" aria-hidden />
-      <p className="font-semibold">{shelf === "archived" ? "Nothing archived" : "No active workflows"}</p>
-      <p className="max-w-[44ch] text-sm text-ink-2">
-        {shelf === "archived" ? "Workflows you archive land here, turned off, until you restore or delete them." : "Everything is archived. Create a new one or start from a template below."}
-      </p>
+      <p className="font-semibold">{EMPTY[shelf].title}</p>
+      <p className="max-w-[44ch] text-sm text-ink-2">{EMPTY[shelf].body}</p>
     </div>
   );
 }
