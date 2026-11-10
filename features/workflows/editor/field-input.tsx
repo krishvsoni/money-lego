@@ -42,21 +42,31 @@ function PairsInput({ field, value, onChange, rowErrors }: Props & { field: Extr
                   ))}
                 </Select>
               ) : (
-                <input
-                  key={c.key}
-                  aria-label={`${c.label} ${i + 1}`}
-                  value={row[c.key] ?? ""}
-                  onChange={(e) => set(i, c.key, e.target.value)}
-                  placeholder={c.placeholder ?? c.label}
-                  spellCheck={false}
-                  aria-invalid={Boolean(rowErrors[`${field.key}.${i}.${c.key}`]) || undefined}
-                  className={`${inputClass} h-8 text-xs ${c.key === "email" ? "font-mono" : ""} ${field.columns.length > 2 && ci === 0 ? "col-span-2" : ""}`}
-                />
+                // Every box has a visible label: a grey placeholder alone reads as a value
+                // already filled in, which hid empty PayPal emails.
+                <label key={c.key} className={`flex min-w-0 flex-col gap-0.5 ${field.columns.length > 2 && ci === 0 ? "col-span-2" : ""}`}>
+                  <span className="text-[0.6875rem] font-semibold text-ink-3">{c.label}</span>
+                  <input
+                    aria-label={`${c.label} ${i + 1}`}
+                    value={row[c.key] ?? ""}
+                    onChange={(e) => set(i, c.key, e.target.value)}
+                    placeholder={c.placeholder ? `e.g. ${c.placeholder}` : c.label}
+                    spellCheck={false}
+                    aria-invalid={Boolean(rowErrors[`${field.key}.${i}.${c.key}`]) || undefined}
+                    className={`${inputClass} h-8 text-xs placeholder:text-ink-3/70 ${c.key === "email" ? "font-mono" : ""}`}
+                  />
+                </label>
               ),
             )}
           </div>
           <div className="mt-1 flex items-start justify-between gap-2">
-            <p className="text-[0.6875rem] text-danger">{field.columns.map((c) => rowErrors[`${field.key}.${i}.${c.key}`]).filter(Boolean).join(" ")}</p>
+            <p className="text-[0.6875rem]">
+              {field.columns.map((c) => rowErrors[`${field.key}.${i}.${c.key}`]).filter(Boolean).length ? (
+                <span className="text-danger">{field.columns.map((c) => rowErrors[`${field.key}.${i}.${c.key}`]).filter(Boolean).join(" ")}</span>
+              ) : field.columns.some((c) => c.key === "email") && !String(row.email ?? "").trim() ? (
+                <span className="text-attention">No PayPal email: this share stays with the business and isn&apos;t paid out.</span>
+              ) : null}
+            </p>
             <button onClick={() => onChange(rows.filter((_, j) => j !== i))} className="press rounded p-0.5 text-ink-3 hover:text-danger" aria-label={`Remove row ${i + 1}`}>
               <X className="h-3.5 w-3.5" />
             </button>

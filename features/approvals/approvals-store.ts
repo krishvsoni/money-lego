@@ -17,6 +17,7 @@ export interface PendingApproval {
   message: string;
   until: string | null;
   startedAt: string;
+  test: boolean;
 }
 
 interface State {

@@ -166,7 +166,8 @@ async function readStream(res: Response, hooks: CompletionHooks, alive: () => vo
 }
 
 async function completeOnce(t: Target, messages: ChatMessage[], userTag: string, hooks: CompletionHooks): Promise<unknown> {
-  hooks.onLog?.(`Thinking about how to build it (${t.label})`);
+  // The provider and model are an operator detail (server log only), never shown to the user.
+  hooks.onLog?.("Thinking about how to build it");
   const abort = new AbortController();
   const cap = setTimeout(() => abort.abort(), CAP_MS);
   let idle = setTimeout(() => abort.abort(), IDLE_MS);

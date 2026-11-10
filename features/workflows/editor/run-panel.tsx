@@ -11,6 +11,7 @@ import { relativeTime } from "@/lib/format";
 import { nodeDefinition } from "@/lib/nodes/registry";
 import type { RunDTO } from "@/lib/workflow/dto";
 import type { WorkflowGraph } from "@/lib/workflow/types";
+import { TEST_MODE_NOTE } from "@/lib/workflow/test-mode";
 import { ApprovalReview } from "./approval-review";
 import { PurchaseCard } from "./purchase-card";
 import type { Runs } from "./use-workflow-runs";
@@ -94,6 +95,16 @@ type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => (v && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : {});
 
 // The PayPal object a step produced, so the run reads like a ledger: capture, batch, refund, invoices.
+// Marks a run started from the trigger's test data (made-up capture ids). Its PayPal steps
+// still run for real in the sandbox; the badge only says where the run's data came from.
+function TestBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-line-strong px-1.5 text-[0.625rem] font-bold uppercase leading-4 tracking-wide text-ink-2" title={TEST_MODE_NOTE}>
+      Test
+    </span>
+  );
+}
+
 function paypalRef(output: unknown): string | null {
   const o = obj(output);
   if (obj(o.purchase).captureId) return `Paid · capture ${String(obj(o.purchase).captureId)}`;
@@ -360,6 +371,7 @@ export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; wo
             <span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-ink-2">
               <span className={`h-2 w-2 shrink-0 rounded-full ${RUN_TONE[run.status]}`} aria-hidden />
               <span className="font-semibold text-ink">{RUN_LABEL[run.status]}</span>
+              {run.test && <TestBadge />}
               <span className="truncate">· started {relativeTime(run.startedAt)}</span>
             </span>
           )}
@@ -405,7 +417,10 @@ export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; wo
                         <span className="font-semibold text-ink">{RUN_LABEL[r.status]}</span>
                         <span className="shrink-0 text-[0.6875rem] text-ink-3">{relativeTime(r.startedAt)}</span>
                       </span>
-                      <span className="block truncate text-ink-3">{triggerTitle(r.trigger.type)}</span>
+                      <span className="flex items-center gap-1.5 truncate text-ink-3">
+                        {r.test && <TestBadge />}
+                        <span className="truncate">{triggerTitle(r.trigger.type)}</span>
+                      </span>
                     </span>
                   </button>
                 </li>

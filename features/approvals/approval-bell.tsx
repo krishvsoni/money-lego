@@ -132,7 +132,10 @@ export function ApprovalBell() {
                                 <span className={`truncate text-sm ${isNew ? "font-bold" : "font-semibold"} text-ink`}>{item.workflowName}</span>
                                 <span className={`num shrink-0 rounded-full px-1.5 py-px text-[0.6875rem] font-semibold ${URGENCY_TONE[urgency]}`}>{label}</span>
                               </span>
-                              <span className="mt-0.5 block truncate text-xs text-ink-2">{item.step}</span>
+                              <span className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-ink-2">
+                                {item.test && <span className="shrink-0 rounded-full border border-line-strong px-1.5 text-[0.625rem] font-bold uppercase leading-4 tracking-wide">Test</span>}
+                                <span className="truncate">{item.step}</span>
+                              </span>
                               {item.message && <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-ink-3">{item.message}</span>}
                               <span className="mt-1.5 flex items-center justify-between gap-2 text-[0.6875rem] text-ink-3">
                                 <span>{waitingFor(item, now)}</span>

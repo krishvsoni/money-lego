@@ -6,6 +6,7 @@ import type { AgReportState, AgStudioApi, AgStudioMode } from "ag-studio";
 import { Button } from "@/components/ui/button";
 import { statusLabel, triggerLabel } from "@/lib/paypal/labels";
 import type { PaymentsOverview } from "@/server/paypal/status";
+import { MoneySummary } from "./money-summary";
 
 // AG Studio touches the DOM as it loads, so the canvas renders in the browser only.
 const StudioCanvas = dynamic(() => import("./studio-canvas"), {
@@ -19,7 +20,9 @@ const StudioCanvas = dynamic(() => import("./studio-canvas"), {
 // KPIs, and the layout they build is remembered in this browser.
 
 // v2: rows are 32px tall and the default report was re-spaced for them; v1 layouts were squashed.
-const STORAGE_KEY = "ml.payments.studio.v2";
+// v3: earlier saved layouts could mix the ledger into the KPI row; everyone starts once on the
+// default, where the six KPI tiles share one row.
+const STORAGE_KEY = "ml.payments.studio.v3";
 const KIND_LABEL: Record<string, string> = {
   order: "Order",
   capture: "Capture",
@@ -200,7 +203,8 @@ export function StudioDashboard({ data }: { data: PaymentsOverview }) {
 
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <MoneySummary data={data} />
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-ink-3">Click a chart to filter the rest of the page. Customize it to add your own charts, or ask AI to build them.</p>
         <Button variant="secondary" className="h-8" onClick={() => switchMode("edit")}>
           Customize dashboard

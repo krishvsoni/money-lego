@@ -33,7 +33,12 @@ export function allocationOf(input: unknown): Allocation {
 function payoutIntent(config: Record<string, unknown>, input: unknown): Intent {
   const allocation = allocationOf(input);
   const paid = allocation.items.filter((i) => !i.keep);
-  if (!paid.length) throw new NodeError("Every share in the allocation is a reserve, so there's nobody to pay.");
+  if (!paid.length) {
+    const who = allocation.items.map((i) => (i as { label?: string }).label).filter(Boolean);
+    throw new NodeError(
+      `Nobody to pay: ${who.length ? who.join(", ") : "every recipient"} ${who.length === 1 ? "has" : "have"} no PayPal email in Split allocation, so the whole amount counts as kept by the business. Open Split allocation, add a PayPal email under Recipients, then run again.`,
+    );
+  }
   if (paid.length > 15) throw new NodeError("A payout here pays at most 15 recipients at once.");
   const seen = new Set<string>();
   const items = paid.map((i, n) => {

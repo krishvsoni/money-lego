@@ -4,6 +4,7 @@ import { nodeDefinition } from "@/lib/nodes/registry";
 import type { NodeRunStatus, RunStatus, WaitKind } from "@/lib/workflow/types";
 import { nextRunAt } from "@/lib/workflow/schedule";
 import { validateGraph } from "@/lib/workflow/validate";
+import { isTestTrigger } from "@/lib/workflow/test-mode";
 import type { SessionUser } from "../auth/session";
 import { collections, isDuplicateKeyError } from "../db/collections";
 import { parseId } from "../db/ids";
@@ -32,6 +33,8 @@ export interface RunDTO {
   workflowVersion: number;
   status: RunStatus;
   trigger: { type: string; at: string };
+  // Started from the trigger's test data: money steps are previewed, never sent.
+  test: boolean;
   waiting: { nodeId: string; kind: WaitKind; until: string | null; ref: string | null } | null;
   error: string | null;
   log: Array<{ at: string; nodeId: string | null; level: string; message: string }>;
@@ -49,6 +52,7 @@ function toRunDTO(r: WorkflowRunDoc): RunDTO {
     workflowVersion: r.workflowVersion,
     status: r.status,
     trigger: { type: r.trigger.type, at: r.trigger.at.toISOString() },
+    test: isTestTrigger(r.trigger.payload),
     waiting: r.waiting ? { ...r.waiting, until: iso(r.waiting.until) } : null,
     error: r.error,
     log: r.log.map((l) => ({ ...l, at: l.at.toISOString() })),
@@ -147,12 +151,13 @@ export interface PendingApprovalDTO {
   message: string;
   until: string | null;
   startedAt: string;
+  test: boolean;
 }
 
 export async function listPendingApprovals(user: SessionUser): Promise<PendingApprovalDTO[]> {
   const { workflowRuns, nodeRuns, workflows } = await collections();
   const runs = await workflowRuns
-    .find({ ownerId: user.userId, status: "waiting", "waiting.kind": "approval" }, { projection: { workflowId: 1, waiting: 1, startedAt: 1, "graph.nodes": 1 } })
+    .find({ ownerId: user.userId, status: "waiting", "waiting.kind": "approval" }, { projection: { workflowId: 1, waiting: 1, startedAt: 1, "graph.nodes": 1, "trigger.payload.source": 1 } })
     .sort({ startedAt: -1 })
     .limit(30)
     .toArray();
@@ -180,6 +185,7 @@ export async function listPendingApprovals(user: SessionUser): Promise<PendingAp
         message: typeof message === "string" ? message.slice(0, 400) : "",
         until: iso(r.waiting?.until),
         startedAt: r.startedAt.toISOString(),
+        test: isTestTrigger(r.trigger?.payload),
       },
     ];
   });
