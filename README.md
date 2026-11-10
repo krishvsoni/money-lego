@@ -8,6 +8,12 @@
 </p>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="#try-it"><img src="https://img.shields.io/badge/open%20source-yes-brightgreen.svg" alt="Open source" /></a>
+  <img src="https://img.shields.io/badge/PayPal-Sandbox-003087.svg" alt="PayPal Sandbox" />
+</p>
+
+<p align="center">
   <a href="#the-problem">Problem</a> ·
   <a href="#what-money-lego-does">Product</a> ·
   <a href="#meet-sage-and-the-crew">Meet the crew</a> ·
@@ -17,7 +23,8 @@
   <a href="#money-lego-on-astropods">Astropods</a> ·
   <a href="#runs-on-the-paypal-sandbox">PayPal Sandbox</a> ·
   <a href="#built-with">Built with</a> ·
-  <a href="docs/TECHNICAL_SPEC.md">Technical spec</a>
+  <a href="docs/TECHNICAL_SPEC.md">Technical spec</a> ·
+  <a href="#license">License</a>
 </p>
 
 ---
@@ -256,9 +263,13 @@ Architecture, data model, API reference and deployment: **[docs/TECHNICAL_SPEC.m
 - Placing the merchant order automatically once Channel3's checkout API ships.
 - Dispute triage, scheduled payout windows, and more connectors.
 
+## License
+
+Money Lego is open source under the [MIT License](LICENSE): use it, change it and ship it, commercially or not, as long as the copyright notice stays with the code.
+
 ---
 
 <p align="center">
   <img src="docs/assets/logo.png" width="36" alt="Money Lego" /><br />
-  <sub>Money Lego · MIT licensed · PayPal Sandbox</sub>
+  <sub>Money Lego · <a href="LICENSE">MIT licensed</a> · PayPal Sandbox</sub>
 </p>

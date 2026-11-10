@@ -1,73 +1,37 @@
 {
   "info": {
-    "name": "Money Lego — PayPal Sandbox",
-    "description": "The exact PayPal REST calls Money Lego makes (sandbox), plus Money Lego's own public endpoints. Run \"OAuth 2.0 token\" first; it stores the token for the rest. Never use live credentials here.",
+    "_postman_id": "6f0c3f0e-8a5b-4d7e-9c41-2a7d5b1e9f30",
+    "name": "Money Lego: PayPal Sandbox end to end",
+    "description": "Every PayPal call Money Lego makes, both Channel3 calls, and the Money Lego API, in the order of an end-to-end demo.\n\n**Setup**\n1. Import `money-lego.postman_environment.json` and fill in the secrets (PayPal sandbox client id/secret, Channel3 key, Clerk session, webhook secret, cron secret).\n2. Run *1. PayPal · Auth* first; the token is saved for every PayPal request.\n3. Requests save the ids they create (order, capture, payout batch, invoice, product, workflow, run, approval node, share) for the next request, so run each folder top to bottom.\n\n**Sandbox notes**\n- Use sandbox personal accounts as buyers and payout recipients; a real address ends up `UNCLAIMED`.\n- Payouts need a sandbox business account in a country that allows them (US works; India returns `PAYOUT_NOT_AVAILABLE`).\n- Write requests send `PayPal-Request-Id`, as the app does, so a retry never creates a second object.\n\nSource of truth: `server/paypal/api.ts`, `server/paypal/client.ts`, `server/integrations/channel3.ts`, `app/api/**`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "paypal_base",
-      "value": "https://api-m.sandbox.paypal.com"
-    },
-    {
-      "key": "paypal_client_id",
-      "value": ""
-    },
-    {
-      "key": "paypal_client_secret",
-      "value": ""
-    },
-    {
-      "key": "paypal_access_token",
-      "value": ""
-    },
-    {
-      "key": "order_id",
-      "value": ""
-    },
-    {
-      "key": "capture_id",
-      "value": ""
-    },
-    {
-      "key": "payout_batch_id",
-      "value": ""
-    },
-    {
-      "key": "invoice_id",
-      "value": ""
-    },
-    {
-      "key": "app_url",
-      "value": "http://localhost:3000"
-    },
-    {
-      "key": "checkout_key",
-      "value": ""
-    }
-  ],
   "item": [
     {
-      "name": "1. PayPal auth",
+      "name": "1. PayPal · Auth",
+      "description": "Client-credentials OAuth, as `server/paypal/client.ts` does it. The token is saved for every PayPal request below; its scopes show whether Payouts, Invoicing and Transaction Search are enabled for the app.",
       "item": [
         {
-          "name": "OAuth 2.0 token (client credentials)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const j = pm.response.json();",
-                  "pm.collectionVariables.set(\"paypal_access_token\", j.access_token);",
-                  "pm.test(\"token issued\", () => pm.expect(j.access_token).to.be.a(\"string\"));"
-                ]
-              }
-            }
-          ],
+          "name": "Get access token (client credentials)",
           "request": {
             "method": "POST",
-            "description": "Exchanges the sandbox app credentials for an access token. Money Lego does this server-side and caches it (server/paypal/client.ts).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v1/oauth2/token"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "grant_type=client_credentials",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "auth": {
               "type": "basic",
               "basic": [
@@ -80,596 +44,2724 @@
                   "value": "{{paypal_client_secret}}"
                 }
               ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
-              }
-            ],
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {
-                  "key": "grant_type",
-                  "value": "client_credentials"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{paypal_base}}/v1/oauth2/token",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "oauth2",
-                "token"
-              ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('paypal_access_token', j.access_token);",
+                  "const scopes = String(j.scope || '');",
+                  "pm.test('Payouts enabled for this app', () => pm.expect(scopes).to.include('payments/payouts'));",
+                  "pm.test('Invoicing enabled for this app', () => pm.expect(scopes).to.include('invoicing'));",
+                  "console.log('app_id', j.app_id, 'expires_in', j.expires_in);"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "2. Orders & captures (checkout trigger)",
+      "name": "2. PayPal · Checkout and capture",
+      "description": "The hosted checkout path (`/pay/<key>`): create an order at the server's price, the buyer approves it, then capture. Open the saved `approve_url` in a browser and log in as a **sandbox personal account** before running *Capture order*.",
       "item": [
         {
           "name": "Create order",
           "request": {
             "method": "POST",
-            "description": "What a workflow checkout page creates. custom_id routes the webhook back to the workflow.",
             "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v2/checkout/orders",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "checkout",
-                "orders"
-              ]
+              "raw": "{{paypal_base}}/v2/checkout/orders"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"intent\": \"CAPTURE\",\n  \"purchase_units\": [\n    {\n      \"reference_id\": \"default\",\n      \"custom_id\": \"ml:<workflow key>\",\n      \"description\": \"Brand strategy session\",\n      \"amount\": {\n        \"currency_code\": \"USD\",\n        \"value\": \"100.00\",\n        \"breakdown\": {\n          \"item_total\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          }\n        }\n      },\n      \"items\": [\n        {\n          \"name\": \"Brand strategy session\",\n          \"quantity\": \"1\",\n          \"unit_amount\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          },\n          \"category\": \"DIGITAL_GOODS\"\n        }\n      ]\n    }\n  ]\n}"
+              "raw": "{\n  \"intent\": \"CAPTURE\",\n  \"purchase_units\": [\n    {\n      \"reference_id\": \"default\",\n      \"custom_id\": \"ml-postman\",\n      \"description\": \"Brand strategy session\",\n      \"amount\": {\n        \"currency_code\": \"USD\",\n        \"value\": \"100.00\",\n        \"breakdown\": {\n          \"item_total\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          }\n        }\n      },\n      \"items\": [\n        {\n          \"name\": \"Brand strategy session\",\n          \"quantity\": \"1\",\n          \"unit_amount\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"100.00\"\n          },\n          \"category\": \"DIGITAL_GOODS\"\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('order_id', j.id);",
+                  "const approve = (j.links || []).find(l => l.rel === 'approve' || l.rel === 'payer-action');",
+                  "if (approve) { pm.collectionVariables.set('approve_url', approve.href); console.log('Open to approve:', approve.href); }"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get order",
           "request": {
             "method": "GET",
-            "description": "Used by the Get PayPal order block.",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "header": [],
             "url": {
-              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "checkout",
-                "orders",
-                "{{order_id}}"
-              ]
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('order status', j.status);"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Capture order (after buyer approval)",
+          "name": "Capture order (after the buyer approves)",
           "request": {
             "method": "POST",
-            "description": "Idempotent per order via PayPal-Request-Id in Money Lego.",
             "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}/capture",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "checkout",
-                "orders",
-                "{{order_id}}",
-                "capture"
-              ]
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{order_id}}/capture"
             },
             "body": {
               "mode": "raw",
-              "raw": "{}"
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const j = pm.response.json();",
+                  "const cap = j.purchase_units?.[0]?.payments?.captures?.[0];",
+                  "if (cap && cap.id) pm.collectionVariables.set('capture_id', cap && cap.id);",
+                  "pm.test('Capture completed', () => pm.expect(cap && cap.status).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Refund capture",
+          "name": "Get capture",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{paypal_base}}/v2/payments/captures/{{capture_id}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('capture', j.status, j.amount?.value, 'net', j.seller_receivable_breakdown?.net_amount?.value);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refund capture (partial, $10)",
           "request": {
             "method": "POST",
-            "description": "The Refund payment block (only after a human approval).",
             "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v2/payments/captures/{{capture_id}}/refund",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "payments",
-                "captures",
-                "{{capture_id}}",
-                "refund"
-              ]
+              "raw": "{{paypal_base}}/v2/payments/captures/{{capture_id}}/refund"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": {\n    \"currency_code\": \"USD\",\n    \"value\": \"25.00\"\n  },\n  \"note_to_payer\": \"Refund for your booking.\"\n}"
+              "raw": "{\n  \"amount\": {\n    \"currency_code\": \"USD\",\n    \"value\": \"10.00\"\n  },\n  \"note_to_payer\": \"Partial refund from Money Lego\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('refund_id', j.id);"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
-      "name": "3. Payouts",
+      "name": "3. PayPal · Checkout link (Channel3 sourcing)",
+      "description": "What the *PayPal checkout link* block sends after you approve a Channel3 product: an order with a return URL, so the buyer pays from a link instead of the JS SDK buttons. The return URL lands on `/pay/done`; PayPal adds `token=<order id>`.",
+      "item": [
+        {
+          "name": "Create checkout-link order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intent\": \"CAPTURE\",\n  \"purchase_units\": [\n    {\n      \"reference_id\": \"default\",\n      \"custom_id\": \"ml-postman\",\n      \"description\": \"Kinesis mWave Mechanical Keyboard - newegg.com\",\n      \"amount\": {\n        \"currency_code\": \"USD\",\n        \"value\": \"106.95\",\n        \"breakdown\": {\n          \"item_total\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"106.95\"\n          }\n        }\n      },\n      \"items\": [\n        {\n          \"name\": \"Kinesis mWave Mechanical Keyboard\",\n          \"quantity\": \"1\",\n          \"unit_amount\": {\n            \"currency_code\": \"USD\",\n            \"value\": \"106.95\"\n          },\n          \"category\": \"DIGITAL_GOODS\"\n        }\n      ]\n    }\n  ],\n  \"payment_source\": {\n    \"paypal\": {\n      \"experience_context\": {\n        \"return_url\": \"{{app_url}}/pay/done?status=approved\",\n        \"cancel_url\": \"{{app_url}}/pay/done?status=cancelled\",\n        \"user_action\": \"PAY_NOW\",\n        \"shipping_preference\": \"NO_SHIPPING\",\n        \"brand_name\": \"Money Lego (sandbox)\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('link_order_id', j.id);",
+                  "const action = (j.links || []).find(l => l.rel === 'payer-action');",
+                  "pm.test('Has a payer-action link for the buyer', () => pm.expect(action).to.exist);",
+                  "if (action) console.log('Send this to the buyer:', action.href);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get checkout-link order (after the buyer pays)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{link_order_id}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('status', j.status);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Capture checkout-link order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v2/checkout/orders/{{link_order_id}}/capture"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const j = pm.response.json();",
+                  "const cap = j.purchase_units?.[0]?.payments?.captures?.[0];",
+                  "pm.test('Captured', () => pm.expect(cap && cap.status).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "4. PayPal · Payouts",
+      "description": "What the *PayPal payout* and *Payout status* blocks call after an approval. Use a **sandbox personal account** email as `payout_receiver`; a real address ends up `UNCLAIMED` (`RECEIVER_UNREGISTERED`). Payouts need a sandbox app whose business account country allows them (a US business account works; India returns `PAYOUT_NOT_AVAILABLE`).",
       "item": [
         {
           "name": "Create payout batch",
           "request": {
             "method": "POST",
-            "description": "The PayPal payout block. sender_batch_id is stable per run+node, so retries never pay twice.",
             "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{sender_batch_id}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v1/payments/payouts",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "payments",
-                "payouts"
-              ]
+              "raw": "{{paypal_base}}/v1/payments/payouts"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sender_batch_header\": {\n    \"sender_batch_id\": \"ml-<runId>-<nodeId>\",\n    \"email_subject\": \"Your share of a client payment\",\n    \"email_message\": \"Thank you!\"\n  },\n  \"items\": [\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"67.22\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"creator@example.com\",\n      \"note\": \"Creator share\",\n      \"sender_item_id\": \"1\"\n    },\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"19.20\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"agency@example.com\",\n      \"note\": \"Agency share\",\n      \"sender_item_id\": \"2\"\n    }\n  ]\n}"
+              "raw": "{\n  \"sender_batch_header\": {\n    \"sender_batch_id\": \"{{sender_batch_id}}\",\n    \"email_subject\": \"You have a payout\",\n    \"email_message\": \"Your share from Money Lego\"\n  },\n  \"items\": [\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"2.00\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"{{payout_receiver}}\",\n      \"note\": \"Payout for Creator\",\n      \"sender_item_id\": \"{{sender_batch_id}}-1\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sender_batch_id', 'ml-postman-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([201, 200]));",
+                  "const j = pm.response.json();",
+                  "if (j.batch_header && j.batch_header.payout_batch_id) pm.collectionVariables.set('payout_batch_id', j.batch_header && j.batch_header.payout_batch_id);",
+                  "console.log('batch', j.batch_header?.batch_status, '(accepted is not paid; check the batch next)');"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Get payout batch",
+          "name": "Get payout batch (status follow-up)",
           "request": {
             "method": "GET",
-            "description": "The Payout status block polls this (and webhooks wake it).",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "header": [],
             "url": {
-              "raw": "{{paypal_base}}/v1/payments/payouts/{{payout_batch_id}}?fields=batch_header,items",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "payments",
-                "payouts",
-                "{{payout_batch_id}}?fields=batch_header,items"
-              ]
+              "raw": "{{paypal_base}}/v1/payments/payouts/{{payout_batch_id}}?fields=batch_header,items&page_size=100&total_required=true"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "const item = j.items?.[0];",
+                  "if (item && item.payout_item_id) pm.collectionVariables.set('payout_item_id', item && item.payout_item_id);",
+                  "console.log('batch', j.batch_header?.batch_status, '| item', item?.transaction_status, item?.errors?.name || '');",
+                  "pm.test('Item not unclaimed (use a sandbox account email)', () => pm.expect(item && item.transaction_status).to.not.eql('UNCLAIMED'));"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
-      "name": "4. Invoicing",
+      "name": "5. PayPal · Invoicing",
+      "description": "The invoice blocks: *Create invoice* (draft), *Send invoice* (send or remind) and *Find invoices*. Send and remind are money-adjacent and sit behind an approval in Money Lego.",
       "item": [
         {
-          "name": "Search unpaid invoices",
+          "name": "Create draft invoice",
           "request": {
             "method": "POST",
-            "description": "The Find invoices block.",
             "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v2/invoicing/search-invoices?page=1&page_size=10&total_required=true",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "invoicing",
-                "search-invoices?page=1&page_size=10&total_required=true"
-              ]
+              "raw": "{{paypal_base}}/v2/invoicing/invoices"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": [\n    \"SENT\",\n    \"UNPAID\",\n    \"PARTIALLY_PAID\"\n  ],\n  \"due_date_range\": {\n    \"start\": \"2000-01-01\",\n    \"end\": \"2026-11-06\"\n  }\n}"
+              "raw": "{\n  \"detail\": {\n    \"currency_code\": \"USD\",\n    \"reference\": \"ml-postman\",\n    \"note\": \"Thanks for working with us.\",\n    \"payment_term\": {\n      \"due_date\": \"{{due_date}}\"\n    }\n  },\n  \"primary_recipients\": [\n    {\n      \"billing_info\": {\n        \"email_address\": \"{{invoice_recipient}}\",\n        \"name\": {\n          \"given_name\": \"Studio North\"\n        }\n      }\n    }\n  ],\n  \"items\": [\n    {\n      \"name\": \"Website retainer\",\n      \"quantity\": \"1\",\n      \"unit_amount\": {\n        \"currency_code\": \"USD\",\n        \"value\": \"250.00\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date(Date.now() + 14 * 864e5); pm.collectionVariables.set('due_date', d.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([201, 200]));",
+                  "const j = pm.response.json();",
+                  "const id = j.id || (j.href || '').split('/').pop();",
+                  "if (id) pm.collectionVariables.set('invoice_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{paypal_base}}/v2/invoicing/invoices/{{invoice_id}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('invoice', j.detail?.invoice_number, j.status);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v2/invoicing/invoices/{{invoice_id}}/send"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Your invoice from Studio North\",\n  \"note\": \"Due in 14 days.\",\n  \"send_to_invoicer\": false,\n  \"send_to_recipient\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 202', () => pm.expect(pm.response.code).to.be.oneOf([200, 202]));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Send reminder",
           "request": {
             "method": "POST",
-            "description": "The Send invoice block in remind mode.",
+            "header": [
+              {
+                "key": "PayPal-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v2/invoicing/invoices/{{invoice_id}}/remind"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Friendly reminder\",\n  \"note\": \"A quick nudge about this invoice.\",\n  \"send_to_invoicer\": false,\n  \"send_to_recipient\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204 or 200', () => pm.expect(pm.response.code).to.be.oneOf([204, 200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search unpaid and sent invoices",
+          "request": {
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v2/invoicing/invoices/{{invoice_id}}/remind",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v2",
-                "invoicing",
-                "invoices",
-                "{{invoice_id}}",
-                "remind"
-              ]
+              "raw": "{{paypal_base}}/v2/invoicing/search-invoices?page=1&page_size=10&total_required=true"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"subject\": \"A friendly reminder about your invoice\",\n  \"note\": \"AI-drafted note goes here\",\n  \"send_to_invoicer\": false,\n  \"send_to_recipient\": true\n}"
+              "raw": "{\n  \"status\": [\n    \"SENT\",\n    \"UNPAID\",\n    \"PARTIALLY_PAID\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('found', j.total_items);"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
-      "name": "5. Subscriptions & reporting",
+      "name": "6. PayPal · Subscriptions and reporting",
+      "description": "*Get subscription* (failed-payment recovery) and *Transactions* (weekly digest, ledger). Transaction Search must be enabled for the app, and new sandbox transactions can take a few hours to appear.",
       "item": [
         {
           "name": "Get subscription",
           "request": {
             "method": "GET",
-            "description": "The Get subscription block.",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "header": [],
             "url": {
-              "raw": "{{paypal_base}}/v1/billing/subscriptions/I-BW452GLLEP1G",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "billing",
-                "subscriptions",
-                "I-BW452GLLEP1G"
-              ]
+              "raw": "{{paypal_base}}/v1/billing/subscriptions/{{subscription_id}}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('subscription', j.status, 'failed payments', j.billing_info?.failed_payments_count);"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Transaction search (7 days)",
+          "name": "Transaction search (last 7 days)",
           "request": {
             "method": "GET",
-            "description": "The Transaction report block.",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "header": [],
             "url": {
-              "raw": "{{paypal_base}}/v1/reporting/transactions?start_date=2026-11-01T00:00:00Z&end_date=2026-11-07T23:59:59Z&fields=transaction_info&page_size=100",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "reporting",
-                "transactions?start_date=2026-11-01T00:00:00Z&end_date=2026-11-07T23:59:59Z&fields=transaction_info&page_size=100"
-              ]
+              "raw": "{{paypal_base}}/v1/reporting/transactions?start_date={{tx_start}}&end_date={{tx_end}}&fields=transaction_info&page_size=100"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const end = new Date(); const start = new Date(end - 7 * 864e5);",
+                  "pm.collectionVariables.set('tx_start', start.toISOString().replace(/\\.\\d+Z$/, 'Z'));",
+                  "pm.collectionVariables.set('tx_end', end.toISOString().replace(/\\.\\d+Z$/, 'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log('transactions', (j.transaction_details || []).length);"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
-      "name": "6. Webhooks",
+      "name": "7. PayPal · Webhooks",
+      "description": "What `npm run paypal:webhook` does: register `{{app_url}}/api/integrations/paypal` for the events Money Lego handles (it must be a public HTTPS URL), and keep the list in sync. Money Lego verifies every delivery with *Verify webhook signature*.",
       "item": [
         {
           "name": "List webhooks",
           "request": {
             "method": "GET",
-            "description": "npm run paypal:webhook registers/updates the app webhook.",
+            "header": [],
+            "url": {
+              "raw": "{{paypal_base}}/v1/notifications/webhooks"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "const mine = (j.webhooks || []).find(w => w.url.endsWith('/api/integrations/paypal'));",
+                  "if (mine && mine.id) pm.collectionVariables.set('webhook_id', mine && mine.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create webhook",
+          "request": {
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v1/notifications/webhooks",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "notifications",
-                "webhooks"
-              ]
+              "raw": "{{paypal_base}}/v1/notifications/webhooks"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{app_url}}/api/integrations/paypal\",\n  \"event_types\": [\n    {\n      \"name\": \"PAYMENT.CAPTURE.COMPLETED\"\n    },\n    {\n      \"name\": \"PAYMENT.CAPTURE.PENDING\"\n    },\n    {\n      \"name\": \"PAYMENT.CAPTURE.DENIED\"\n    },\n    {\n      \"name\": \"PAYMENT.CAPTURE.REFUNDED\"\n    },\n    {\n      \"name\": \"CHECKOUT.ORDER.APPROVED\"\n    },\n    {\n      \"name\": \"INVOICING.INVOICE.PAID\"\n    },\n    {\n      \"name\": \"INVOICING.INVOICE.CANCELLED\"\n    },\n    {\n      \"name\": \"BILLING.SUBSCRIPTION.PAYMENT.FAILED\"\n    },\n    {\n      \"name\": \"BILLING.SUBSCRIPTION.CANCELLED\"\n    },\n    {\n      \"name\": \"CUSTOMER.DISPUTE.CREATED\"\n    },\n    {\n      \"name\": \"PAYMENT.PAYOUTSBATCH.SUCCESS\"\n    },\n    {\n      \"name\": \"PAYMENT.PAYOUTSBATCH.DENIED\"\n    },\n    {\n      \"name\": \"PAYMENT.PAYOUTS-ITEM.SUCCEEDED\"\n    },\n    {\n      \"name\": \"PAYMENT.PAYOUTS-ITEM.FAILED\"\n    },\n    {\n      \"name\": \"PAYMENT.PAYOUTS-ITEM.UNCLAIMED\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([201, 200]));",
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('webhook_id', j.id);",
+                  "console.log('Set PAYPAL_WEBHOOK_ID =', j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update webhook events",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{paypal_base}}/v1/notifications/webhooks/{{webhook_id}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/event_types\",\n    \"value\": [\n      {\n        \"name\": \"PAYMENT.CAPTURE.COMPLETED\"\n      },\n      {\n        \"name\": \"PAYMENT.CAPTURE.PENDING\"\n      },\n      {\n        \"name\": \"PAYMENT.CAPTURE.DENIED\"\n      },\n      {\n        \"name\": \"PAYMENT.CAPTURE.REFUNDED\"\n      },\n      {\n        \"name\": \"CHECKOUT.ORDER.APPROVED\"\n      },\n      {\n        \"name\": \"INVOICING.INVOICE.PAID\"\n      },\n      {\n        \"name\": \"INVOICING.INVOICE.CANCELLED\"\n      },\n      {\n        \"name\": \"BILLING.SUBSCRIPTION.PAYMENT.FAILED\"\n      },\n      {\n        \"name\": \"BILLING.SUBSCRIPTION.CANCELLED\"\n      },\n      {\n        \"name\": \"CUSTOMER.DISPUTE.CREATED\"\n      },\n      {\n        \"name\": \"PAYMENT.PAYOUTSBATCH.SUCCESS\"\n      },\n      {\n        \"name\": \"PAYMENT.PAYOUTSBATCH.DENIED\"\n      },\n      {\n        \"name\": \"PAYMENT.PAYOUTS-ITEM.SUCCEEDED\"\n      },\n      {\n        \"name\": \"PAYMENT.PAYOUTS-ITEM.FAILED\"\n      },\n      {\n        \"name\": \"PAYMENT.PAYOUTS-ITEM.UNCLAIMED\"\n      }\n    ]\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Verify webhook signature",
           "request": {
             "method": "POST",
-            "description": "Money Lego verifies every delivery this way before storing or acting on it.",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{paypal_access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
             "url": {
-              "raw": "{{paypal_base}}/v1/notifications/verify-webhook-signature",
-              "host": [
-                "{{paypal_base}}"
-              ],
-              "path": [
-                "v1",
-                "notifications",
-                "verify-webhook-signature"
-              ]
+              "raw": "{{paypal_base}}/v1/notifications/verify-webhook-signature"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"auth_algo\": \"SHA256withRSA\",\n  \"cert_url\": \"https://api.sandbox.paypal.com/v1/notifications/certs/CERT-...\",\n  \"transmission_id\": \"...\",\n  \"transmission_sig\": \"...\",\n  \"transmission_time\": \"...\",\n  \"webhook_id\": \"<PAYPAL_WEBHOOK_ID>\",\n  \"webhook_event\": {}\n}"
+              "raw": "{\n  \"auth_algo\": \"SHA256withRSA\",\n  \"cert_url\": \"<paypal-cert-url header>\",\n  \"transmission_id\": \"<paypal-transmission-id header>\",\n  \"transmission_sig\": \"<paypal-transmission-sig header>\",\n  \"transmission_time\": \"<paypal-transmission-time header>\",\n  \"webhook_id\": \"{{webhook_id}}\",\n  \"webhook_event\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fill in the headers PayPal sent with a real delivery (paypal-transmission-id, -time, -sig, cert url, auth algo) and paste the exact event body as `webhook_event`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "pm.test('SUCCESS', () => pm.expect(j.verification_status).to.eql('SUCCESS'));"
+                ]
+              }
             }
-          }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{paypal_access_token}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
-      "name": "7. Money Lego public endpoints",
+      "name": "8. Channel3 · Products",
+      "description": "The two Channel3 calls behind the *Channel3 product search* block, the AI pick, the post-approval price re-check and the run panel's Purchase card. Base `https://api.trychannel3.com`, key in `x-api-key`.",
+      "item": [
+        {
+          "name": "Search products (in stock, new, under budget)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{channel3_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{channel3_base}}/v1/search"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"A quiet mechanical keyboard for a small design studio\",\n  \"limit\": 6,\n  \"filters\": {\n    \"availability\": [\n      \"InStock\"\n    ],\n    \"conditions\": [\n      \"new\"\n    ],\n    \"price\": {\n      \"max_price\": 150\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "const p = (j.products || [])[0];",
+                  "if (p && p.id) pm.collectionVariables.set('product_id', p && p.id);",
+                  "pm.test('Found products', () => pm.expect((j.products || []).length).to.be.above(0));",
+                  "(j.products || []).forEach(x => console.log(x.id, '|', x.title, '|', x.offers?.[0]?.price?.price, x.offers?.[0]?.domain));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get product (price re-check)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{channel3_api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{channel3_base}}/v1/products/{{product_id}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "const offers = (j.offers || []).filter(o => o.availability === 'InStock').sort((a, b) => a.price.price - b.price.price);",
+                  "console.log(j.title, '| cheapest in stock:', offers[0]?.price?.price, offers[0]?.price?.currency, offers[0]?.domain);"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "9. Money Lego · Public checkout",
+      "description": "The endpoints a buyer's browser uses, no sign-in. `checkout_key` is the part after `/pay/` on a workflow's checkout page (Editor → select the *PayPal checkout paid* trigger → Open). The workflow must be turned on.",
       "item": [
         {
           "name": "Health",
           "request": {
             "method": "GET",
-            "description": "Up or down.",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "noauth"
-            },
+            "header": [],
             "url": {
-              "raw": "{{app_url}}/api/health",
-              "host": [
-                "{{app_url}}"
-              ],
-              "path": [
-                "api",
-                "health"
-              ]
+              "raw": "{{app_url}}/api/health"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "App config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{app_url}}/api/config"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{app_url}}/api/templates"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log((j.templates || []).map(t => t.slug).join(', '));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Checkout page data",
           "request": {
             "method": "GET",
-            "description": "Price and product for a workflow checkout page (never the graph).",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "noauth"
-            },
+            "header": [],
             "url": {
-              "raw": "{{app_url}}/api/pay/{{checkout_key}}",
-              "host": [
-                "{{app_url}}"
-              ],
-              "path": [
-                "api",
-                "pay",
-                "{{checkout_key}}"
-              ]
+              "raw": "{{app_url}}/api/pay/{{checkout_key}}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "pm.test('Accepting payments', () => pm.expect(j.accepting).to.eql(true));",
+                  "console.log(j.itemName, j.amount, j.currency);"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Create checkout order",
+          "name": "Create checkout order (server sets the price)",
           "request": {
             "method": "POST",
-            "description": "Server creates the PayPal order at the workflow's price; the browser can't set the amount.",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "auth": {
-              "type": "noauth"
-            },
             "url": {
-              "raw": "{{app_url}}/api/pay/{{checkout_key}}/orders",
-              "host": [
-                "{{app_url}}"
-              ],
-              "path": [
-                "api",
-                "pay",
-                "{{checkout_key}}",
-                "orders"
-              ]
+              "raw": "{{app_url}}/api/pay/{{checkout_key}}/orders"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"requestKey\": \"00000000-0000-4000-8000-000000000000\"\n}"
+              "raw": "{\n  \"requestKey\": \"{{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('checkout_order_id', j.id);",
+                  "console.log('Approve as a sandbox buyer: https://www.sandbox.paypal.com/checkoutnow?token=' + j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Capture checkout order (starts the run)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{app_url}}/api/pay/{{checkout_key}}/orders/{{checkout_order_id}}/capture"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "pm.test('Capture completed', () => pm.expect(j.captureStatus).to.eql('COMPLETED'));",
+                  "if (j.runId) pm.collectionVariables.set('run_id', j.runId);",
+                  "if (j.captureId) pm.collectionVariables.set('capture_id', j.captureId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Return page after a checkout link",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{app_url}}/pay/done?status=approved&token={{link_order_id}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "10. Money Lego · Signed webhook trigger",
+      "description": "Starts a workflow whose trigger is *Webhook trigger*. The body is signed with the workflow's signing secret (HMAC-SHA256, hex) in `x-money-lego-signature: sha256=<hex>`; the pre-request script signs it for you. `webhook_key` is the part after `/api/hooks/` in the trigger's settings. Repeating an `Idempotency-Key` never starts a second run.",
+      "item": [
+        {
+          "name": "Send signed webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-money-lego-signature",
+                "value": "sha256={{webhook_signature}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{app_url}}/api/hooks/{{webhook_key}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"client.request\",\n  \"request\": \"A quiet mechanical keyboard for a small design studio\",\n  \"maxPrice\": \"150\",\n  \"client\": \"Studio North\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const raw = pm.variables.replaceIn(pm.request.body.raw);",
+                  "const sig = CryptoJS.HmacSHA256(raw, pm.collectionVariables.get('webhook_secret')).toString(CryptoJS.enc.Hex);",
+                  "pm.collectionVariables.set('webhook_signature', sig);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 201 or 202', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]));",
+                  "console.log(pm.response.text());"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "11. Money Lego · Signed-in API",
+      "description": "Everything the app does for a signed-in user. Sign in at `{{app_url}}` in a browser, then copy the `__session` cookie (DevTools → Application → Cookies) into the `clerk_session` variable. It expires after about a minute of inactivity; copy it again if you get 401.\n\nOrder for a demo: create from template → enable → start a run → read it (saves the waiting node) → approve → explain → payments.",
+      "item": [
+        {
+          "name": "Workflows",
+          "description": "Your workflows, shared workflows, templates.",
+          "item": [
+            {
+              "name": "List my workflows",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "const w = (j.workflows || [])[0];",
+                      "if (w && w.id) pm.collectionVariables.set('workflow_id', w && w.id);",
+                      "console.log((j.workflows || []).map(w => w.name).join(' | '));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "List shared with me",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows?scope=shared"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "List archived",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows?status=archived"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create from template (revenue split)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"templateSlug\": \"paypal-sale-revenue-split\",\n  \"requestKey\": \"{{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const j = pm.response.json();",
+                      "if (j.workflow && j.workflow.id) pm.collectionVariables.set('workflow_id', j.workflow && j.workflow.id);",
+                      "if (j.workflow && j.workflow.checkoutPath && j.workflow.checkoutPath.split('/').pop()) pm.collectionVariables.set('checkout_key', j.workflow && j.workflow.checkoutPath && j.workflow.checkoutPath.split('/').pop());"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create from template (Channel3 sourcing)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"templateSlug\": \"paypal-ai-product-sourcing\",\n  \"requestKey\": \"{{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const j = pm.response.json();",
+                      "if (j.workflow && j.workflow.id) pm.collectionVariables.set('workflow_id', j.workflow && j.workflow.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get workflow",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "if (j.workflow && j.workflow.version) pm.collectionVariables.set('workflow_version', j.workflow && j.workflow.version);",
+                      "if (j.workflow && j.workflow.checkoutPath && j.workflow.checkoutPath.split('/').pop()) pm.collectionVariables.set('checkout_key', j.workflow && j.workflow.checkoutPath && j.workflow.checkoutPath.split('/').pop());"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Rename (save with the current graph)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"loaded before sending\",\n  \"graph\": {},\n  \"expectedVersion\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "The editor's autosave: `{ name, graph, expectedVersion }`. The pre-request script loads the workflow and resends its graph unchanged, so only the name changes. A stale `expectedVersion` returns STALE_WRITE."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.sendRequest({ url: pm.variables.replaceIn('{{app_url}}/api/workflows/{{workflow_id}}'), method: 'GET',",
+                      "  header: { Cookie: pm.variables.replaceIn('__session={{clerk_session}}') } }, (err, res) => {",
+                      "  if (err || res.code !== 200) { console.error('Could not load the workflow', err || res.code); return; }",
+                      "  const w = res.json().workflow;",
+                      "  pm.request.body.update(JSON.stringify({ name: w.name.replace(/ \\(Postman\\)$/, '') + ' (Postman)', graph: w.graph, expectedVersion: w.version }, null, 2));",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log('saved version', j.workflow?.version, j.workflow?.name);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Duplicate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/duplicate"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Turn on",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/enabled"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log(j.workflow?.enabled ? 'on' : 'off');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Turn off",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/enabled"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Archive",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/status"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"archived\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Restore",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/status"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"active\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Runs and approvals",
+          "description": "Start a run, approve it, explain it.",
+          "item": [
+            {
+              "name": "Start a run (trigger's test data)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/runs"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestKey\": \"{{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const j = pm.response.json();",
+                      "if (j.run && j.run.id) pm.collectionVariables.set('run_id', j.run && j.run.id);",
+                      "console.log('run', j.run?.status, j.run?.waiting);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Start a run with your own payload",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/runs"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requestKey\": \"{{$guid}}\",\n  \"payload\": {\n    \"request\": \"A quiet mechanical keyboard for a small design studio\",\n    \"maxPrice\": \"150\",\n    \"client\": \"Studio North\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const j = pm.response.json();",
+                      "if (j.run && j.run.id) pm.collectionVariables.set('run_id', j.run && j.run.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "List runs",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/runs"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get run (advances it if due)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}?advance=1"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "if (j.run && j.run.waiting && j.run.waiting.nodeId) pm.collectionVariables.set('node_id', j.run && j.run.waiting && j.run.waiting.nodeId);",
+                      "console.log('status', j.run?.status, '| waiting on', j.run?.waiting?.kind, j.run?.waiting?.nodeId);",
+                      "(j.run?.nodes || []).forEach(n => console.log(n.nodeId, n.status, n.error || ''));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Approvals waiting on me (and share notices)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/approvals"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "const a = (j.approvals || [])[0];",
+                      "if (a && a.runId) pm.collectionVariables.set('run_id', a && a.runId);",
+                      "if (a && a.nodeId) pm.collectionVariables.set('node_id', a && a.nodeId);",
+                      "console.log('approvals', (j.approvals || []).length, '| shares', (j.shares || []).length);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Approve",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}/approve"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nodeId\": \"{{node_id}}\",\n  \"decision\": \"approved\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log('run now', j.run?.status);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Reject",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}/approve"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nodeId\": \"{{node_id}}\",\n  \"decision\": \"rejected\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Explain this run (AI)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}/explain"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log(j.explanation?.headline); console.log(j.explanation?.summary);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cancel run",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}/cancel"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Retry run",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflow-runs/{{run_id}}/retry"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"confirmSideEffects\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Returns 409 CONFLICT if a step may have already reached PayPal; resend with `confirmSideEffects: true` only after checking."
+              },
+              "event": []
+            }
+          ]
+        },
+        {
+          "name": "Money and products",
+          "description": "The ledger, run search, Channel3 product lookup, checkout return.",
+          "item": [
+            {
+              "name": "Payments overview (KPIs, ledger, runs)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/payments"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "const k = j.kpis || {};",
+                      "console.log('captured', k.captured, '| paid out', k.paidOut, '| refunded', k.refunded);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Search runs",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/search?q=payout&status=failed"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Product details (Channel3, via the app)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/products/{{product_id}}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log(j.product?.title, j.product?.price, j.product?.merchant);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Checkout return lookup (owner only)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/checkout-return?token={{link_order_id}}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "console.log(j);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "PayPal connection status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/paypal/status"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sharing",
+          "description": "View or edit access, and ownership transfer. Only the owner can share.",
+          "item": [
+            {
+              "name": "Who has access",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/shares"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "const s = (j.sharing?.shares || [])[0];",
+                      "if (s && s.id) pm.collectionVariables.set('share_id', s && s.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Share to view",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/shares"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{share_email}}\",\n  \"role\": \"viewer\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const j = pm.response.json();",
+                      "const s = (j.sharing?.shares || []).find(x => x.email === pm.collectionVariables.get('share_email'));",
+                      "if (s && s.id) pm.collectionVariables.set('share_id', s && s.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Allow editing",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/shares/{{share_id}}"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"editor\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Back to view only",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/shares/{{share_id}}"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"viewer\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Remove access",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/shares/{{share_id}}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Transfer ownership",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/workflows/{{workflow_id}}/transfer"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{share_email}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Irreversible from your side: the workflow is switched off, its connections cleared and its webhook/checkout key rotated. The recipient must already have a Money Lego account."
+              },
+              "event": []
+            }
+          ]
+        },
+        {
+          "name": "Sage (AI)",
+          "description": "Streamed responses (one JSON event per line): crew status, log lines, sketch, plan, result.",
+          "item": [
+            {
+              "name": "Draft a workflow from a sentence",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/agent/draft"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"When a client pays my $100 PayPal checkout, split the net 70/30, ask me to approve, pay out and post in Slack.\",\n  \"requestKey\": \"{{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const last = pm.response.text().trim().split('\\n').pop();",
+                      "console.log(last.slice(0, 400));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Ask Sage about a workflow",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__session={{clerk_session}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{app_url}}/api/agent/edit"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"assist\",\n  \"workflowId\": \"{{workflow_id}}\",\n  \"graph\": {},\n  \"prompt\": \"Is everything ready for a demo?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Sage's health check and answer for the open workflow. The pre-request script loads the workflow's current graph first."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.sendRequest({ url: pm.variables.replaceIn('{{app_url}}/api/workflows/{{workflow_id}}'), method: 'GET',",
+                      "  header: { Cookie: pm.variables.replaceIn('__session={{clerk_session}}') } }, (err, res) => {",
+                      "  if (err || res.code !== 200) { console.error('Could not load the workflow', err || res.code); return; }",
+                      "  const w = res.json().workflow;",
+                      "  pm.request.body.update(JSON.stringify({ action: 'assist', workflowId: w.id, graph: w.graph, prompt: 'Is everything ready for a demo?' }, null, 2));",
+                      "});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                      "const last = pm.response.text().trim().split('\\n').pop();",
+                      "console.log(last.slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "12. Money Lego · Scheduler",
+      "description": "The durable heartbeat a scheduler calls every minute: runs schedules, expires approvals, re-checks payouts and waiting checkouts. Bearer `CRON_SECRET`.",
+      "item": [
+        {
+          "name": "Heartbeat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cron_secret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{app_url}}/api/cron/workflows"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const j = pm.response.json();",
+                  "console.log(j.workflows);"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Every request: fail loudly on a server error and show Money Lego's error envelope.",
+          "pm.test('No server error', () => pm.expect(pm.response.code).to.be.below(500));",
+          "try { const e = pm.response.json().error; if (e) console.warn(e.code, e.message, e.requestId || ''); } catch (_) {}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "paypal_base",
+      "value": "https://api-m.sandbox.paypal.com",
+      "type": "string"
+    },
+    {
+      "key": "paypal_client_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paypal_client_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paypal_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payout_receiver",
+      "value": "sb-xxxxx@personal.example.com",
+      "type": "string"
+    },
+    {
+      "key": "invoice_recipient",
+      "value": "sb-xxxxx@personal.example.com",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "approve_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "capture_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "link_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sender_batch_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payout_batch_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payout_item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoice_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "due_date",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscription_id",
+      "value": "I-XXXXXXXXXXXX",
+      "type": "string"
+    },
+    {
+      "key": "tx_start",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tx_end",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "channel3_base",
+      "value": "https://api.trychannel3.com",
+      "type": "string"
+    },
+    {
+      "key": "channel3_api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "app_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "clerk_session",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_signature",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cron_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workflow_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workflow_version",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "node_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_email",
+      "value": "teammate@example.com",
+      "type": "string"
     }
   ]
 }
