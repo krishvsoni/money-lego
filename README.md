@@ -38,8 +38,9 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 | **OpenAI** | Main agents: Sage (planner, fixer), the Money Lego assistant and its PayPal sub-agent (tool calling), AG Studio's dashboard agents. Model set by `OPENAI_MODEL`. |
 | **PayPal Agent Toolkit** | `@paypal/agent-toolkit` (OpenAI integration) powers the PayPal sub-agent, restricted to read-only actions with a second allowlist. |
 | **OpenRouter** | Small tasks: AI review, AI write, AI pick, run explanations (falls back to OpenAI's small model). |
+| **Astropods** | The Money Lego assistant, with its crew (PayPal agent, workflow builder, run search, payments ledger), is published as the public blueprint [`krish/money-lego`](https://astropods.com/krish/money-lego) and deployed as a chat agent. See [Deploy the agent to Astropods](#deploy-the-agent-to-astropods). |
 
-Not used: Bryntum (licensed package needs a trial account), APIMatic, KERNEL, Astropods. We don't claim them.
+Not used: Bryntum (licensed package needs a trial account), APIMatic, KERNEL. We don't claim them.
 
 ## Run it locally
 
@@ -61,6 +62,66 @@ PayPal sandbox setup:
 4. Webhooks need a public HTTPS URL. On Render (or a tunnel), set `APP_URL`, run `npm run paypal:webhook`, and set the printed `PAYPAL_WEBHOOK_ID`. Checkout pages work without webhooks (runs start from the capture response).
 
 The scheduler/heartbeat is `GET /api/cron/workflows` with `Authorization: Bearer $CRON_SECRET`, every minute (Render cron in `render.yaml`).
+
+## Deploy the agent to Astropods
+
+The Money Lego assistant also runs outside the app as an [Astropods](https://astropods.com) chat agent: blueprint [`krish/money-lego`](https://astropods.com/krish/money-lego) (public). It's the same agent as the in-app chat bubble, with the same crew as tools:
+
+- **PayPal agent**: read-only lookups through PayPal's Agent Toolkit (invoices, orders, refunds, disputes, subscriptions, transactions).
+- **Workflow builder**: Sage's planner, guard, fixer and connector draft a workflow, saved turned off. The reply links to it on `APP_URL`.
+- **Run search** and the **payments ledger**: why runs failed, and captured / paid out / refunded totals.
+
+It never moves money: every money action is a workflow step that waits for an approval in the app. It acts as one Money Lego account (`MONEY_LEGO_ACCOUNT_ID`) and sees only that account's workflows, runs and PayPal objects, so keep each deployment's chat access limited to its owner.
+
+| File | Purpose |
+|---|---|
+| `astropods.yml` | Blueprint spec: build, messaging interface, and the inputs (secrets) the agent needs |
+| `astropods/agent.mts` | The agent: wraps `runAssistant` in an `@astropods/adapter-core` adapter, with per-conversation memory |
+| `astropods/Dockerfile` | Linux image that runs the app's server code with `tsx` (no Next.js build). The Astropods packages are installed only in the image |
+| `AGENT.md` | The description shown on the blueprint page |
+| `.dockerignore` | Keeps `.env` and other local files out of the image |
+
+Requirements: Docker, and the Astropods CLI (`irm https://astropods.com/install.ps1 | iex` on Windows, `curl -fsSL https://astropods.com/install | sh` elsewhere).
+
+```bash
+ast login
+
+# Keys go in your Astropods vault; each command prompts for the value.
+ast secrets create ML_MONGODB_URI
+ast secrets create ML_OPENAI_API_KEY
+ast secrets create ML_OPENROUTER_API_KEY
+ast secrets create ML_PAYPAL_CLIENT_ID
+ast secrets create ML_PAYPAL_CLIENT_SECRET
+
+ast spec validate                       # checks astropods.yml
+ast push money-lego -V public           # builds the image and publishes the blueprint
+
+ast deploy krish/money-lego -n "Money Lego" --wait \
+  --var MONEY_LEGO_ACCOUNT_ID=<your Money Lego account id> \
+  --var PAYPAL_ACCOUNT_OWNER_IDS=<your Money Lego account id> \
+  --var MONGODB_URI=@ML_MONGODB_URI \
+  --var OPENAI_API_KEY=@ML_OPENAI_API_KEY \
+  --var OPENROUTER_API_KEY=@ML_OPENROUTER_API_KEY \
+  --var PAYPAL_CLIENT_ID=@ML_PAYPAL_CLIENT_ID \
+  --var PAYPAL_CLIENT_SECRET=@ML_PAYPAL_CLIENT_SECRET \
+  --var APP_URL=https://money-lego.vercel.app
+```
+
+`--var KEY=@SECRET` reads the value from your vault, so keys never appear on the command line or in the image. The deploy prints the chat URL (`https://<name>.agents.astropods.ai`).
+
+After a code change, run `ast push money-lego` again, then `ast agent redeploy --name "Money Lego" --latest`. Useful commands:
+
+```bash
+ast agent list                                          # deployments and status
+ast agent logs --name "Money Lego" --workload agent --tail
+ast agent access get --name "Money Lego"                # who can chat with it
+```
+
+Notes:
+
+- MongoDB must accept connections from Astropods. On Atlas, allow its outbound IPs, or `0.0.0.0/0` for a sandbox database.
+- Sage's in-editor crew and AG Studio's dashboard agents work inside the app's pages, so they stay in the app. The Astropods agent reaches the same crew through the assistant's "build a workflow" tool.
+- `@astropods/messaging` can't be installed on Windows (its install script makes a Unix symlink), which is why the Astropods packages are installed only inside the Docker image and `tsconfig.json` excludes `astropods/`.
 
 ## Five-minute judge walkthrough
 
@@ -95,6 +156,9 @@ Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Studio), 
         ├─ server/paypal: OAuth token cache, typed REST wrappers, idempotency, error mapping
         ├─ MongoDB: workflows, versions, runs, node runs, paypal_events, paypal_resources
         └─ Elastic (optional): run index for search
+
+Astropods pod (astropods/agent.mts) ── Money Lego assistant over Astropods messaging (gRPC)
+   └─ same server code: PayPal agent, workflow builder crew, run search, ledger → same MongoDB
 ```
 
 ## License
