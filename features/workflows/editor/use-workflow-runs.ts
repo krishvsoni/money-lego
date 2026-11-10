@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, errorMessage, newRequestKey } from "@/lib/api-client";
 import type { RunDTO } from "@/lib/workflow/dto";
 import type { NodeRunStatus } from "@/lib/workflow/types";
+import { refreshApprovals } from "@/features/approvals/approvals-store";
 
 const ACTIVE = new Set(["queued", "running", "waiting"]);
 
@@ -12,6 +13,9 @@ export function useWorkflowRuns(workflowId: string, initialRunId: string | null,
   const [selectedId, setSelectedId] = useState<string | null>(initialRunId);
   const [detail, setDetail] = useState<RunDTO | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // An approval decision shows the moment it's clicked; it is cleared again only if the
+  // server refuses it, so the buttons come back with the error.
+  const [decided, setDecided] = useState<{ runId: string; nodeId: string; decision: "approved" | "rejected" } | null>(null);
   const requestKey = useRef<string | null>(null);
 
   const loadList = useCallback(async () => {
@@ -90,8 +94,20 @@ export function useWorkflowRuns(workflowId: string, initialRunId: string | null,
     return run;
   }, [act, workflowId]);
 
-  const decide = (nodeId: string, decision: "approved" | "rejected") =>
-    detail && act("approve", () => api(`/api/workflow-runs/${detail.id}/approve`, { body: { nodeId, decision } }), decision === "approved" ? "Approved" : "Rejected").catch(() => null);
+  const decide = (nodeId: string, decision: "approved" | "rejected") => {
+    if (!detail) return null;
+    const runId = detail.id;
+    setDecided({ runId, nodeId, decision });
+    return act("approve", () => api(`/api/workflow-runs/${runId}/approve`, { body: { nodeId, decision } }), decision === "approved" ? "Approved" : "Rejected")
+      .then((run) => {
+        refreshApprovals(); // the nav bell's count drops straight away
+        return run;
+      })
+      .catch(() => {
+      setDecided((d) => (d?.runId === runId && d.nodeId === nodeId ? null : d));
+      return null;
+    });
+  };
 
   const cancel = () => detail && act("cancel", () => api(`/api/workflow-runs/${detail.id}/cancel`, { body: {} }), "Run cancelled").catch(() => null);
 
@@ -108,7 +124,7 @@ export function useWorkflowRuns(workflowId: string, initialRunId: string | null,
 
   const statuses: Record<string, NodeRunStatus> = Object.fromEntries((detail?.nodes ?? []).map((n) => [n.nodeId, n.status]));
 
-  return { runs, selectedId, setSelectedId, detail, busy, statuses, startTest, decide, cancel, retry, refresh: () => detail && loadDetail(detail.id, true) };
+  return { runs, selectedId, setSelectedId, detail, busy, decided, statuses, startTest, decide, cancel, retry, refresh: () => detail && loadDetail(detail.id, true) };
 }
 
 export type Runs = ReturnType<typeof useWorkflowRuns>;

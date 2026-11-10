@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpIcon, CheckCircleIcon, InfoIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import type { SageAction, SageFinding } from "../crew-stream";
-import { ActivityLog } from "../activity-log";
-import { CREW, type CrewId } from "../crew";
+import { BlurSwap } from "@/components/ui/blur-swap";
+import { ActivityLog, type LogLine } from "../activity-log";
+import { CREW, type CrewId, type CrewState } from "../crew";
+import { nowLine } from "../crew-list";
+import { PromptChip } from "../prompt-chip";
 import { Sage, type SageMood } from "../sage";
 import { useSageEdit, type EditorBridge, type ThreadItem } from "./use-sage-edit";
 
@@ -23,6 +26,8 @@ const JOBS: Record<Member, { action: string; hint: string }> = {
   connector: { action: "Link my accounts", hint: "Connector wires in accounts you've already connected." },
   builder: { action: "Tidy the canvas", hint: "Builder lays the blocks out in the order money flows." },
 };
+
+const SUGGESTIONS = ["Why did my last run fail?", "Is everything ready for a demo?", "Add an approval before the payout", "Post to Slack when it finishes", "Pay every Monday instead"];
 
 const NAME: Record<string, string> = { sage: "Sage", you: "You", ...Object.fromEntries(CREW.map((m) => [m.id, m.name])) };
 const TINT: Record<string, string | undefined> = Object.fromEntries(CREW.map((m) => [m.id, m.tint]));
@@ -109,6 +114,39 @@ function Message({ item, onUndo, onAction, busy }: { item: ThreadItem; onUndo: (
   );
 }
 
+// While the crew works, the panel itself shows it: who is on it right now, five short bars
+// that fill in each member's colour as they finish, and the live activity underneath. It
+// stays inside the panel, next to the canvas the change is happening on.
+function CrewTicker({ crew, logs }: { crew: CrewState; logs: LogLine[] }) {
+  return (
+    <div className="reveal mx-3 mb-2 flex flex-col gap-2">
+      <div className="rounded-xl bg-paper px-3 py-2.5 shadow-[0_0_0_1px_var(--line)]">
+        <p className="flex items-center gap-2 text-xs font-semibold text-ink" aria-live="polite">
+          <span aria-hidden className="pulse-dot h-1.5 w-1.5 shrink-0 rounded-full bg-progress" />
+          <span className="min-w-0 truncate">
+            <BlurSwap text={nowLine(crew)} />
+          </span>
+        </p>
+        <ol className="mt-2 grid grid-cols-5 gap-1" aria-label="Crew progress">
+          {CREW.map((m) => {
+            const status = crew[m.id].status;
+            const fill = status === "done" || status === "failed" || status === "skipped" ? 1 : status === "working" ? 0.5 : 0;
+            return (
+              <li key={m.id} title={`${m.name}: ${status}`} className="h-1 overflow-hidden rounded-full bg-line">
+                <span
+                  className={`rail-fill block h-full origin-left rounded-full ${status === "working" ? "pulse-dot" : ""}`}
+                  style={{ background: status === "failed" ? "var(--danger)" : m.tint, opacity: status === "skipped" ? 0.35 : 1, transform: `scaleX(${fill})` }}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <ActivityLog lines={logs} running listClassName="max-h-28" />
+    </div>
+  );
+}
+
 export function SageDock({ bridge }: { bridge: EditorBridge }) {
   const sage = useSageEdit(bridge);
   const [open, setOpen] = useState(false);
@@ -142,14 +180,15 @@ export function SageDock({ bridge }: { bridge: EditorBridge }) {
   };
 
   const act = () => {
+    if (sage.busy) return;
     if (member === "guard") sage.check();
     else if (member === "fixer") void sage.fix();
     else if (member === "connector") void sage.link();
     else if (member === "builder") sage.tidy();
   };
 
-  const send = () => {
-    const text = prompt.trim();
+  const send = (override?: string) => {
+    const text = (override ?? prompt).trim();
     if (text.length < 4 || sage.busy) return;
     setPrompt("");
     void (member === "planner" ? sage.plan(text) : sage.ask(text));
@@ -202,7 +241,7 @@ export function SageDock({ bridge }: { bridge: EditorBridge }) {
             role="tab"
             aria-selected={member === m.id}
             onClick={() => pick(m.id)}
-            className={`press flex flex-col items-center rounded-xl py-1 transition-colors duration-150 ${member === m.id ? "bg-paper shadow-[0_0_0_1px_var(--line)]" : "hover:bg-paper/70"}`}
+            className={`press flex flex-col items-center rounded-xl py-1 transition-colors duration-150 ${member === m.id ? "bg-paper shadow-[0_0_0_1px_var(--line)]" : sage.crew[m.id].status === "working" ? "bg-paper/70" : "hover:bg-paper/70"}`}
           >
             <Sage mood={sage.crew[m.id].status === "working" ? "building" : sage.crew[m.id].status === "done" ? "done" : "idle"} tint={m.tint} label={m.name} className="h-9 w-9" />
             <span className="text-[11px] font-semibold">{m.name}</span>
@@ -220,19 +259,26 @@ export function SageDock({ bridge }: { bridge: EditorBridge }) {
       )}
 
       <div ref={thread} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        {!sage.thread.length && <p className="m-auto max-w-[26ch] text-center text-sm text-ink-3">Try “Why did my last run fail?”, “Is everything ready for a demo?” or “Pay every Monday instead”.</p>}
+        {!sage.thread.length && (
+          // Sits just above the box (mt-auto, not centred) so a short panel scrolls the
+          // suggestions instead of clipping them; pills wrap, so five fit in two or three lines.
+          <div className="mt-auto flex w-full flex-col gap-2">
+            <p className="text-xs font-semibold text-ink-3">Try one of these</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUGGESTIONS.map((text, i) => (
+                <PromptChip key={text} compact label={text} tint={CREW[i % CREW.length].tint} disabled={sage.busy} onClick={() => send(text)} />
+              ))}
+            </div>
+          </div>
+        )}
         {sage.thread.map((item) => (
           <Message key={item.id} item={item} onUndo={bridge.undo} onAction={runAction} busy={sage.busy} />
         ))}
       </div>
 
-      {sage.busy && (
-        <div className="px-3 pb-2">
-          <ActivityLog lines={sage.logs} running />
-        </div>
-      )}
+      {sage.busy && <CrewTicker crew={sage.crew} logs={sage.logs} />}
 
-      <div className="m-3 mt-0 rounded-2xl bg-paper shadow-[0_0_0_1px_var(--line-strong)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1.5px_var(--ink)]">
+      <div className="relative m-3 mt-0 rounded-2xl bg-paper shadow-[0_0_0_1px_var(--line-strong)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1.5px_var(--ink)]">
         <textarea
           ref={input}
           value={prompt}
@@ -248,10 +294,11 @@ export function SageDock({ bridge }: { bridge: EditorBridge }) {
           disabled={sage.busy}
           aria-label={member === "planner" ? "Tell Planner what to change" : "Ask Sage"}
           placeholder={member === "planner" ? "What should Planner change?" : "Ask a question or describe a change"}
-          className="block w-full resize-none rounded-2xl bg-transparent px-3.5 pt-3 text-sm leading-relaxed placeholder:text-ink-3 focus:outline-none focus-visible:outline-none disabled:opacity-60"
+          className="block max-h-40 w-full resize-none rounded-2xl bg-transparent py-3 pr-12 pl-3.5 text-sm leading-relaxed [field-sizing:content] placeholder:text-ink-3 focus:outline-none focus-visible:outline-none disabled:opacity-60"
         />
-        <div className="flex justify-end px-2 pb-2">
-          <button type="button" onClick={send} disabled={prompt.trim().length < 4 || sage.busy} aria-label="Send" className="press flex h-8 w-8 items-center justify-center rounded-full bg-ink text-paper disabled:opacity-25">
+        {/* The send button sits in the box's corner instead of taking a row of its own. */}
+        <div className="absolute right-2 bottom-2">
+          <button type="button" onClick={() => send()} disabled={prompt.trim().length < 4 || sage.busy} aria-label="Send" className="press flex h-8 w-8 items-center justify-center rounded-full bg-ink text-paper disabled:opacity-25">
             {sage.busy ? <span className="pulse-dot h-2 w-2 rounded-full bg-current" aria-hidden /> : <ArrowUpIcon size={16} weight="bold" aria-hidden />}
           </button>
         </div>

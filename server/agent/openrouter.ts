@@ -11,7 +11,9 @@ import { log } from "../log";
 // Keys stay server-side and provider error bodies never reach the browser: callers see one of
 // a few plain app errors. JSON replies stream, so the crew can show a plan taking shape.
 
-export type Tier = "main" | "small";
+// "fast": a small task someone is waiting on (explaining a run): OpenAI's small model first,
+// free OpenRouter models only as a fallback, since those can queue for a long time.
+export type Tier = "main" | "small" | "fast";
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
 const OPENAI = "https://api.openai.com/v1/chat/completions";
@@ -64,7 +66,12 @@ function openRouterGroups(): Target[] {
 function targetsFor(tier: Tier): Target[] {
   const e = env();
   const openai = (model: string): Target[] => (e.OPENAI_API_KEY ? [{ provider: "openai", label: "OpenAI", models: [model] }] : []);
-  const list = tier === "main" ? [...openai(e.OPENAI_MODEL), ...openRouterGroups()] : [...openRouterGroups(), ...openai(e.OPENAI_SMALL_MODEL)];
+  const list =
+    tier === "main"
+      ? [...openai(e.OPENAI_MODEL), ...openRouterGroups()]
+      : tier === "fast"
+        ? [...openai(e.OPENAI_SMALL_MODEL), ...openRouterGroups()]
+        : [...openRouterGroups(), ...openai(e.OPENAI_SMALL_MODEL)];
   if (!list.length) throw errors.notConfigured("The AI model (OPENAI_API_KEY or OPENROUTER_API_KEY)");
   return list;
 }

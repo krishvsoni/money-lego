@@ -12,6 +12,26 @@ import { moneyLegoStudioAdapter, STUDIO_PROMPTS } from "./studio-ai";
 if (process.env.NODE_ENV !== "production") enableStudioDevValidations();
 
 const LICENSE_KEY = process.env.NEXT_PUBLIC_AG_STUDIO_LICENSE_KEY || undefined;
+
+// Without a key, AG Studio runs every feature in trial mode (no watermark on localhost) and
+// prints a "License Key Not Found" banner through console.error, which Next's dev overlay
+// reports as an app error. When no key is configured, only that banner is replaced by one
+// informational line. A key that is set but invalid or expired still reports as an error.
+// Banner lines are exactly 124 characters, framed by asterisks (ag-studio's license manager).
+const BANNER_LINE = /^\*[^\n]{122}\*$/;
+function quietMissingLicenseBanner() {
+  if (LICENSE_KEY || typeof window === "undefined") return;
+  const w = window as typeof window & { __moneyLegoAgLicenseQuiet?: boolean };
+  if (w.__moneyLegoAgLicenseQuiet) return;
+  w.__moneyLegoAgLicenseQuiet = true;
+  const original = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    if (args.length === 1 && typeof args[0] === "string" && BANNER_LINE.test(args[0])) return;
+    original(...args);
+  };
+  console.info("AG Studio: no license key set, running in trial mode. Set NEXT_PUBLIC_AG_STUDIO_LICENSE_KEY to license it.");
+}
+quietMissingLicenseBanner();
 // AG Studio's own dashboard agents, running on Money Lego's server-side model.
 const ai = (params: { api: unknown }) => createAiHarness(params.api as AgStudioApi, { adapter: moneyLegoStudioAdapter, promptStarters: STUDIO_PROMPTS });
 

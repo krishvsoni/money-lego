@@ -29,6 +29,6 @@ export const agentDraftSchema = z.object({
 export type AgentDraft = z.infer<typeof agentDraftSchema>;
 
 export const draftRequestSchema = z.object({
-  prompt: z.string().trim().min(12, "Describe the workflow in a sentence or two.").max(1_200),
+  prompt: z.string().trim().min(12, "Describe the workflow in a sentence or two.").max(4_000),
   requestKey: z.string().uuid().optional(),
 });

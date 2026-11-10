@@ -68,7 +68,7 @@ export const logicNodes: NodeDefinition[] = [
     ],
     defaults: { message: "Approve this payout?", timeoutHours: 24 },
     retrySafe: true,
-    outputHint: "The input plus { approval: { decision, by, at, payloadHash, actions } }.",
+    outputHint: "The same data that came in, plus whether you approved or rejected it, who decided, and when. Each PayPal action keeps a fingerprint of exactly what you approved.",
   },
   {
     type: "logic.once",

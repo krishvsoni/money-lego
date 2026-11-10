@@ -6,6 +6,7 @@ import { LogoMark } from "@/components/wordmark";
 import { NetworkBadge } from "@/components/network-badge";
 import { api, errorMessage } from "@/lib/api-client";
 import { formatMoney, toMinor } from "@/lib/paypal/types";
+import { PaymentOutcome } from "@/features/paypal/payment-outcome";
 import { loadSdk, newRequestKey, type PaypalButtons } from "@/features/paypal/sdk";
 
 interface Checkout {
@@ -33,6 +34,9 @@ export function View() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CaptureResult | null>(null);
   const [processing, setProcessing] = useState(false);
+  // The buyer backed out on PayPal, or PayPal refused the payment. Both end on a clear screen
+  // with a way to try again, instead of a line of red text under the buttons.
+  const [stopped, setStopped] = useState<"cancelled" | "declined" | null>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,7 +46,7 @@ export function View() {
   }, [key]);
 
   useEffect(() => {
-    if (!checkout?.accepting || !checkout.clientId || result || !buttonsRef.current) return;
+    if (!checkout?.accepting || !checkout.clientId || result || stopped || !buttonsRef.current) return;
     let buttons: PaypalButtons | null = null;
     let cancelled = false;
     loadSdk(checkout.clientId, checkout.currency)
@@ -65,8 +69,14 @@ export function View() {
               setProcessing(false);
             }
           },
-          onCancel: () => setError("Payment cancelled. Nothing was charged."),
-          onError: () => setError("PayPal couldn't complete the payment. Nothing was charged; try again."),
+          onCancel: () => {
+            setError(null);
+            setStopped("cancelled");
+          },
+          onError: () => {
+            setError(null);
+            setStopped("declined");
+          },
         });
         buttonsRef.current.innerHTML = "";
         return buttons.render(buttonsRef.current);
@@ -76,7 +86,7 @@ export function View() {
       cancelled = true;
       buttons?.close?.().catch(() => null);
     };
-  }, [checkout, key, result]);
+  }, [checkout, key, result, stopped]);
 
   const price = checkout ? formatMoney(toMinor(checkout.amount), checkout.currency) : "";
 
@@ -99,14 +109,35 @@ export function View() {
               <p className="num mt-5 text-3xl font-bold text-ink">{price}</p>
 
               {result ? (
-                <div className={`reveal mt-6 rounded-lg p-4 text-sm ${result.captureStatus === "COMPLETED" ? "bg-success-wash text-success" : "bg-attention-wash text-attention"}`} role="status">
-                  <p className="font-bold">{result.captureStatus === "COMPLETED" ? "Payment complete" : `Payment ${String(result.captureStatus ?? result.status).toLowerCase()}`}</p>
-                  <p className="mt-1 text-ink-2">
-                    {result.captureStatus === "COMPLETED"
-                      ? "Thank you. PayPal confirmed the payment and the seller's workflow has started."
-                      : "PayPal hasn't completed this payment yet. The seller's workflow starts only once it completes."}
-                  </p>
-                  {result.captureId && <p className="mt-2 font-mono text-xs text-ink-3">PayPal capture {result.captureId}</p>}
+                <div className="mt-7 rounded-xl bg-paper px-5 py-6 shadow-[0_0_0_1px_var(--line)]">
+                  {result.captureStatus === "COMPLETED" ? (
+                    <PaymentOutcome outcome="paid">Thank you. PayPal confirmed your payment of {price}, and the seller&apos;s workflow has started.</PaymentOutcome>
+                  ) : String(result.captureStatus ?? result.status).toUpperCase() === "DECLINED" ? (
+                    <PaymentOutcome outcome="declined">PayPal declined this payment. Nothing was charged. Try another card or PayPal account.</PaymentOutcome>
+                  ) : (
+                    <PaymentOutcome outcome="pending">PayPal is still finishing this payment ({String(result.captureStatus ?? result.status).toLowerCase()}). The seller&apos;s workflow starts once it completes.</PaymentOutcome>
+                  )}
+                  {result.captureId && <p className="mt-4 text-center font-mono text-xs text-ink-3">PayPal capture {result.captureId}</p>}
+                  {String(result.captureStatus ?? result.status).toUpperCase() === "DECLINED" && (
+                    <div className="mt-4 flex justify-center">
+                      <button type="button" onClick={() => setResult(null)} className="press rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-[#27272a]">
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : stopped ? (
+                <div className="mt-7 rounded-xl bg-paper px-5 py-6 shadow-[0_0_0_1px_var(--line)]">
+                  {stopped === "cancelled" ? (
+                    <PaymentOutcome outcome="cancelled">You closed PayPal before paying. Nothing was charged.</PaymentOutcome>
+                  ) : (
+                    <PaymentOutcome outcome="declined">PayPal couldn&apos;t complete the payment. Nothing was charged. Try again, or use another card or account.</PaymentOutcome>
+                  )}
+                  <div className="mt-5 flex justify-center">
+                    <button type="button" onClick={() => setStopped(null)} className="press rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-[#27272a]">
+                      Try again
+                    </button>
+                  </div>
                 </div>
               ) : checkout.accepting ? (
                 <div className="mt-6">

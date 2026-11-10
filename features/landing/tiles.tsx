@@ -21,9 +21,10 @@ export function Tile({ visual, title, body, badge, delay = 0 }: { visual: ReactN
     <Reveal as="li" delay={delay} className="tactile flex flex-col rounded-2xl p-2">
       <div className="tactile-soft flex min-h-40 flex-1 items-center justify-center rounded-lg p-3 [@media(max-height:860px)]:min-h-32 [@media(max-height:860px)]:p-2">{visual}</div>
       <div className="px-2 pb-2 pt-4 [@media(max-height:860px)]:pt-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">{title}</h3>
-          {badge && <span className="tactile-soft rounded-full px-3 py-0.5 text-sm font-medium text-ink-2">{badge}</span>}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="min-w-0 font-display text-xl font-semibold tracking-[-0.01em] text-balance text-ink">{title}</h3>
+          {/* The badge never wraps or shrinks; it sits level with the title's first line. */}
+          {badge && <span className="tactile-soft mt-0.5 shrink-0 whitespace-nowrap rounded-full px-3 py-0.5 text-sm font-medium text-ink-2">{badge}</span>}
         </div>
         <p className="mt-1 text-base text-ink-2 text-pretty">{body}</p>
       </div>

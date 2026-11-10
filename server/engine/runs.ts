@@ -136,6 +136,55 @@ export async function listRuns(user: SessionUser, workflowId: string): Promise<R
   return runs.map((r) => toRunDTO(r as WorkflowRunDoc));
 }
 
+// Every run, across all the owner's workflows, that is paused on a Human approval nobody
+// has decided yet: what the app-wide approval inbox shows on any page.
+export interface PendingApprovalDTO {
+  runId: string;
+  workflowId: string;
+  workflowName: string;
+  nodeId: string;
+  step: string;
+  message: string;
+  until: string | null;
+  startedAt: string;
+}
+
+export async function listPendingApprovals(user: SessionUser): Promise<PendingApprovalDTO[]> {
+  const { workflowRuns, nodeRuns, workflows } = await collections();
+  const runs = await workflowRuns
+    .find({ ownerId: user.userId, status: "waiting", "waiting.kind": "approval" }, { projection: { workflowId: 1, waiting: 1, startedAt: 1, "graph.nodes": 1 } })
+    .sort({ startedAt: -1 })
+    .limit(30)
+    .toArray();
+  if (!runs.length) return [];
+  const [names, waits] = await Promise.all([
+    workflows.find({ _id: { $in: [...new Set(runs.map((r) => r.workflowId.toHexString()))].map((id) => new ObjectId(id)) }, ownerId: user.userId }, { projection: { name: 1 } }).toArray(),
+    nodeRuns
+      .find({ runId: { $in: runs.map((r) => r._id) }, status: "waiting", nodeType: "logic.approval", "waitState.decision": { $exists: false } }, { projection: { runId: 1, nodeId: 1, "waitState.message": 1 } })
+      .toArray(),
+  ]);
+  const nameOf = new Map(names.map((w) => [w._id.toHexString(), w.name]));
+  return runs.flatMap((r) => {
+    const nodeId = r.waiting?.nodeId;
+    const wait = waits.find((w) => w.runId.equals(r._id) && w.nodeId === nodeId);
+    if (!nodeId || !wait) return [];
+    const node = r.graph?.nodes?.find((n) => n.id === nodeId);
+    const message = wait.waitState?.message;
+    return [
+      {
+        runId: r._id.toHexString(),
+        workflowId: r.workflowId.toHexString(),
+        workflowName: nameOf.get(r.workflowId.toHexString()) ?? "Workflow",
+        nodeId,
+        step: node?.label || nodeDefinition(node?.type ?? "logic.approval")?.title || "Approval",
+        message: typeof message === "string" ? message.slice(0, 400) : "",
+        until: iso(r.waiting?.until),
+        startedAt: r.startedAt.toISOString(),
+      },
+    ];
+  });
+}
+
 export async function decideApproval(user: SessionUser, runId: string, nodeId: string, decision: "approved" | "rejected"): Promise<RunDTO> {
   const run = await ownedRun(user, runId);
   const { nodeRuns, workflowRuns } = await collections();

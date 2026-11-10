@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, ChevronUp, Clock, Hourglass, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, CircleCheck, CircleX, Clock, Hourglass, ShieldCheck, Sparkles } from "lucide-react";
+import { BlurSwap } from "@/components/ui/blur-swap";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api-client";
 import { relativeTime } from "@/lib/format";
@@ -11,6 +12,7 @@ import { nodeDefinition } from "@/lib/nodes/registry";
 import type { RunDTO } from "@/lib/workflow/dto";
 import type { WorkflowGraph } from "@/lib/workflow/types";
 import { ApprovalReview } from "./approval-review";
+import { PurchaseCard } from "./purchase-card";
 import type { Runs } from "./use-workflow-runs";
 
 const RUN_TONE: Record<string, string> = {
@@ -119,40 +121,93 @@ interface Explanation {
   nextSteps: string[];
 }
 
+// While the model reads the run: what it is doing, and for how long, so a slow answer
+// never looks like a frozen button.
+const EXPLAIN_STAGES = ["Reading the run", "Following each step", "Writing it up"];
+
+function useSeconds(running: boolean): number {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    const started = Date.now();
+    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1_000);
+    return () => {
+      clearInterval(t);
+      setSeconds(0);
+    };
+  }, [running]);
+  return seconds;
+}
+
 function ExplainRun({ run }: { run: RunDTO }) {
   const [state, setState] = useState<{ busy: boolean; result: Explanation | null; error: string | null }>({ busy: false, result: null, error: null });
+  const seconds = useSeconds(state.busy);
   const ask = async () => {
+    if (state.busy) return;
     setState((s) => ({ ...s, busy: true, error: null }));
     try {
       const res = await api<{ explanation: Explanation }>(`/api/workflow-runs/${run.id}/explain`, { method: "POST", body: {} });
-      setState((s) => ({ ...s, busy: false, result: res.explanation }));
+      setState({ busy: false, result: res.explanation, error: null });
     } catch (e) {
       setState((s) => ({ ...s, busy: false, error: errorMessage(e) }));
     }
   };
-  return (
-    <div className="mb-3">
-      {!state.result && (
-        <Button variant="secondary" className="h-8 gap-1.5" onClick={ask} busy={state.busy}>
-          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Explain this run
-        </Button>
-      )}
-      {state.error && <p className="mt-2 text-xs text-danger">{state.error}</p>}
-      {state.result && (
-        <div className="reveal rounded-lg border border-line bg-paper p-3 text-xs">
-          <p className="flex items-center gap-1.5 font-bold text-ink">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--brick-1)]" aria-hidden /> {state.result.headline}
-          </p>
-          <p className="mt-1 text-ink-2">{state.result.summary}</p>
-          {state.result.nextSteps.length > 0 && (
-            <ul className="mt-2 list-disc pl-4 text-ink-2">
-              {state.result.nextSteps.map((n, i) => (
+
+  if (state.busy) {
+    return (
+      <div className="mb-3 rounded-lg border border-line bg-paper p-3 text-xs" role="status" aria-live="polite">
+        <p className="flex items-center gap-1.5 font-semibold text-ink">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--brick-1)]" aria-hidden />
+          <BlurSwap text={EXPLAIN_STAGES[Math.min(EXPLAIN_STAGES.length - 1, Math.floor(seconds / 3))]} />
+          <span className="num ml-auto font-normal text-ink-3">{seconds}s</span>
+        </p>
+        <div className="mt-2.5 flex flex-col gap-1.5" aria-hidden>
+          <span className="build-ghost h-2.5 w-full rounded-full" />
+          <span className="build-ghost h-2.5 w-11/12 rounded-full" style={{ ["--i" as string]: 1 }} />
+          <span className="build-ghost h-2.5 w-2/3 rounded-full" style={{ ["--i" as string]: 2 }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (state.result) {
+    const { headline, summary, nextSteps } = state.result;
+    return (
+      <section aria-label="Explanation" className="reveal mb-3 rounded-lg border border-line bg-paper p-3 text-xs">
+        <p className="flex items-start gap-1.5 text-[0.8125rem] font-semibold leading-snug text-ink">
+          <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brick-1)]" aria-hidden />
+          <span className="text-pretty">{headline}</span>
+        </p>
+        <p className="mt-1.5 whitespace-pre-line leading-relaxed text-pretty text-ink-2">{summary}</p>
+        {nextSteps.length > 0 && (
+          <div className="mt-2.5 border-t border-line pt-2.5">
+            <p className="font-semibold text-ink">Next steps</p>
+            <ol className="mt-1 list-decimal space-y-1 pl-4 leading-relaxed text-ink-2 marker:text-ink-3">
+              {nextSteps.map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
-            </ul>
-          )}
-          <p className="mt-2 text-[0.6875rem] text-ink-3">AI summary of the stored run record. Check PayPal ids above for the facts.</p>
+            </ol>
+          </div>
+        )}
+        <div className="mt-2.5 flex items-center justify-between gap-3">
+          <p className="text-[0.6875rem] text-ink-3">AI summary of the stored run. The PayPal ids below are the facts.</p>
+          <button type="button" onClick={ask} className="press shrink-0 text-[0.6875rem] font-semibold text-ink underline underline-offset-2">
+            Explain again
+          </button>
         </div>
+      </section>
+    );
+  }
+
+  return (
+    <div className="mb-3">
+      <Button variant="secondary" className="h-8 gap-1.5" onClick={ask}>
+        <Sparkles className="h-3.5 w-3.5" aria-hidden /> {state.error ? "Try again" : "Explain this run"}
+      </Button>
+      {state.error && (
+        <p role="alert" className="mt-2 text-xs text-danger">
+          {state.error}
+        </p>
       )}
     </div>
   );
@@ -166,28 +221,38 @@ function WaitingCard({ run, runs, graph }: { run: RunDTO; runs: Runs; graph: Wor
   const title = node ? node.label || nodeDefinition(node.type)?.title : w.nodeId;
   const raw = run.nodes?.find((n) => n.nodeId === w.nodeId)?.waitState?.message;
   const message = typeof raw === "string" ? raw : "";
-  const heading = w.kind === "approval" ? "Needs your approval" : w.kind === "delay" ? "Delayed" : "Waiting on PayPal";
-  const Icon = w.kind === "approval" ? ShieldCheck : w.kind === "delay" ? Clock : Hourglass;
+  // Set the instant Approve or Reject is clicked, before the server answers.
+  const decision = runs.decided?.runId === run.id && runs.decided.nodeId === w.nodeId ? runs.decided.decision : null;
+  const heading = decision === "approved" ? "Approved" : decision === "rejected" ? "Rejected" : w.kind === "approval" ? "Needs your approval" : w.kind === "delay" ? "Delayed" : "Waiting on PayPal";
+  const Icon = decision === "approved" ? CircleCheck : decision === "rejected" ? CircleX : w.kind === "approval" ? ShieldCheck : w.kind === "delay" ? Clock : Hourglass;
+  const tone =
+    decision === "approved"
+      ? { card: "border-success/35", bar: "border-success/25 bg-success-wash", icon: "text-success" }
+      : decision === "rejected"
+        ? { card: "border-line-strong", bar: "border-line bg-sunken", icon: "text-ink-2" }
+        : { card: "border-attention/35", bar: "border-attention/25 bg-attention-wash", icon: "text-attention" };
 
   return (
-    <div className="reveal mb-3 rounded-xl border border-attention/35 bg-paper">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-t-xl border-b border-attention/25 bg-attention-wash px-3.5 py-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-paper text-attention shadow-[0_1px_2px_rgb(0_0_0/0.06)]" aria-hidden>
-          <Icon className="h-4 w-4" />
+    <div className={`reveal mb-3 rounded-xl border bg-paper transition-colors duration-200 ${tone.card}`}>
+      <div className={`sticky -top-3 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-t-xl border-b px-3.5 py-2.5 transition-colors duration-200 ${tone.bar}`}>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-paper shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition-colors duration-200 ${tone.icon}`} aria-hidden>
+          <Icon key={decision ?? "wait"} className={`h-4 w-4 ${decision ? "decide-pop" : ""}`} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold leading-tight text-ink">{heading}</p>
+          <p className={`text-sm font-bold leading-tight ${decision === "approved" ? "text-success" : "text-ink"}`} role={decision ? "status" : undefined}>
+            <BlurSwap text={heading} />
+          </p>
           <p className="truncate text-xs text-ink-2">
-            {title}
-            {w.until ? ` · expires ${relativeTime(w.until)}` : ""}
+            {decision === "approved" ? "Carrying on with exactly what you approved…" : decision === "rejected" ? "Taking the Rejected branch…" : title}
+            {w.until && !decision ? ` · expires ${relativeTime(w.until)}` : ""}
           </p>
         </div>
-        {w.kind === "approval" && (
+        {w.kind === "approval" && !decision && (
           <div className="flex shrink-0 gap-2">
-            <Button variant="secondary" className="h-9" onClick={() => runs.decide(w.nodeId, "rejected")} busy={runs.busy === "approve"}>
+            <Button variant="secondary" className="h-9" onClick={() => runs.decide(w.nodeId, "rejected")}>
               Reject
             </Button>
-            <Button className="h-9" onClick={() => runs.decide(w.nodeId, "approved")} busy={runs.busy === "approve"}>
+            <Button className="h-9" onClick={() => runs.decide(w.nodeId, "approved")}>
               Approve
             </Button>
           </div>
@@ -372,6 +437,7 @@ export function RunPanel({ runs, graph }: { runs: Runs; graph: WorkflowGraph; wo
             ) : (
               <>
                 {run.waiting && <WaitingCard run={run} runs={runs} graph={graph} />}
+                <PurchaseCard key={`p-${run.id}`} run={run} />
                 {run.status !== "queued" && run.status !== "running" && <ExplainRun key={run.id} run={run} />}
                 {run.error && <p className="mb-3 rounded-lg bg-danger-wash px-3 py-2 text-xs text-danger">{run.error}</p>}
                 <ol className="overflow-hidden rounded-xl border border-line bg-paper text-xs" aria-label="Steps">

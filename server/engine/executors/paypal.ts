@@ -381,6 +381,9 @@ const checkoutLink: Executor = async (ctx) => {
   if (current.availability && current.availability !== "InStock") throw new NodeError("The product went out of stock after approval. No checkout was created.");
   const workflow = await workflows.findOne({ _id: ctx.run.workflowId }, { projection: { webhookKey: 1 } });
   const base = env().APP_URL;
+  // The return page links back to this run in the editor (for the owner; the editor needs
+  // their sign-in, so the ids give a buyer nothing).
+  const back = `w=${ctx.run.workflowId.toHexString()}&run=${ctx.run._id.toHexString()}`;
   const order = await call(() =>
     paypal.createOrder({
       currency: intent.currency as Allocation["currency"],
@@ -389,7 +392,7 @@ const checkoutLink: Executor = async (ctx) => {
       description: [intent.note, intent.merchant].filter(Boolean).join(" - ") || "Product checkout",
       customId: referenceFor(workflow?.webhookKey ?? "unknown-workflow-key"),
       requestId,
-      redirect: { returnUrl: `${base}/pay/done?status=approved`, cancelUrl: `${base}/pay/done?status=cancelled`, brandName: "Money Lego (sandbox)" },
+      redirect: { returnUrl: `${base}/pay/done?status=approved&${back}`, cancelUrl: `${base}/pay/done?status=cancelled&${back}`, brandName: "Money Lego (sandbox)" },
     }),
   );
   const approveUrl = paypal.approveLink(order);

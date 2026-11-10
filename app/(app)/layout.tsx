@@ -2,6 +2,8 @@ import { NetworkBadge } from "@/components/network-badge";
 import { SiteNav } from "@/components/site-nav";
 import { AccountControl } from "@/features/auth/account-control";
 import { AuthGate } from "@/features/auth/auth-gate";
+import { ApprovalBell } from "@/features/approvals/approval-bell";
+import { ApprovalInbox } from "@/features/approvals/approval-inbox";
 import { AssistantPanel } from "@/features/assistant/assistant-panel";
 
 // Everything here is gated on the signed-in account, which is only known in the browser,
@@ -13,7 +15,6 @@ const APP_LINKS = [
   { href: "/workflows", label: "Workflows" },
   { href: "/templates", label: "Templates" },
   { href: "/payments", label: "Payments" },
-  { href: "/shop", label: "Shop AI" },
   { href: "/connections", label: "Connections" },
 ];
 
@@ -25,6 +26,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         links={APP_LINKS}
         right={
           <>
+            <ApprovalBell />
             <NetworkBadge />
             <AccountControl />
           </>
@@ -34,6 +36,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <AuthGate>
           {children}
           <AssistantPanel />
+          <ApprovalInbox />
         </AuthGate>
       </main>
     </div>

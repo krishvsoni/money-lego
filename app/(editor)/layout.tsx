@@ -1,3 +1,4 @@
+import { ApprovalInbox } from "@/features/approvals/approval-inbox";
 import { AuthGate } from "@/features/auth/auth-gate";
 
 // Everything here is gated on the signed-in account, which is only known in the browser,
@@ -8,7 +9,10 @@ export const instant = false;
 export default function EditorLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
-      <AuthGate>{children}</AuthGate>
+      <AuthGate>
+        {children}
+        <ApprovalInbox placement="edge" />
+      </AuthGate>
     </div>
   );
 }

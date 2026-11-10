@@ -35,7 +35,7 @@ Model routing: **OpenAI** runs the main agents (Sage planner/fixer, the Money Le
 3. AI risk review node (combined with deterministic checks) shown to the approver.
 4. AI write node: per-item drafts (e.g. overdue invoice reminders) from real invoice data.
 5. Explain this run: plain-language summary of a run from its persisted record, citing similar past failures (Elastic).
-6. Shop AI: ranks and explains only Channel3-returned products.
+6. Channel3 product search: AI picks and explains only Channel3-returned products.
 
 AI never authorises money movement: deterministic validation plus a fingerprinted human approval gate every payout, refund and invoice send.
 

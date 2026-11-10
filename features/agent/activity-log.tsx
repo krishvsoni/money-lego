@@ -25,7 +25,7 @@ function useElapsed(running: boolean, startedAt: number | null): number {
   return startedAt ? Math.max(0, Math.round((now - startedAt) / 1000)) : 0;
 }
 
-export function ActivityLog({ lines, running }: { lines: LogLine[]; running: boolean }) {
+export function ActivityLog({ lines, running, listClassName = "max-h-44" }: { lines: LogLine[]; running: boolean; listClassName?: string }) {
   const list = useRef<HTMLOListElement>(null);
   const pinned = useRef(true);
   const elapsed = useElapsed(running, lines[0]?.at ?? null);
@@ -48,7 +48,7 @@ export function ActivityLog({ lines, running }: { lines: LogLine[]; running: boo
           const el = e.currentTarget;
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
-        className="flex max-h-44 flex-col gap-1.5 overflow-y-auto px-3.5 pb-3 [mask-image:linear-gradient(to_bottom,transparent,black_14px)]"
+        className={`flex flex-col gap-1.5 overflow-y-auto px-3.5 pb-3 [mask-image:linear-gradient(to_bottom,transparent,black_14px)] ${listClassName}`}
         aria-live="polite"
       >
         {lines.map((line, i) => {

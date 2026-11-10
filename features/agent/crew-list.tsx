@@ -17,7 +17,7 @@ const MOOD: Record<CrewStatus, SageMood> = {
   failed: "error",
 };
 
-function nowLine(crew: CrewState): string {
+export function nowLine(crew: CrewState): string {
   const working = CREW.find((m) => crew[m.id].status === "working");
   if (working) return `${working.name}: ${crew[working.id].detail ?? working.job}`;
   const failed = CREW.find((m) => crew[m.id].status === "failed");

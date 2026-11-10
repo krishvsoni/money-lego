@@ -15,7 +15,8 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${CLERK} ${CLERK_FRAMES}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://img.clerk.com",
+  // https: covers Channel3 product photos (run panel), served from many merchant CDNs, and Clerk avatars.
+  "img-src 'self' data: blob: https:",
   "font-src 'self'",
   `connect-src 'self' ${CLERK}${isDev ? " ws:" : ""}`,
   `frame-src ${CLERK_FRAMES}`,
@@ -31,7 +32,7 @@ const checkoutCsp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL} ${CLERK} ${CLERK_FRAMES}`,
   `style-src 'self' 'unsafe-inline' ${PAYPAL}`,
-  // https: covers Channel3 product images on /shop, served from many merchant CDNs.
+  // https: covers Channel3 product images, served from many merchant CDNs.
   `img-src 'self' data: blob: https:`,
   "font-src 'self' data:",
   `connect-src 'self' ${PAYPAL} ${CLERK}${isDev ? " ws:" : ""}`,
@@ -77,7 +78,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       // Later entries override earlier ones for the same header key.
-      ...["/pay/:path*", "/shop"].map((source) => ({
+      ...["/pay/:path*"].map((source) => ({
         source,
         headers: [
           { key: "Content-Security-Policy", value: checkoutCsp },

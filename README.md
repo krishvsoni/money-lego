@@ -21,7 +21,7 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 | **AI steps** | `AI risk review` (deterministic checks + model judgement, high-risk branch) and `AI write` (per-item drafts, e.g. invoice reminders). Emails are masked and secrets removed before anything reaches the model. AI never moves money. |
 | **Payments dashboard** | An AG Studio analytics dashboard (KPIs, charts, ledger, cross-filtering) over every PayPal object and run, editable by drag-and-drop or by asking AG Studio's AI agents (running on our server-side model) to build pages. AG Grid tables and full-text run search alongside. |
 | **Templates** | Five DB-backed templates that clone into editable graphs: Revenue split payout, AI invoice reminders, Failed subscription recovery, Approved refund desk, Weekly PayPal ops digest. |
-| **Agentic commerce (Shop AI)** | Channel3 product search + AI comparison grounded in Channel3's response, buyer approves a PayPal checkout; the price is re-read from Channel3 server-side. |
+| **Agentic commerce** | The Channel3 product search block and the AI Product Sourcing template: real products, an AI pick grounded in Channel3's response, owner approval, then a PayPal checkout at a price re-read from Channel3 server-side. |
 
 ## Partner tools used
 
@@ -29,7 +29,7 @@ Money Lego is an AI-assisted visual automation studio for payment operations, bu
 |---|---|
 | **PayPal** (required) | Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks (verified). |
 | **AG Grid / AG Studio** | AG Studio powers the Payments analytics dashboard: two data sources (PayPal objects, workflow runs) with measure columns, a prebuilt report, edit mode, saved layouts, and AG Studio's AI harness wired to Money Lego's model through a server proxy (`/api/studio/llm`). AG Grid Community powers the detail tables. |
-| **Channel3** | `POST /v1/search` and `GET /v1/products/{id}` for the Shop AI page and the Channel3 block. |
+| **Channel3** | `POST /v1/search` and `GET /v1/products/{id}` for the Channel3 product search block. |
 | **Elastic** | Finished runs are indexed (explicit mapping); run search on Payments uses Elastic, and AI run explanations cite similar past failures. Falls back to MongoDB, labelled, when not configured. |
 | **Zapier** | Zapier block posts run data to a Webhooks by Zapier Catch Hook (only `hooks.zapier.com`), reaching 8,000+ apps. |
 | **Render** | `render.yaml` Blueprint: web service + one-minute cron heartbeat for durable runs. |
@@ -143,7 +143,7 @@ Unit tests cover exact allocation, approval intents/fingerprints, webhook parsin
 ## Architecture
 
 ```
-Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Studio), Shop AI, Connections (PayPal)
+Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Studio), Connections (PayPal)
    │
    ├─ /api/agent/*            AI drafting/editing (OpenRouter) → guardrails → saved graph
    ├─ /api/workflows/*        CRUD, versions, enable (trigger activation), test runs
