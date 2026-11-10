@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Money Lego: describe how money should move, approve it, run it on PayPal" width="100%" />
+  <img src="docs/assets/banner.png" alt="Money Lego: describe how money should move, approve it, run it on PayPal" width="100%" />
 </p>
 
 <p align="center">
@@ -12,6 +12,7 @@
   <a href="#what-money-lego-does">Product</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#use-case-ai-product-sourcing-with-channel3">Channel3 use case</a> ·
+  <a href="#the-payments-dashboard-ag-grid-and-ag-studio">AG Studio dashboard</a> ·
   <a href="#money-lego-on-astropods">Astropods</a> ·
   <a href="#runs-on-the-paypal-sandbox">PayPal Sandbox</a> ·
   <a href="#built-with">Built with</a> ·
@@ -34,12 +35,10 @@ Automation tools can do parts of this, but they move money on autopilot. When th
 
 Money Lego turns a payment process into a **workflow you can see, check and approve** before any money moves.
 
-| Step | What happens |
-| --- | --- |
-| **Describe it** | Type what should happen. **Sage**, the AI copilot, and its crew (Planner, Guard, Fixer, Connector, Builder) build the workflow block by block while you watch. |
-| **Inspect it** | The workflow is a visual canvas of real blocks: PayPal triggers, exact splits, AI checks, approvals, payouts, Slack messages. Change anything, or ask Sage to. |
-| **Approve it** | Every payout, refund or invoice send pauses for you. You see exactly who gets what, with an AI risk review. Approve from any page through the notification bell. |
-| **Run it** | The workflow runs on PayPal: checkout, capture, payout, status follow-up, notifications. Every PayPal id is recorded, and any run can be explained in plain words. |
+1. **Describe it.** Type what should happen. **Sage**, the AI copilot, and its crew (Planner, Guard, Fixer, Connector, Builder) build the workflow block by block while you watch.
+2. **Inspect it.** The workflow is a visual canvas of real blocks: PayPal triggers, exact splits, AI checks, approvals, payouts, Slack messages. Change anything, or ask Sage to.
+3. **Approve it.** Every payout, refund or invoice send pauses for you. You see exactly who gets what, with an AI risk review, and you can approve from any page through the notification bell.
+4. **Run it.** The workflow runs on PayPal: checkout, capture, payout, status follow-up and notifications. Every PayPal id is recorded, and any run can be explained in plain words.
 
 **Who it's for**
 
@@ -88,7 +87,7 @@ flowchart LR
 
 ## Use case: AI product sourcing with Channel3
 
-<img src="public/logos/channel3.svg" width="40" alt="Channel3" align="right" />
+<img src="docs/assets/partners/channel3.png" width="48" alt="Channel3" align="right" />
 
 An agency gets a request from a client: *"A quiet mechanical keyboard for our studio, under $150."* With Money Lego and [Channel3](https://channel3.ai), the whole purchase runs as one approved workflow, and the AI can only work with real products and real prices.
 
@@ -114,6 +113,18 @@ sequenceDiagram
     ML->>You: Purchase card: product photo, order id, capture id
 ```
 
+### How Channel3 search is used
+
+| Where | What it does with Channel3 |
+| --- | --- |
+| **Channel3 product search** block (`shop.search`) | Calls Channel3's `/v1/search` with the request text (usually `{{ trigger.request }}`), the budget as a price cap, and how many results to return. Only new, in-stock products come back, each with title, brand, photo, price, store, stock and buy link. |
+| **AI pick product** block (`ai.pick`) | Reads those results and picks one, with a reason. The pick is checked against the returned ids, and its price, brand and stock are copied from Channel3, not written by the model. |
+| **PayPal checkout link** block | After you approve, looks the product up again with Channel3's `/v1/products/{id}`. If the price or stock changed, it stops; otherwise it creates the PayPal order at that price. |
+| **Purchase card** in the run panel | Fetches the product live by id to show its current photo, rating, stock and key features next to the price that was actually paid. |
+| **Money Lego assistant** | Can search Channel3 products in chat when you ask what's available. |
+
+Channel3's API key stays on the server; the browser and the AI only ever see the normalised product data.
+
 What makes it trustworthy:
 
 - **Grounded AI.** The pick must be one of the products Channel3 returned (checked by id). Price, brand and stock always come from Channel3, never from the model.
@@ -122,6 +133,25 @@ What makes it trustworthy:
 - **See what was bought.** The run panel's Purchase card shows the product photo, store, rating, the price paid, and each step from your approval to the buyer's payment, with PayPal ids.
 
 Channel3 doesn't place merchant orders yet (its checkout API is announced as coming soon), so the business remains the merchant of record and fulfilment is its own step.
+
+## The Payments dashboard: AG Grid and AG Studio
+
+<img src="docs/assets/partners/ag-grid.png" width="48" alt="AG Grid" align="right" />
+
+The **Payments** page is where an owner checks the money. It has three tabs.
+
+| Tab | Built with | What you get |
+| --- | --- | --- |
+| **Dashboard** | **AG Studio** | A ready-made report over every PayPal object and every workflow run: Captured, Paid out, Refunded, Payout problems, Runs succeeded and Runs failed as tiles; volume by PayPal object, captured over time and runs by status as charts; and the PayPal ledger as a table. Clicking any chart filters the rest of the page. |
+| **PayPal objects** | **AG Grid** | Every order, capture, refund, payout batch and item, invoice and subscription, with type filter and search |
+| **Workflow runs** | **AG Grid** | Every run with its status, trigger, duration and error, searchable |
+
+How AG Studio is wired in:
+
+- **Two data sources.** Money Lego hands AG Studio two tables: *PayPal objects* and *Workflow runs*. They come with ready measure columns (captured, paid out, refunded, payout problems, succeeded, failed), so every tile is a plain sum and needs no setup.
+- **Customise it.** **Customize dashboard** opens AG Studio's editor full screen: drag widgets and fields, add pages, change charts. The layout is saved in your browser, and **Reset** brings back the default report.
+- **Ask it in words.** AG Studio's own AI agents can build pages from a sentence, with starters such as *"Build a payouts page: total paid out, payout problems, paid out by workflow, and a ledger of payout items"*, *"Show captured revenue by week and by workflow"* and *"Add a page for workflow run health"*. Their model calls go through Money Lego's server (`/api/studio/llm`), so no AI key reaches the browser, and the agents can only change the dashboard, never PayPal or a workflow.
+- **Every number explained.** Above the dashboard, a summary row shows Captured, Paid out, Refunded and Net kept; each opens to the PayPal ids, workflows and runs that add up to it.
 
 ## Money Lego on Astropods
 
@@ -140,7 +170,7 @@ It never moves money itself: anything that would move money becomes a workflow s
 
 ## Runs on the PayPal Sandbox
 
-<img src="public/logos/paypal.svg" width="40" alt="PayPal" align="right" />
+<img src="docs/assets/partners/paypal.png" width="48" alt="PayPal" align="right" />
 
 Money Lego calls the **real PayPal REST APIs** in PayPal's **Sandbox** environment. Every order, capture, payout, refund and invoice is a real PayPal object with a real id. The accounts and the money are test ones.
 
@@ -168,16 +198,15 @@ Runs started with the editor's **Run** button use the trigger's test data and ar
 
 | | Partner | What it powers |
 | :-: | --- | --- |
-| <img src="public/logos/paypal.svg" width="26" alt="" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
-| <img src="public/logos/channel3.svg" width="26" alt="" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
-| <img src="public/logos/ag-grid.svg" width="26" alt="" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
-| <img src="public/logos/elastic.svg" width="26" alt="" /> | **Elastic** | Full-text run search, and past failures that help "Explain this run" spot recurring problems |
-| <img src="public/logos/zapier.svg" width="26" alt="" /> | **Zapier** | A block that sends run data to a Zapier Catch Hook, reaching 8,000+ apps |
-| <img src="public/logos/slack.svg" width="26" alt="" /> | **Slack** | Notifications with member tagging, per workflow branch |
-| <img src="public/logos/openrouter.svg" width="26" alt="" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
-| | **Astropods** | Hosts the Money Lego assistant as a public chat agent |
-| | **Clerk** | Sign-in and accounts |
-| | **Postman** | A collection of every PayPal call Money Lego makes (`postman/`) |
+| <img src="docs/assets/partners/paypal.png" width="36" alt="PayPal" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
+| <img src="docs/assets/partners/channel3.png" width="36" alt="Channel3" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
+| <img src="docs/assets/partners/ag-grid.png" width="36" alt="AG Grid" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
+| <img src="docs/assets/partners/elastic.png" width="36" alt="Elastic" /> | **Elastic** | Full-text run search, and past failures that help "Explain this run" spot recurring problems |
+| <img src="docs/assets/partners/zapier.png" width="36" alt="Zapier" /> | **Zapier** | A block that sends run data to a Zapier Catch Hook, reaching 8,000+ apps |
+| <img src="docs/assets/partners/slack.png" width="36" alt="Slack" /> | **Slack** | Notifications with member tagging, per workflow branch |
+| <img src="docs/assets/partners/openrouter.png" width="36" alt="OpenRouter" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
+
+Also part of the stack: **Astropods** hosts the Money Lego assistant as a public chat agent, **Clerk** handles sign-in and accounts, and **Postman** holds a collection of every PayPal call Money Lego makes (`postman/`).
 
 ## Try it
 
@@ -210,6 +239,6 @@ Architecture, data model, API reference and deployment: **[docs/TECHNICAL_SPEC.m
 ---
 
 <p align="center">
-  <img src="docs/assets/logo.svg" width="36" alt="Money Lego" /><br />
+  <img src="docs/assets/logo.png" width="36" alt="Money Lego" /><br />
   <sub>Money Lego · MIT licensed · PayPal Sandbox</sub>
 </p>

@@ -1,5 +1,5 @@
 <p>
-  <img src="assets/logo.svg" width="44" alt="Money Lego" align="left" />
+  <img src="assets/logo.png" width="44" alt="Money Lego" align="left" />
   <b>Money Lego: technical specification</b><br />
   <sub>For engineers working on or reviewing the codebase. The product overview is in the <a href="../README.md">README</a>.</sub>
 </p>
