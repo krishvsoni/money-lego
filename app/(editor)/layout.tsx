@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ApprovalInbox } from "@/features/approvals/approval-inbox";
 import { AuthGate } from "@/features/auth/auth-gate";
 
@@ -11,7 +12,9 @@ export default function EditorLayout({ children }: LayoutProps<"/">) {
     <div className="flex flex-1 flex-col">
       <AuthGate>
         {children}
-        <ApprovalInbox placement="edge" />
+        <Suspense fallback={null}>
+          <ApprovalInbox placement="edge" />
+        </Suspense>
       </AuthGate>
     </div>
   );

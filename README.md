@@ -1,166 +1,215 @@
-# Money Lego
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="Money Lego: describe how money should move, approve it, run it on PayPal" width="100%" />
+</p>
 
-**Describe how money should move. Money Lego builds the PayPal workflow with AI, shows you exactly what it will do, and runs it after you approve every consequential action.**
+<p align="center">
+  <b>Payment operations you describe in a sentence, approve with confidence, and run on PayPal.</b><br />
+  <sub>Built on the PayPal Developer Platform. Runs on the PayPal Sandbox: real PayPal APIs, test accounts, test money.</sub>
+</p>
 
-Money Lego is an AI-assisted visual automation studio for payment operations, built on the PayPal Developer Platform (sandbox). Small businesses, agencies and creators describe a process in plain English ("when a client pays, split the net 70/20/10, check it, let me approve, pay everyone and tell Slack"). AI drafts a real, typed node graph on a canvas; a deterministic engine validates and runs it against PayPal's APIs; every payout, refund or invoice send pauses for a human to approve exactly what it will do.
+<p align="center">
+  <a href="#the-problem">Problem</a> ·
+  <a href="#what-money-lego-does">Product</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#use-case-ai-product-sourcing-with-channel3">Channel3 use case</a> ·
+  <a href="#money-lego-on-astropods">Astropods</a> ·
+  <a href="#runs-on-the-paypal-sandbox">PayPal Sandbox</a> ·
+  <a href="#built-with">Built with</a> ·
+  <a href="docs/TECHNICAL_SPEC.md">Technical spec</a>
+</p>
 
-> PayPal Sandbox only. Test accounts and test money. No real funds move.
+---
 
-## What works
+## The problem
 
-| Area | What it does |
-|---|---|
-| **Money Lego assistant** | A main OpenAI agent (floating "Ask Money Lego" on every page) that delegates by tool calls to sub-agents: a **PayPal agent** built on PayPal's official Agent Toolkit (`@paypal/agent-toolkit`, 16 read-only tools: invoices, orders, refunds, disputes, subscriptions, transactions, merchant insights), the workflow builder, run search, Channel3 product search and the payments ledger. Anything that moves money becomes a workflow draft behind a human approval. |
-| **AI workflow copilot (Sage)** | Natural language → schema-checked workflow graph using only registered blocks; guardrails reject any money action not behind an approval; edits ("add an approval before the refund") modify the open graph. |
-| **Canvas editor** | Node catalog, drag/connect, inspector, validation, versions, run panel with per-step input/output and PayPal ids, "Explain this run" (AI). |
-| **PayPal Checkout trigger** | Each workflow gets a hosted checkout page (`/pay/<key>`, PayPal JS SDK). The server sets the price, creates and captures the order; the run starts from PayPal's capture data and the verified `PAYMENT.CAPTURE.COMPLETED` webhook for the same capture never starts a second run. |
-| **PayPal webhooks** | `/api/integrations/paypal` verifies every delivery with `verify-webhook-signature`, stores it once by event id, mirrors status, wakes waiting runs and routes events to the owner's workflows (`PayPal event` trigger). |
-| **PayPal actions** | Get order, Payouts (batch + status follow-up), Refunds, Invoicing (find / create / send / remind), Subscriptions, Transaction Search. Writes use PayPal-Request-Id idempotency keys derived from run + node. |
-| **Exact money** | Integer cents end to end; splits reconcile to the cent (largest-remainder), reserves are calculated but never paid out. |
-| **Approval integrity** | An approval computes an *intent* for every money action on its Approved branch (recipients, amounts, capture, invoices), shows it and fingerprints it. The action recomputes its intent and refuses if anything changed. |
-| **AI steps** | `AI risk review` (deterministic checks + model judgement, high-risk branch) and `AI write` (per-item drafts, e.g. invoice reminders). Emails are masked and secrets removed before anything reaches the model. AI never moves money. |
-| **Payments dashboard** | An AG Studio analytics dashboard (KPIs, charts, ledger, cross-filtering) over every PayPal object and run, editable by drag-and-drop or by asking AG Studio's AI agents (running on our server-side model) to build pages. AG Grid tables and full-text run search alongside. |
-| **Templates** | Five DB-backed templates that clone into editable graphs: Revenue split payout, AI invoice reminders, Failed subscription recovery, Approved refund desk, Weekly PayPal ops digest. |
-| **Agentic commerce** | The Channel3 product search block and the AI Product Sourcing template: real products, an AI pick grounded in Channel3's response, owner approval, then a PayPal checkout at a price re-read from Channel3 server-side. |
+Small agencies, creators and online sellers move money every week in ways their tools don't understand:
 
-## Partner tools used
+- **"When a client pays, split it 70/20/10 and pay everyone."** Today that's a calculator, three PayPal payouts by hand, and a Slack message, with nothing to show who approved what.
+- **"Chase the invoices that are overdue."** Someone exports a list, writes reminders one by one, and forgets the ones that slipped.
+- **"Find the right product for a client, get it approved, get paid."** That's browsing stores, comparing, sending links and chasing the payment.
 
-| Tool | How it's used |
-|---|---|
-| **PayPal** (required) | Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks (verified). |
-| **AG Grid / AG Studio** | AG Studio powers the Payments analytics dashboard: two data sources (PayPal objects, workflow runs) with measure columns, a prebuilt report, edit mode, saved layouts, and AG Studio's AI harness wired to Money Lego's model through a server proxy (`/api/studio/llm`). AG Grid Community powers the detail tables. |
-| **Channel3** | `POST /v1/search` and `GET /v1/products/{id}` for the Channel3 product search block. |
-| **Elastic** | Finished runs are indexed (explicit mapping); run search on Payments uses Elastic, and AI run explanations cite similar past failures. Falls back to MongoDB, labelled, when not configured. |
-| **Zapier** | Zapier block posts run data to a Webhooks by Zapier Catch Hook (only `hooks.zapier.com`), reaching 8,000+ apps. |
-| **Render** | `render.yaml` Blueprint: web service + one-minute cron heartbeat for durable runs. |
-| **Postman** | `postman/money-lego-paypal.postman_collection.json`: every PayPal call Money Lego makes, plus our public endpoints. |
-| **Clerk** | Authentication. |
-| **OpenAI** | Main agents: Sage (planner, fixer), the Money Lego assistant and its PayPal sub-agent (tool calling), AG Studio's dashboard agents. Model set by `OPENAI_MODEL`. |
-| **PayPal Agent Toolkit** | `@paypal/agent-toolkit` (OpenAI integration) powers the PayPal sub-agent, restricted to read-only actions with a second allowlist. |
-| **OpenRouter** | Small tasks: AI review, AI write, AI pick, run explanations (falls back to OpenAI's small model). |
-| **Astropods** | The Money Lego assistant, with its crew (PayPal agent, workflow builder, run search, payments ledger), is published as the public blueprint [`krish/money-lego`](https://astropods.com/krish/money-lego) and deployed as a chat agent. See [Deploy the agent to Astropods](#deploy-the-agent-to-astropods). |
+Automation tools can do parts of this, but they move money on autopilot. When the money is real, owners want automation **and** the final say. Developers who could build it end up maintaining fragile webhook scripts.
 
-Not used: Bryntum (licensed package needs a trial account), APIMatic, KERNEL. We don't claim them.
+## What Money Lego does
 
-## Run it locally
+Money Lego turns a payment process into a **workflow you can see, check and approve** before any money moves.
 
-Requirements: Node 22+, npm, MongoDB with a replica set (Atlas, or `npm run db:up` for local Docker).
+| Step | What happens |
+| --- | --- |
+| **Describe it** | Type what should happen. **Sage**, the AI copilot, and its crew (Planner, Guard, Fixer, Connector, Builder) build the workflow block by block while you watch. |
+| **Inspect it** | The workflow is a visual canvas of real blocks: PayPal triggers, exact splits, AI checks, approvals, payouts, Slack messages. Change anything, or ask Sage to. |
+| **Approve it** | Every payout, refund or invoice send pauses for you. You see exactly who gets what, with an AI risk review. Approve from any page through the notification bell. |
+| **Run it** | The workflow runs on PayPal: checkout, capture, payout, status follow-up, notifications. Every PayPal id is recorded, and any run can be explained in plain words. |
+
+**Who it's for**
+
+- **Agencies and studios:** split client payments with collaborators, invoice clients, source products for clients.
+- **Creators:** share sales revenue with partners after a quick review.
+- **Small online businesses:** chase late invoices, recover failed subscriptions, keep a clean money ledger.
+
+**Highlights**
+
+- **Money never moves without you.** AI drafts and explains, but every payout, refund and invoice send waits for a human approval. The approval is fingerprinted: if an amount or recipient changes after you approve, the action refuses to run.
+- **Exact to the cent.** Splits are calculated in whole cents and always add up; a leftover cent is assigned visibly, never lost.
+- **A checkout page for every workflow.** Each workflow can have its own hosted PayPal checkout. When a buyer pays, the run starts on its own.
+- **Approvals follow you.** A bell and a corner notice bring every waiting approval to whatever page you're on, sorted by what expires first.
+- **A ledger you can trust.** The Payments page shows Captured, Paid out, Refunded and Net, and every number opens up to the PayPal ids behind it.
+- **Work as a team.** Share a workflow to view or to edit, or hand it over. Only the owner runs it, so nobody spends someone else's PayPal.
+- **Explain any run.** One click turns a run's record into a plain-language summary: what happened, whether money moved, what to do next.
+
+**Ready-made templates**
+
+| Template | Flow |
+| --- | --- |
+| PayPal Sale → Revenue Split Payout | Buyer pays your checkout → split the net → AI risk check → you approve → PayPal payouts → Slack |
+| AI Invoice Reminder Assistant | Every Monday: overdue invoices → AI drafts a reminder each → you review → PayPal sends them |
+| Failed Subscription Payment Recovery | Failed payment → AI explains why → alert the team → catch-up invoice you approve |
+| Approved Refund Desk | Refund request → AI check → you approve → refund once per capture |
+| Weekly PayPal Ops Digest | Every Friday: AI summary of the week's transactions → Slack |
+| AI Product Sourcing → PayPal Checkout | Request → Channel3 products → AI pick → you approve → checkout link → buyer pays |
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Describe it<br/><i>Split each sale 70/30,<br/>pay out after I approve</i>"] --> B["Sage builds it<br/>Planner · Guard · Fixer<br/>Connector · Builder"]
+    B --> C["Workflow on the canvas<br/>trigger → split → AI check<br/>→ approval → payout → Slack"]
+    C --> D{"Trigger fires<br/>checkout paid · PayPal event<br/>schedule · webhook"}
+    D --> E["Run waits for you<br/>recipients, amounts,<br/>AI risk review"]
+    E -->|Approve| F["PayPal moves the money<br/>payout · refund · invoice"]
+    E -->|Reject| G["Rejected branch<br/>nothing is sent"]
+    F --> H["Ledger and notifications<br/>PayPal ids, Slack,<br/>Explain this run"]
+```
+
+1. **Start from a sentence or a template.** Sage drafts the workflow using only real, registered blocks. Guard checks that every money step sits behind an approval before anything is saved.
+2. **Connect your accounts.** Slack, Discord, Telegram, Google Sheets, Airtable, Notion, GitHub and Shopify connect with one sign-in each. PayPal is the payment backbone.
+3. **Turn it on.** A checkout page, a PayPal event, a schedule or a signed webhook starts each run.
+4. **Approve and watch.** Approvals reach you on any page. The run panel shows every step and every PayPal id.
+
+## Use case: AI product sourcing with Channel3
+
+<img src="public/logos/channel3.svg" width="40" alt="Channel3" align="right" />
+
+An agency gets a request from a client: *"A quiet mechanical keyboard for our studio, under $150."* With Money Lego and [Channel3](https://channel3.ai), the whole purchase runs as one approved workflow, and the AI can only work with real products and real prices.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant ML as Money Lego
+    participant C3 as Channel3
+    participant You as You (owner)
+    participant PP as PayPal Sandbox
+    Client->>ML: Request: quiet keyboard, max $150
+    ML->>C3: Search real products in stock, under budget
+    C3-->>ML: Products with live prices, stores, photos
+    ML->>ML: AI picks one (only from Channel3's results) and says why
+    ML->>You: Approve this exact product, store and price?
+    You-->>ML: Approve
+    ML->>C3: Re-check the price (a changed price stops here)
+    ML->>PP: Create a checkout for that price
+    ML->>Client: Slack: here's your PayPal checkout link
+    Client->>PP: Pays with a sandbox account
+    PP-->>ML: Capture completed
+    ML->>You: Purchase card: product photo, order id, capture id
+```
+
+What makes it trustworthy:
+
+- **Grounded AI.** The pick must be one of the products Channel3 returned (checked by id). Price, brand and stock always come from Channel3, never from the model.
+- **The price you approved is the price charged.** The product is re-read from Channel3 after approval; if the price moved, no checkout is created.
+- **Conditions route the work.** A typical sourcing workflow tags finance in Slack when the pick is over $100 and ops when it's under, and tags sourcing if Channel3 finds nothing.
+- **See what was bought.** The run panel's Purchase card shows the product photo, store, rating, the price paid, and each step from your approval to the buyer's payment, with PayPal ids.
+
+Channel3 doesn't place merchant orders yet (its checkout API is announced as coming soon), so the business remains the merchant of record and fulfilment is its own step.
+
+## Money Lego on Astropods
+
+The **Money Lego assistant** also runs outside the app, as a chat agent on [Astropods](https://astropods.com): blueprint **[`krish/money-lego`](https://astropods.com/krish/money-lego)** (public).
+
+It's the same assistant as the in-app chat, with the same crew behind it, so you can manage PayPal operations from a conversation:
+
+| Ask | It does |
+| --- | --- |
+| "Which invoices are unpaid?" | Looks it up in PayPal through PayPal's official **Agent Toolkit** (read-only: invoices, orders, refunds, disputes, subscriptions, transactions) |
+| "Why did last night's payout fail?" | Reads the run history and explains it |
+| "How much did we capture and pay out this week?" | Summarises the Money Lego ledger |
+| "Every Monday, remind clients about overdue invoices after I approve" | Sage's crew drafts the workflow and saves it turned off, with a link to open it in the app |
+
+It never moves money itself: anything that would move money becomes a workflow step that waits for an approval in the app. Each deployment acts as one Money Lego account and sees only that account's workflows, runs and PayPal objects. Deployment steps are in the [technical spec](docs/TECHNICAL_SPEC.md#astropods-deployment).
+
+## Runs on the PayPal Sandbox
+
+<img src="public/logos/paypal.svg" width="40" alt="PayPal" align="right" />
+
+Money Lego calls the **real PayPal REST APIs** in PayPal's **Sandbox** environment. Every order, capture, payout, refund and invoice is a real PayPal object with a real id. The accounts and the money are test ones.
+
+| PayPal product | Used for |
+| --- | --- |
+| Orders v2 + JS SDK | Hosted checkout pages and checkout links; the server sets the price and captures it |
+| Payouts v1 | Paying recipients after approval, with item-level status follow-up |
+| Invoicing v2 | Finding, creating, sending and reminding invoices |
+| Payments v2 | Refunds, once per capture |
+| Subscriptions v1 | Reading subscription status for recovery workflows |
+| Transaction Search | Weekly digests and the ledger |
+| Webhooks v1 | Verified events (signature checked) that start runs and update statuses |
+| Agent Toolkit | The assistant's read-only PayPal agent |
+
+**Testing it yourself:**
+
+1. In [developer.paypal.com](https://developer.paypal.com) → Apps & Credentials → **Sandbox**, create a REST app and enable **Payouts**, **Invoicing** and **Transaction Search**.
+2. Use a **US sandbox business account** for the app: PayPal refuses Payouts from some countries (for example India-registered apps return `PAYOUT_NOT_AVAILABLE`).
+3. In Sandbox → **Accounts**, use a sandbox **personal** account to pay checkout pages, and sandbox emails (`sb-…@personal.example.com`) as payout recipients. A real email address isn't a sandbox account, so a payout to it stays `UNCLAIMED`.
+4. Run `npm run paypal:check` to confirm the app works, then log into [sandbox.paypal.com](https://www.sandbox.paypal.com) as the recipient to see the money arrive.
+
+Runs started with the editor's **Run** button use the trigger's test data and are labelled **TEST**; their PayPal steps still run against the sandbox.
+
+## Built with
+
+| | Partner | What it powers |
+| :-: | --- | --- |
+| <img src="public/logos/paypal.svg" width="26" alt="" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
+| <img src="public/logos/channel3.svg" width="26" alt="" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
+| <img src="public/logos/ag-grid.svg" width="26" alt="" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
+| <img src="public/logos/elastic.svg" width="26" alt="" /> | **Elastic** | Full-text run search, and past failures that help "Explain this run" spot recurring problems |
+| <img src="public/logos/zapier.svg" width="26" alt="" /> | **Zapier** | A block that sends run data to a Zapier Catch Hook, reaching 8,000+ apps |
+| <img src="public/logos/slack.svg" width="26" alt="" /> | **Slack** | Notifications with member tagging, per workflow branch |
+| <img src="public/logos/openrouter.svg" width="26" alt="" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
+| | **Astropods** | Hosts the Money Lego assistant as a public chat agent |
+| | **Clerk** | Sign-in and accounts |
+| | **Postman** | A collection of every PayPal call Money Lego makes (`postman/`) |
+
+## Try it
+
+**Five-minute walkthrough:**
+
+1. Sign up, open **Templates → PayPal Sale → Revenue Split Payout → Use template**.
+2. In **Split allocation**, put sandbox personal account emails under Recipients. Turn the workflow **on**.
+3. Open the workflow's **checkout page** and pay with a sandbox personal account.
+4. The bell rings: **Review** the payout (recipients, amounts, AI risk check) and **Approve**.
+5. Watch the payout land, then open **Payments** and click **How** on any total to see the PayPal ids behind it. Click **Explain this run**.
+6. Ask Sage: *"When a PayPal subscription payment fails, explain why with AI, alert Slack, and draft a catch-up invoice I approve."*
+
+**Run it locally:**
 
 ```bash
 npm install
-cp .env.example .env          # fill in MongoDB, Clerk, PayPal sandbox, OpenRouter
-npm run paypal:check          # proves OAuth, lists app capabilities, creates a test order
-npm run db:seed               # optional: templates are also seeded lazily on first use
-npm run dev                   # http://localhost:3000
+cp .env.example .env     # MongoDB, Clerk, PayPal sandbox, OpenAI/OpenRouter, Channel3
+npm run paypal:check     # confirms your PayPal sandbox app
+npm run dev              # http://localhost:3000
 ```
 
-PayPal sandbox setup:
+Architecture, data model, API reference and deployment: **[docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md)**.
 
-1. developer.paypal.com → Apps & Credentials → Sandbox → create a REST app; copy the client id/secret.
-2. In the app's features, enable **Payouts**, **Invoicing** and **Transaction Search** if you want those blocks (the PayPal section on Connections shows what your app was granted).
-3. Sandbox → Accounts: use the generated *personal* account to pay checkout pages and *business* account emails (or other personal accounts) as payout recipients.
-4. Webhooks need a public HTTPS URL. On Render (or a tunnel), set `APP_URL`, run `npm run paypal:webhook`, and set the printed `PAYPAL_WEBHOOK_ID`. Checkout pages work without webhooks (runs start from the capture response).
+## What's next
 
-The scheduler/heartbeat is `GET /api/cron/workflows` with `Authorization: Bearer $CRON_SECRET`, every minute (Render cron in `render.yaml`).
+- Customers connect their own PayPal account (PayPal Partner onboarding) instead of one sandbox app.
+- Placing the merchant order automatically once Channel3's checkout API ships.
+- Dispute triage, scheduled payout windows, and more connectors.
 
-## Deploy the agent to Astropods
+---
 
-The Money Lego assistant also runs outside the app as an [Astropods](https://astropods.com) chat agent: blueprint [`krish/money-lego`](https://astropods.com/krish/money-lego) (public). It's the same agent as the in-app chat bubble, with the same crew as tools:
-
-- **PayPal agent**: read-only lookups through PayPal's Agent Toolkit (invoices, orders, refunds, disputes, subscriptions, transactions).
-- **Workflow builder**: Sage's planner, guard, fixer and connector draft a workflow, saved turned off. The reply links to it on `APP_URL`.
-- **Run search** and the **payments ledger**: why runs failed, and captured / paid out / refunded totals.
-
-It never moves money: every money action is a workflow step that waits for an approval in the app. It acts as one Money Lego account (`MONEY_LEGO_ACCOUNT_ID`) and sees only that account's workflows, runs and PayPal objects, so keep each deployment's chat access limited to its owner.
-
-| File | Purpose |
-|---|---|
-| `astropods.yml` | Blueprint spec: build, messaging interface, and the inputs (secrets) the agent needs |
-| `astropods/agent.mts` | The agent: wraps `runAssistant` in an `@astropods/adapter-core` adapter, with per-conversation memory |
-| `astropods/Dockerfile` | Linux image that runs the app's server code with `tsx` (no Next.js build). The Astropods packages are installed only in the image |
-| `AGENT.md` | The description shown on the blueprint page |
-| `.dockerignore` | Keeps `.env` and other local files out of the image |
-
-Requirements: Docker, and the Astropods CLI (`irm https://astropods.com/install.ps1 | iex` on Windows, `curl -fsSL https://astropods.com/install | sh` elsewhere).
-
-```bash
-ast login
-
-# Keys go in your Astropods vault; each command prompts for the value.
-ast secrets create ML_MONGODB_URI
-ast secrets create ML_OPENAI_API_KEY
-ast secrets create ML_OPENROUTER_API_KEY
-ast secrets create ML_PAYPAL_CLIENT_ID
-ast secrets create ML_PAYPAL_CLIENT_SECRET
-
-ast spec validate                       # checks astropods.yml
-ast push money-lego -V public           # builds the image and publishes the blueprint
-
-ast deploy krish/money-lego -n "Money Lego" --wait \
-  --var MONEY_LEGO_ACCOUNT_ID=<your Money Lego account id> \
-  --var PAYPAL_ACCOUNT_OWNER_IDS=<your Money Lego account id> \
-  --var MONGODB_URI=@ML_MONGODB_URI \
-  --var OPENAI_API_KEY=@ML_OPENAI_API_KEY \
-  --var OPENROUTER_API_KEY=@ML_OPENROUTER_API_KEY \
-  --var PAYPAL_CLIENT_ID=@ML_PAYPAL_CLIENT_ID \
-  --var PAYPAL_CLIENT_SECRET=@ML_PAYPAL_CLIENT_SECRET \
-  --var APP_URL=https://money-lego.vercel.app
-```
-
-`--var KEY=@SECRET` reads the value from your vault, so keys never appear on the command line or in the image. The deploy prints the chat URL (`https://<name>.agents.astropods.ai`).
-
-After a code change, run `ast push money-lego` again, then `ast agent redeploy --name "Money Lego" --latest`. Useful commands:
-
-```bash
-ast agent list                                          # deployments and status
-ast agent logs --name "Money Lego" --workload agent --tail
-ast agent access get --name "Money Lego"                # who can chat with it
-```
-
-Notes:
-
-- MongoDB must accept connections from Astropods. On Atlas, allow its outbound IPs, or `0.0.0.0/0` for a sandbox database.
-- Sage's in-editor crew and AG Studio's dashboard agents work inside the app's pages, so they stay in the app. The Astropods agent reaches the same crew through the assistant's "build a workflow" tool.
-- `@astropods/messaging` can't be installed on Windows (its install script makes a Unix symlink), which is why the Astropods packages are installed only inside the Docker image and `tsconfig.json` excludes `astropods/`.
-
-## Five-minute judge walkthrough
-
-1. Sign up, open **Templates → PayPal Sale → Revenue Split Payout → Use template**.
-2. In **Split allocation**, replace the example emails with sandbox accounts. Save, turn the workflow **on**.
-3. Select the checkout trigger → **Open** the checkout page → pay with a sandbox personal account.
-4. Back in the editor, the run is waiting at **Owner approves payout**: review the AI risk review, recipients and amounts, then **Approve**.
-5. The payout batch is sent; **Payout status** follows it until PayPal reports items paid. See every id on **Payments**. Click **Explain this run**.
-6. Try **Workflows → Sage**: "When a PayPal subscription payment fails, explain why with AI, alert Slack, and draft a catch-up invoice I approve."
-
-## Tests and checks
-
-```bash
-npm run typecheck && npm run lint && npm test && npm run build
-```
-
-Unit tests cover exact allocation, approval intents/fingerprints, webhook parsing/routing references, agent guardrails, templates and the workflow engine primitives.
-
-## Architecture
-
-```
-Next.js (App Router) ── canvas, inspector, run panel, Payments (AG Studio), Connections (PayPal)
-   │
-   ├─ /api/agent/*            AI drafting/editing (OpenRouter) → guardrails → saved graph
-   ├─ /api/workflows/*        CRUD, versions, enable (trigger activation), test runs
-   ├─ /api/workflow-runs/*    approve / reject / retry / cancel / explain (AI)
-   ├─ /api/pay/*              public checkout: create + capture orders → start runs
-   ├─ /api/integrations/paypal verified webhooks → dedupe → mirror → route → wake
-   └─ /api/cron/workflows     durable heartbeat (schedules, expiries, payout re-checks)
-        │
-        ├─ engine: DAG executor, leases, persisted node runs, waits (approval/delay/provider)
-        ├─ server/paypal: OAuth token cache, typed REST wrappers, idempotency, error mapping
-        ├─ MongoDB: workflows, versions, runs, node runs, paypal_events, paypal_resources
-        └─ Elastic (optional): run index for search
-
-Astropods pod (astropods/agent.mts) ── Money Lego assistant over Astropods messaging (gRPC)
-   └─ same server code: PayPal agent, workflow builder crew, run search, ledger → same MongoDB
-```
-
-## License
-
-MIT, see [LICENSE](LICENSE).
+<p align="center">
+  <img src="docs/assets/logo.svg" width="36" alt="Money Lego" /><br />
+  <sub>Money Lego · MIT licensed · PayPal Sandbox</sub>
+</p>

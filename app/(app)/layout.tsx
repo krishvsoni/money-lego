@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NetworkBadge } from "@/components/network-badge";
 import { SiteNav } from "@/components/site-nav";
 import { AccountControl } from "@/features/auth/account-control";
@@ -24,7 +25,13 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <SiteNav
         wide
         links={APP_LINKS}
-        pinned={<ApprovalBell />}
+        // Notifications read the signed-in account and live data, so they render in the browser;
+        // each sits in its own Suspense boundary so prerendering the page doesn't fail on them.
+        pinned={
+          <Suspense fallback={null}>
+            <ApprovalBell />
+          </Suspense>
+        }
         right={
           <>
             <NetworkBadge />
@@ -36,7 +43,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <AuthGate>
           {children}
           <AssistantPanel />
-          <ApprovalInbox />
+          <Suspense fallback={null}>
+            <ApprovalInbox />
+          </Suspense>
         </AuthGate>
       </main>
     </div>
