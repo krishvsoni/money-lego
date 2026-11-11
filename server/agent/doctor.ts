@@ -199,7 +199,7 @@ export async function diagnose(user: SessionUser, workflowId: string, graph: Wor
   // ---- The scheduler that resumes paused runs ----
   if (graph.nodes.some((n) => RESUMES.has(n.type))) {
     const internal = process.env.INTERNAL_CRON === "true" || (process.env.INTERNAL_CRON !== "false" && e.NODE_ENV !== "production");
-    if (!e.CRON_SECRET) add({ level: "blocker", area: "server", text: "CRON_SECRET isn't set, so paused steps (approval expiry, Wait until paid) never resume. Add it to .env and restart." });
+    if (!e.CRON_SECRET) add({ level: "blocker", area: "server", text: "CRON_SECRET isn't set, so paused steps (approval expiry, waiting for payouts to land) never resume. Add it to .env and restart." });
     else if (internal) add({ level: "ok", area: "server", text: "The server's built-in scheduler resumes paused steps every 20 seconds." });
     else add({ level: "warn", area: "server", text: "Paused steps resume only when something calls /api/cron/workflows every minute (a cron job with CRON_SECRET)." });
   }

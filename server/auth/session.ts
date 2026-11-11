@@ -38,9 +38,10 @@ function normalizeEmail(email: string): string {
 }
 
 // Accounts from before the move to Kinde (Clerk) have no password: they sign in with Kinde,
-// which links them on first use with the same verified email.
-const USES_KINDE = "This email already has a Money Lego account that signs in with Kinde. Use Continue with Kinde.";
-const WRONG_PASSWORD = "Email or password is incorrect. If you signed in with Google or Clerk before, use Continue with Kinde.";
+// which links them on first use with the same verified email. The messages stay plain and
+// don't name an auth provider.
+const USES_KINDE = "An account already exists for that email. Sign in instead.";
+const WRONG_PASSWORD = "Email or password is incorrect.";
 
 async function passwordHash(password: string): Promise<string> {
   const salt = randomBytes(16);

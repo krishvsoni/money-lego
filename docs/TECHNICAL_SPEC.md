@@ -261,7 +261,6 @@ The assistant runs on [Astropods](https://astropods.com) as blueprint [`krish/mo
 | `astropods.yml` | Blueprint spec: build, messaging interface, inputs |
 | `astropods/agent.mts` | The agent adapter |
 | `astropods/Dockerfile` | Linux image running the server code with `tsx` (no Next.js build) |
-| `AGENT.md` | Description on the blueprint page |
 
 ```bash
 ast login

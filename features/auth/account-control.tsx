@@ -1,17 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import { signOutLocal, useAuthSession } from "./session-context";
 
 const QUIET = "press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full border border-line bg-white px-4 text-[14px] font-medium text-ink hover:bg-sunken";
 const SOLID = "press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgb(9_9_11/0.2)] hover:bg-[#27272a]";
 
+// Where Kinde sends someone back after signing in: the page they were on, except the
+// marketing pages, which send them to their workflows.
+function returnPath(pathname: string | null): string {
+  if (!pathname || pathname === "/" || pathname.startsWith("/sign-") || pathname === "/privacy" || pathname === "/terms") return "/workflows";
+  return pathname;
+}
+
+// Kinde's own routes. Plain <a>, never prefetched: they are full-page redirects to Kinde.
+export const kindeHref = (route: "login" | "register", next = "/workflows") => `/api/auth/${route}?post_login_redirect_url=${encodeURIComponent(next)}`;
+
 // Signed in: the person's name and Sign out (plus a builder link on marketing pages).
-// Signed out: a quiet "Sign in" and a solid "Sign up". Both open our own pages, which offer
-// Kinde first and the email + password fallback below it, so every account can sign in.
+// Signed out: a quiet "Sign in" and a solid "Sign up", each going straight to Kinde.
 export function AccountControl({ builderLink = false }: { builderLink?: boolean }) {
   const { loaded, user } = useAuthSession();
+  const next = returnPath(usePathname());
   if (!loaded) return <span className="h-9 w-[176px] animate-pulse rounded-full bg-sunken" aria-hidden />;
 
   if (user) {
@@ -42,12 +53,12 @@ export function AccountControl({ builderLink = false }: { builderLink?: boolean 
 
   return (
     <div className="flex items-center gap-2">
-      <Link href="/sign-in" className={QUIET}>
+      <a href={kindeHref("login", next)} className={QUIET}>
         Sign in
-      </Link>
-      <Link href="/sign-up" className={SOLID}>
+      </a>
+      <a href={kindeHref("register", next)} className={SOLID}>
         Sign up
-      </Link>
+      </a>
     </div>
   );
 }

@@ -65,8 +65,8 @@ describe.skipIf(!local)("payment timeline against MongoDB", () => {
 
   it("reports data beyond each source's limit instead of silently dropping it, per owner", async () => {
     const c = await mod.collections();
-    const busy = { userId: new ObjectId(), name: "Busy", kind: "clerk" as const, email: null };
-    const quiet = { userId: new ObjectId(), name: "Quiet", kind: "clerk" as const, email: null };
+    const busy = { userId: new ObjectId(), name: "Busy", kind: "kinde" as const, email: null };
+    const quiet = { userId: new ObjectId(), name: "Quiet", kind: "kinde" as const, email: null };
     const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000);
     const flowOf = (ownerId: ObjectId, key: string) => ({
       _id: new ObjectId(), ownerId, name: `Flow ${key}`, status: "active" as const, enabled: false, currentVersion: 1,

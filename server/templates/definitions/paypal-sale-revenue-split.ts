@@ -31,7 +31,7 @@ const g = graph(
       config: { message: "Pay out {{ input.allocation.payout }} of the {{ input.allocation.total }} {{ input.allocation.currency }} net from capture {{ trigger.captureId }}? AI risk: {{ input.review.risk }}.", timeoutHours: 24 },
     },
     { id: "payout", type: "paypal.payout", label: "PayPal payout batch", at: [2, 1], config: { subject: "Your share of a client payment", note: "Your share of order {{ trigger.orderId }}. Thank you!" } },
-    { id: "status", type: "paypal.payout_status", label: "Wait until paid", at: [3, 1], config: { timeoutHours: 48 } },
+    { id: "status", type: "paypal.payout_status", label: "Wait for payouts to land", at: [3, 1], config: { timeoutHours: 48 } },
     { id: "slack", type: "notify.slack", label: "Tell the team", at: [4, 1], config: { message: "Revenue split for capture {{ trigger.captureId }}: payout batch {{ input.payout.batchId }} is {{ input.payoutStatus.status }} ({{ input.payoutStatus.paid }} paid, {{ input.payoutStatus.problems }} problems). Run {{ run.id }}." } },
   ],
   [["checkout", "once"], ["once", "order"], ["order", "split"], ["split", "review"], ["review", "approval"], ["approval", "payout", "approved"], ["payout", "status"], ["status", "slack"], ["status", "slack", "failed"]],

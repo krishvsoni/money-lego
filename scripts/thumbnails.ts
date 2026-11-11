@@ -149,7 +149,7 @@ const THUMBS: Thumb[] = [
       { id: "ai", x: 1000, y: 200, label: "AI review", sub: "risk + checks", kind: "ai", mono: "AI", w: 220 },
       { id: "ok", x: 1000, y: 420, label: "You approve", sub: "fingerprinted", kind: "logic", mono: "✓", w: 220 },
       { id: "payout", x: 660, y: 420, label: "PayPal payout", sub: "one batch", kind: "money", mono: "PP" },
-      { id: "status", x: 360, y: 420, label: "Wait until paid", sub: "item by item", kind: "money", mono: "◷" },
+      { id: "status", x: 360, y: 420, label: "Wait for payouts to land", sub: "item by item", kind: "money", mono: "◷" },
       { id: "slack", x: 60, y: 420, label: "Slack", sub: "team update", kind: "notify", mono: "#", w: 200 },
     ],
     edges: [["pay", "once"], ["once", "split"], ["split", "ai"], ["ai", "ok"], ["ok", "payout", "approved"], ["payout", "status"], ["status", "slack"]],

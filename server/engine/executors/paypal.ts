@@ -314,7 +314,9 @@ const payoutStatus: Executor = async (ctx) => {
   }
   const until = ctx.waitState?.until ? new Date(String(ctx.waitState.until)) : new Date(Date.now() + Number(ctx.config.timeoutHours ?? 48) * 3_600_000);
   if (until.getTime() <= Date.now()) throw new NodeError(`The payout batch is still ${status} after the time limit. It may still complete; check it on the Payments page.`);
-  return { kind: "wait", wait: { kind: "provider", until, ref: `payout:${batchId}` }, state: { until: until.toISOString(), lastStatus: status } };
+  // Shown on the run's waiting card, so nobody thinks they still have to pay something.
+  const message = `Nothing for you to do. PayPal is delivering ${items.length || "the"} payout${items.length === 1 ? "" : "s"} you approved (batch ${status.toLowerCase()}${pendingItems.length ? `, ${pendingItems.length} still on the way` : ""}). This step checks PayPal on its own and carries on as soon as PayPal reports the batch done.`;
+  return { kind: "wait", wait: { kind: "provider", until, ref: `payout:${batchId}` }, state: { until: until.toISOString(), lastStatus: status, message } };
 };
 
 const refund: Executor = async (ctx) => {

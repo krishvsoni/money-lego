@@ -1,7 +1,7 @@
 // Runs once when the Next.js server starts. In development (or when INTERNAL_CRON=true) it
 // starts the workflow heartbeat inside the server itself: every 20s it calls the same
 // /api/cron/workflows route a production scheduler would, so schedules fire and waiting runs
-// (approval expiry, "Wait until paid" payout re-checks) move on without a second terminal.
+// (approval expiry, "Wait for payouts to land" re-checks) move on without a second terminal.
 // Set INTERNAL_CRON=false to turn it off; CRON_DEV_INTERVAL_MS changes the interval.
 
 const KEY = Symbol.for("money-lego.internal-cron");
