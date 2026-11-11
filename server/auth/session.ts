@@ -37,6 +37,11 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+// Accounts from before the move to Kinde (Clerk) have no password: they sign in with Kinde,
+// which links them on first use with the same verified email.
+const USES_KINDE = "This email already has a Money Lego account that signs in with Kinde. Use Continue with Kinde.";
+const WRONG_PASSWORD = "Email or password is incorrect. If you signed in with Google or Clerk before, use Continue with Kinde.";
+
 async function passwordHash(password: string): Promise<string> {
   const salt = randomBytes(16);
   const derived = (await scrypt(password, salt, 64)) as Buffer;
@@ -133,8 +138,8 @@ export async function createLocalAccount(input: { name: string; email: string; p
   const email = normalizeEmail(input.email);
   const now = new Date();
   const { users } = await collections();
-  const existing = await users.findOne({ email }, { collation: { locale: "en", strength: 2 } });
-  if (existing) throw errors.conflict("An account already exists for that email.");
+  const existing = await users.findOne({ email }, { collation: EMAIL_COLLATION });
+  if (existing) throw errors.conflict(existing.kind === "local" ? "An account already exists for that email. Sign in instead." : USES_KINDE);
   let doc;
   try {
     doc = await users.insertOne({
@@ -163,7 +168,7 @@ export async function signInLocal(emailInput: string, password: string): Promise
   const { users } = await collections();
   const user = await users.findOne({ identityKey: `local:${email}` });
   if (!user?.passwordHash || !(await passwordMatches(password, user.passwordHash))) {
-    throw errors.unauthenticated();
+    throw errors.unauthenticated(WRONG_PASSWORD);
   }
   await users.updateOne({ _id: user._id }, { $set: { lastSignedInAt: new Date() } });
   await setLocalSession(user._id);
