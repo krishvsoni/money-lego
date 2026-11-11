@@ -161,16 +161,17 @@ What makes it trustworthy:
 
 Channel3 doesn't place merchant orders yet (its checkout API is announced as coming soon), so the business remains the merchant of record and fulfilment is its own step.
 
-## The Payments dashboard: AG Grid and AG Studio
+## The Payments dashboard: AG Grid, AG Studio and Bryntum
 
 <img src="docs/assets/partners/ag-grid.png" width="48" alt="AG Grid" align="right" />
 
-The **Payments** page is where an owner checks the money. It has three tabs.
+The **Payments** page is where an owner checks the money. It has four tabs.
 
 | Tab | Built with | What you get |
 | --- | --- | --- |
 | **Dashboard** | **AG Studio** | A ready-made report over every PayPal object and every workflow run: Captured, Paid out, Refunded, Payout problems, Runs succeeded and Runs failed as tiles; volume by PayPal object, captured over time and runs by status as charts; and the PayPal ledger as a table. Clicking any chart filters the rest of the page. |
 | **PayPal objects** | **AG Grid** | Every order, capture, refund, payout batch and item, invoice and subscription, with type filter and search |
+| **Timeline** | **Bryntum Scheduler** | Every payment's life on one time axis: orders, captures, refunds, disputes, payouts and invoices as coloured milestones, workflow runs as bars. One row per workflow or per payment, over the last 7, 30 or 90 days |
 | **Workflow runs** | **AG Grid** | Every run with its status, trigger, duration and error, searchable |
 
 How AG Studio is wired in:
@@ -179,6 +180,14 @@ How AG Studio is wired in:
 - **Customise it.** **Customize dashboard** opens AG Studio's editor full screen: drag widgets and fields, add pages, change charts. The layout is saved in your browser, and **Reset** brings back the default report.
 - **Ask it in words.** AG Studio's own AI agents can build pages from a sentence, with starters such as *"Build a payouts page: total paid out, payout problems, paid out by workflow, and a ledger of payout items"*, *"Show captured revenue by week and by workflow"* and *"Add a page for workflow run health"*. Their model calls go through Money Lego's server (`/api/studio/llm`), so no AI key reaches the browser, and the agents can only change the dashboard, never PayPal or a workflow.
 - **Every number explained.** Above the dashboard, a summary row shows Captured, Paid out, Refunded and Net kept; each opens to the PayPal ids, workflows and runs that add up to it.
+
+How the Bryntum timeline is wired in:
+
+- **What it shows.** Milestones come from the owner's PayPal objects, verified PayPal webhooks and workflow runs. A webhook PayPal sends twice still shows once, and colour shows the state: completed, pending, failed, refunded, disputed or payout problem.
+- **Using it.** Switch between a row per workflow and a row per payment, filter by status, zoom in or out, hover a milestone for its amount, status and PayPal id, and click it to open the run.
+- **Ask it in words.** A question such as *"Show failed payouts this week"* gets a short AI answer that filters the timeline and outlines the milestones it's about. The AI can only describe and filter, never move money.
+- **Read-only and light.** Nothing on it can be dragged or edited. It loads only when the Timeline tab opens, so other pages don't carry it.
+- **No setup.** It uses Bryntum's MIT-licensed Community edition (`@bryntum/scheduler-community` 8.0.0): no licence key, no environment variables, no watermark. `npm install` is all it needs.
 
 ## Money Lego on Astropods
 
@@ -219,7 +228,7 @@ Money Lego calls the **real PayPal REST APIs** in PayPal's **Sandbox** environme
 3. In Sandbox → **Accounts**, use a sandbox **personal** account to pay checkout pages, and sandbox emails (`sb-…@personal.example.com`) as payout recipients. A real email address isn't a sandbox account, so a payout to it stays `UNCLAIMED`.
 4. Run `npm run paypal:check` to confirm the app works, then log into [sandbox.paypal.com](https://www.sandbox.paypal.com) as the recipient to see the money arrive.
 
-Runs started with the editor's **Run** button use the trigger's test data and are labelled **TEST**; their PayPal steps still run against the sandbox.
+Runs started with the editor's **Run** button use the trigger's test data; their PayPal steps still run against the sandbox.
 
 ## Built with
 
@@ -228,10 +237,11 @@ Runs started with the editor's **Run** button use the trigger's test data and ar
 | <img src="docs/assets/partners/paypal.png" width="36" alt="PayPal" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
 | <img src="docs/assets/partners/channel3.png" width="36" alt="Channel3" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
 | <img src="docs/assets/partners/ag-grid.png" width="36" alt="AG Grid" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
+| | **Bryntum** | The Payments timeline: every payment's milestones on one scheduler, filterable and read-only (Community edition, no licence key) |
 | <img src="docs/assets/partners/slack.png" width="36" alt="Slack" /> | **Slack** | Notifications with member tagging, per workflow branch |
 | <img src="docs/assets/partners/openrouter.png" width="36" alt="OpenRouter" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
 
-Also part of the stack: **Astropods** hosts the Money Lego assistant as a public chat agent, **Kinde** handles sign-in and accounts, with Money Lego email + password accounts as a fallback (setup and callback URLs: [docs/auth.md](docs/auth.md)), and **Postman** holds a collection of every PayPal call Money Lego makes (`postman/`).
+Also part of the stack: **Astropods** hosts the Money Lego assistant as a public chat agent, **Kinde** handles sign-in and accounts (setup and callback URLs: [docs/auth.md](docs/auth.md)), and **Postman** holds a collection of every PayPal call Money Lego makes (`postman/`).
 
 ## Try it
 
@@ -248,7 +258,7 @@ Also part of the stack: **Astropods** hosts the Money Lego assistant as a public
 
 ```bash
 npm install
-cp .env.example .env     # MongoDB, Kinde (optional, see docs/auth.md), PayPal sandbox, OpenAI/OpenRouter, Channel3
+cp .env.example .env     # MongoDB, Kinde (see docs/auth.md), PayPal sandbox, OpenAI/OpenRouter, Channel3
 npm run paypal:check     # confirms your PayPal sandbox app
 npm run dev              # http://localhost:3000
 ```
