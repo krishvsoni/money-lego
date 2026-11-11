@@ -140,7 +140,12 @@ export const providerTriggerNodes: NodeDefinition[] = [
         patternMessage: "The person's Slack email, or a member ID like U0123ABCD",
         help: "Optional. Only start when this person is tagged: their Slack email or member ID. Empty: the first person tagged.",
       },
-      { key: "samplePayload", label: "Test payload", kind: "json", help: "Used when you click Run in the editor." },
+      {
+        key: "samplePayload",
+        label: "Test payload",
+        kind: "json",
+        help: "Used when you click Run in the editor. Put real people in requesterId and taggedUserId, as their Slack email or member ID, so messages tag them by name.",
+      },
     ],
     inputs: [],
     outputs: MAIN_OUT,
