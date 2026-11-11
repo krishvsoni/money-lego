@@ -1,3 +1,4 @@
+import { resolveSiteUrl } from "@/lib/site-url";
 import "server-only";
 import { z } from "zod";
 import { errors } from "../errors";
@@ -89,6 +90,11 @@ const schema = z.object({
 export type Env = z.infer<typeof schema> & { PAYPAL_API_BASE: string; PAYPAL_WEB_BASE: string };
 
 let cached: Env | null = null;
+
+// See lib/site-url.ts: the deployment's public address, never localhost on Vercel.
+export function appUrl(): string {
+  return resolveSiteUrl({ ...process.env, APP_URL: process.env.APP_URL?.trim() ? env().APP_URL : undefined });
+}
 
 export function env(): Env {
   if (cached) return cached;

@@ -1,6 +1,6 @@
 import "server-only";
 import type { SessionUser } from "../auth/session";
-import { env } from "../config/env";
+import { appUrl, env } from "../config/env";
 import { collections } from "../db/collections";
 import { isAppError } from "../errors";
 import { listWebhooks } from "./api";
@@ -15,7 +15,8 @@ import { elasticConfigured } from "../integrations/elastic";
 export async function paypalStatus(user: SessionUser) {
   const e = env();
   const configured = Boolean(e.PAYPAL_CLIENT_ID && e.PAYPAL_CLIENT_SECRET);
-  const expectedUrl = `${e.APP_URL}/api/integrations/paypal`;
+  const site = appUrl();
+  const expectedUrl = `${site}/api/integrations/paypal`;
   let capabilities: Awaited<ReturnType<typeof paypalCapabilities>> | null = null;
   let error: string | null = null;
   let webhook: { id: string; url: string; events: string[]; matchesConfig: boolean } | null = null;
@@ -47,7 +48,7 @@ export async function paypalStatus(user: SessionUser) {
     features: capabilities?.features ?? null,
     scopeCount: capabilities?.scopes.length ?? 0,
     error,
-    webhook: { configuredId: e.PAYPAL_WEBHOOK_ID ?? null, expectedUrl, publicUrl: /^https:\/\//.test(e.APP_URL) && !/localhost|127\.0\.0\.1/.test(e.APP_URL), registered: webhook },
+    webhook: { configuredId: e.PAYPAL_WEBHOOK_ID ?? null, expectedUrl, publicUrl: /^https:\/\//.test(site) && !/localhost|127\.0\.0\.1/.test(site), registered: webhook },
     partners: {
       channel3: channel3Configured(),
       elastic: elasticConfigured(),

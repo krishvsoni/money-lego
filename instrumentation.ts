@@ -4,9 +4,24 @@
 // (approval expiry, "Wait for payouts to land" re-checks) move on without a second terminal.
 // Set INTERNAL_CRON=false to turn it off; CRON_DEV_INTERVAL_MS changes the interval.
 
+import { isLocalUrl, resolveSiteUrl } from "@/lib/site-url";
+
 const KEY = Symbol.for("money-lego.internal-cron");
 
+// Kinde's SDK reads KINDE_SITE_URL once, when it loads, to build its callback address. On
+// Vercel a value left at localhost (copied from a local .env) would send people back to
+// localhost after signing in, so it's set to the deployment's own address before any request.
+function fixKindeUrlsOnVercel() {
+  if (!process.env.VERCEL || !process.env.KINDE_CLIENT_ID) return;
+  const site = resolveSiteUrl(process.env);
+  for (const key of ["KINDE_SITE_URL", "KINDE_POST_LOGOUT_REDIRECT_URL"]) {
+    const value = process.env[key]?.trim();
+    if (!value || isLocalUrl(value) || value.includes(",")) process.env[key] = site;
+  }
+}
+
 export async function register() {
+  fixKindeUrlsOnVercel();
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   const flag = process.env.INTERNAL_CRON;
   const on = flag === "true" || (flag !== "false" && process.env.NODE_ENV !== "production");
@@ -17,7 +32,7 @@ export async function register() {
   const g = globalThis as unknown as Record<symbol, NodeJS.Timeout | undefined>;
   if (g[KEY]) return;
 
-  const base = (process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, "");
+  const base = resolveSiteUrl(process.env);
   const everyMs = Math.max(5_000, Number(process.env.CRON_DEV_INTERVAL_MS) || 20_000);
   let busy = false;
 

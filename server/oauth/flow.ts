@@ -2,7 +2,7 @@ import "server-only";
 import { connectionBySlug } from "@/lib/connections/catalog";
 import type { ConnectionType } from "@/lib/nodes/types";
 import type { SessionUser } from "../auth/session";
-import { env } from "../config/env";
+import { appUrl } from "../config/env";
 import { errors } from "../errors";
 import { log } from "../log";
 import { adapterFor } from "./adapters";
@@ -16,7 +16,7 @@ import { OAuthError } from "./types";
 // result only from that same signed-in user, exchanges the one-time code server-side and
 // saves the connection. Codes, tokens and verifiers never reach the browser.
 
-export const redirectUriFor = (slug: string) => `${env().APP_URL}/api/connections/${slug}/callback`;
+export const redirectUriFor = (slug: string) => `${appUrl()}/api/connections/${slug}/callback`;
 
 // Only same-site paths, so the callback can't be turned into an open redirect.
 export function safeReturnTo(value: string | null): string {

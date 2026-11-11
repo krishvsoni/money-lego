@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { resolveSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geist = Geist({
@@ -24,7 +25,7 @@ const description =
   "Describe how money should move. Money Lego builds a PayPal workflow with AI, shows you exactly what it will do, and runs it after you approve every consequential action.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(resolveSiteUrl(process.env)),
   title: { default: "Money Lego", template: "%s, Money Lego" },
   description,
   openGraph: { title: "Money Lego", description, type: "website", siteName: "Money Lego" },

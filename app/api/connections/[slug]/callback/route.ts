@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/server/auth/session";
-import { env } from "@/server/config/env";
+import { appUrl } from "@/server/config/env";
 import { route } from "@/server/http/handler";
 import { RATE_RULES } from "@/server/http/rate-limit";
 import { completeConnection } from "@/server/oauth/flow";
@@ -9,7 +9,7 @@ import { completeConnection } from "@/server/oauth/flow";
 // and a human message; the code and tokens stay on the server.
 export const GET = route<undefined, false, { slug: string }>({ auth: false, rate: RATE_RULES.write }, async ({ req }, { slug }) => {
   const result = await completeConnection(await currentUser(), slug, req.nextUrl.searchParams);
-  const done = new URL("/connections/done", env().APP_URL);
+  const done = new URL("/connections/done", appUrl());
   done.searchParams.set("status", result.ok ? "ok" : "error");
   done.searchParams.set("message", result.message);
   done.searchParams.set("returnTo", result.returnTo);

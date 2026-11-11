@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { env } from "../../config/env";
+import { appUrl, env } from "../../config/env";
 import { oauthRequest, scopeList } from "../http";
 import { OAuthError, type Adapter } from "../types";
 
@@ -94,7 +94,7 @@ export const shopify: Adapter = {
         grant.account.id,
         grant.secret.accessToken!,
         `mutation($url: URL!) { webhookSubscriptionCreate(topic: ${topic}, webhookSubscription: { callbackUrl: $url, format: JSON }) { userErrors { message } } }`,
-        { url: `${env().APP_URL}/api/integrations/shopify/webhook` },
+        { url: `${appUrl()}/api/integrations/shopify/webhook` },
       );
     // Order events start workflows; the uninstall event marks the connection as gone.
     for (const topic of ["ORDERS_PAID", "APP_UNINSTALLED"]) {

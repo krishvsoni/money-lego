@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { z, ZodError, type ZodType } from "zod";
 import { requireUser, type SessionUser } from "../auth/session";
-import { env } from "../config/env";
+import { appUrl, env } from "../config/env";
 import { AppError, errors, isAppError, type FieldIssue } from "../errors";
 import { log } from "../log";
 import { enforceRateLimit, type RateRule } from "./rate-limit";
@@ -47,7 +47,7 @@ function assertSameOrigin(req: NextRequest) {
   if (req.headers.get("sec-fetch-site") === "cross-site") throw errors.forbidden();
   const origin = req.headers.get("origin");
   if (!origin) return;
-  const allowed = new Set([new URL(env().APP_URL).origin, req.nextUrl.origin]);
+  const allowed = new Set([new URL(appUrl()).origin, new URL(env().APP_URL).origin, req.nextUrl.origin]);
   if (!allowed.has(origin)) throw errors.forbidden();
 }
 

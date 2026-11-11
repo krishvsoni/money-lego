@@ -2,7 +2,7 @@ import "server-only";
 import { AmountError, splitByPercent, splitEvenly } from "@/lib/amounts";
 import { MAX_RECIPIENTS } from "@/lib/nodes/catalog/data";
 import { isCurrency, PAYOUT_BATCH_FINAL, PAYOUT_ITEM_PROBLEM, referenceFor, toMinor, toPaypalValue, type Allocation, type AllocationItem } from "@/lib/paypal/types";
-import { env } from "../../config/env";
+import { appUrl } from "../../config/env";
 import { collections } from "../../db/collections";
 import { getProduct } from "../../integrations/channel3";
 import { PaypalError } from "../../paypal/client";
@@ -382,7 +382,7 @@ const checkoutLink: Executor = async (ctx) => {
   }
   if (current.availability && current.availability !== "InStock") throw new NodeError("The product went out of stock after approval. No checkout was created.");
   const workflow = await workflows.findOne({ _id: ctx.run.workflowId }, { projection: { webhookKey: 1 } });
-  const base = env().APP_URL;
+  const base = appUrl();
   // The return page links back to this run in the editor (for the owner; the editor needs
   // their sign-in, so the ids give a buyer nothing).
   const back = `w=${ctx.run.workflowId.toHexString()}&run=${ctx.run._id.toHexString()}`;

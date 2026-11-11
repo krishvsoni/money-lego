@@ -1,5 +1,5 @@
 import "server-only";
-import { env } from "../config/env";
+import { appUrl, env } from "../config/env";
 import { AppError, errors } from "../errors";
 import { log } from "../log";
 
@@ -99,7 +99,7 @@ function requestFor(t: Target, body: Record<string, unknown>, userTag: string, m
   }
   return {
     url: OPENROUTER,
-    headers: { authorization: `Bearer ${e.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": e.APP_URL, "x-title": "Money Lego" },
+    headers: { authorization: `Bearer ${e.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": appUrl(), "x-title": "Money Lego" },
     body: { models: t.models, ...body, temperature: 0.2, max_tokens: maxTokens, reasoning: { effort: "low" }, user: userTag },
   };
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import type { WorkflowGraph } from "@/lib/workflow/types";
-import { env } from "../config/env";
+import { appUrl, env } from "../config/env";
 import { openSecret, sealSecret } from "../crypto/envelope";
 import { collections } from "../db/collections";
 import type { WorkflowDoc } from "../db/types";
@@ -32,7 +32,7 @@ export const triggerFingerprint = (graph: WorkflowGraph) => JSON.stringify(trigg
 const hookAad = (workflowId: string) => `workflow-hook:${workflowId}`;
 
 function publicUrl(): string {
-  const url = env().APP_URL;
+  const url = appUrl();
   if (!/^https:\/\//.test(url) || /\/\/(localhost|127\.|0\.0\.0\.0)/.test(url)) {
     throw errors.validation("Providers can only deliver events to a public https address. Set APP_URL to your public URL (a tunnel like ngrok works for demos).");
   }
