@@ -13,8 +13,8 @@ describe.skipIf(!local)("payment timeline against MongoDB", () => {
     mongoClient: typeof import("@/server/db/client").mongoClient;
     paymentTimeline: typeof import("@/server/paypal/timeline").paymentTimeline;
   };
-  const owner = { userId: new ObjectId(), name: "Owner", kind: "clerk" as const, email: null };
-  const stranger = { userId: new ObjectId(), name: "Stranger", kind: "clerk" as const, email: null };
+  const owner = { userId: new ObjectId(), name: "Owner", kind: "kinde" as const, email: null };
+  const stranger = { userId: new ObjectId(), name: "Stranger", kind: "kinde" as const, email: null };
 
   beforeAll(async () => {
     process.env.MONGODB_URI = uri;

@@ -233,7 +233,7 @@ Runs started with the editor's **Run** button use the trigger's test data and ar
 | <img src="docs/assets/partners/slack.png" width="36" alt="Slack" /> | **Slack** | Notifications with member tagging, per workflow branch |
 | <img src="docs/assets/partners/openrouter.png" width="36" alt="OpenRouter" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
 
-Also part of the stack: **Astropods** hosts the Money Lego assistant as a public chat agent, **Clerk** handles sign-in and accounts, and **Postman** holds a collection of every PayPal call Money Lego makes (`postman/`).
+Also part of the stack: **Astropods** hosts the Money Lego assistant as a public chat agent, **Kinde** handles sign-in and accounts, with Money Lego email + password accounts as a fallback (setup and callback URLs: [docs/auth.md](docs/auth.md)), and **Postman** holds a collection of every PayPal call Money Lego makes (`postman/`).
 
 ## Try it
 
@@ -250,7 +250,7 @@ Also part of the stack: **Astropods** hosts the Money Lego assistant as a public
 
 ```bash
 npm install
-cp .env.example .env     # MongoDB, Clerk, PayPal sandbox, OpenAI/OpenRouter, Channel3
+cp .env.example .env     # MongoDB, Kinde (optional, see docs/auth.md), PayPal sandbox, OpenAI/OpenRouter, Channel3
 npm run paypal:check     # confirms your PayPal sandbox app
 npm run dev              # http://localhost:3000
 ```

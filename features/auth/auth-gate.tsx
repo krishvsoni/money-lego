@@ -1,29 +1,16 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { useAuth } from "@clerk/nextjs";
+import type { ReactNode } from "react";
 import { AccountControl } from "./account-control";
+import { useAuthSession } from "./session-context";
 
-// Everything behind the gate belongs to the signed-in account.
+// Everything behind the gate belongs to the signed-in account. The gate only decides what to
+// show; every API call is still authorized on the server.
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const [localSignedIn, setLocalSignedIn] = useState(false);
+  const { loaded, user } = useAuthSession();
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result) => {
-        if (active) setLocalSignedIn(result.user?.kind === "local");
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!isLoaded) return <div className="h-40 animate-pulse rounded-xl bg-sunken" aria-label="Loading your account" />;
-  if (isSignedIn || localSignedIn) return <>{children}</>;
+  if (!loaded) return <div className="h-40 animate-pulse rounded-xl bg-sunken" aria-label="Loading your account" />;
+  if (user) return <>{children}</>;
 
   return (
     <section className="reveal mx-auto max-w-[520px] py-16">
