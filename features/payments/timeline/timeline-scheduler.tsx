@@ -1,11 +1,6 @@
 "use client";
 
-// Bryntum's icons come from the package, not its CDN default, which the app's CSP blocks.
-import "@bryntum/core-community/fontawesome/css/fontawesome.css";
-import "@bryntum/core-community/fontawesome/css/solid.css";
-import "@bryntum/scheduler-community/scheduler.css";
-import "@bryntum/scheduler-community/svalbard-light.css";
-import "./timeline-scheduler.css";
+import "./bryntum-setup";
 import { useMemo, useRef } from "react";
 import { BryntumScheduler } from "@bryntum/scheduler-react-community";
 import type { EventModel } from "@bryntum/scheduler-community";
@@ -14,8 +9,8 @@ import { MILESTONE_STATES, type Milestone } from "@/lib/payments/timeline";
 import { rowIdOf, type GroupBy, type TimelineRow } from "@/lib/payments/timeline-view";
 import { formatMoney } from "@/lib/paypal/types";
 
-// The Bryntum Scheduler that draws the timeline. Loaded only in the browser (it measures the
-// DOM), and only when the Timeline tab opens, so its code and styles never weigh on other pages.
+// The Bryntum Scheduler that draws payment timelines: the Timeline tab and the dashboard's recent
+// activity. Loaded only in the browser (it measures the DOM), and only when one of those opens.
 // Read-only: nothing on it can be dragged, resized or edited.
 
 const COLOR = Object.fromEntries(MILESTONE_STATES.map((s) => [s.state, s.color]));
@@ -41,9 +36,11 @@ interface Props {
   days: number;
   highlighted: Set<string>;
   onSelect: (milestone: Milestone) => void;
+  // Pixels. The Timeline tab uses the default; the dashboard shows a shorter strip.
+  height?: number;
 }
 
-export function TimelineScheduler({ rows, milestones, groupBy, from, to, days, highlighted, onSelect }: Props) {
+export function TimelineScheduler({ rows, milestones, groupBy, from, to, days, highlighted, onSelect, height = 560 }: Props) {
   const scheduler = useRef<BryntumScheduler>(null);
   const byId = useMemo(() => new Map(milestones.map((m) => [m.id, m])), [milestones]);
 
@@ -103,7 +100,7 @@ export function TimelineScheduler({ rows, milestones, groupBy, from, to, days, h
           <Maximize2 className="h-4 w-4" />
         </ZoomButton>
       </div>
-      <div className="h-[560px] overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl border border-line" style={{ height }}>
         <BryntumScheduler
           ref={scheduler}
           readOnly

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
@@ -15,6 +16,12 @@ import type { WorkflowGraph } from "@/lib/workflow/types";
 import { ApprovalReview } from "./approval-review";
 import { PurchaseCard } from "./purchase-card";
 import type { Runs } from "./use-workflow-runs";
+
+// Bryntum measures the DOM, so it loads in the browser only, and only when Timeline is picked.
+const RunStepsTimeline = dynamic(() => import("./run-steps-timeline").then((m) => m.RunStepsTimeline), {
+  ssr: false,
+  loading: () => <div className="h-40 animate-pulse rounded-xl bg-sunken" aria-label="Loading the step timeline" />,
+});
 
 const RUN_TONE: Record<string, string> = {
   queued: "bg-ink-3",
@@ -477,6 +484,7 @@ export function RunPanel({
 }) {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<"runs" | "log">("runs");
+  const [stepsView, setStepsView] = useState<"list" | "timeline">("list");
   const { height, dragging, handle } = useResizableHeight();
   const run = runs.detail && runs.detail.id === runs.selectedId ? runs.detail : null;
   const order = graph.nodes.map((n) => n.id);
@@ -591,6 +599,19 @@ export function RunPanel({
                 {run.status !== "queued" && run.status !== "running" && <ExplainRun key={run.id} run={run} />}
                 {run.error && <p className="mb-3 rounded-lg bg-danger-wash px-3 py-2 text-xs leading-relaxed break-words text-danger">{run.error}</p>}
                 {run.status === "failed" && onUpdateNode && onRunAgain && <FixRecipients key={`fix-${run.id}`} graph={graph} onUpdateNode={onUpdateNode} onRunAgain={onRunAgain} />}
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-ink-2">Steps</span>
+                  <div className="flex rounded-md bg-sunken p-0.5 text-xs font-semibold" role="tablist" aria-label="Show steps as">
+                    {(["list", "timeline"] as const).map((v) => (
+                      <button key={v} role="tab" aria-selected={stepsView === v} onClick={() => setStepsView(v)} className={`rounded px-2.5 py-1 ${stepsView === v ? "bg-paper text-ink shadow-sm" : "text-ink-2"}`}>
+                        {v === "list" ? "List" : "Timeline"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {stepsView === "timeline" ? (
+                  <RunStepsTimeline run={run} graph={graph} order={order} noteOf={(n) => n.error ?? paypalRef(n.output)} />
+                ) : (
                 <ol className="overflow-hidden rounded-xl border border-line bg-paper text-xs" aria-label="Steps">
                   {[...(run.nodes ?? [])]
                     .sort((a, b) => order.indexOf(a.nodeId) - order.indexOf(b.nodeId))
@@ -614,6 +635,7 @@ export function RunPanel({
                       );
                     })}
                 </ol>
+                )}
               </>
             )}
           </div>
