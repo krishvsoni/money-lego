@@ -2,12 +2,17 @@ import "server-only";
 import { createHash, randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
-import { auth, currentUser as clerkUser } from "@clerk/nextjs/server";
 import { ObjectId } from "mongodb";
-import { collections, isDuplicateKeyError } from "../db/collections";
+import { collections, EMAIL_COLLATION, isDuplicateKeyError } from "../db/collections";
 import type { UserDoc } from "../db/types";
 import { env } from "../config/env";
 import { errors } from "../errors";
+import { kindeIdentity } from "./kinde";
+import { kindeIdentityKey, linkUpdate, planKindeSignIn } from "./link-identity";
+
+// Who is making a request. Kinde is the sign-in provider; a first-party email + password
+// account is the fallback. Both resolve to the same SessionUser, keyed on our own member _id,
+// so ownership checks never depend on which one was used.
 
 const scrypt = promisify(nodeScrypt);
 const LOCAL_SESSION_COOKIE = "money_lego_session";
@@ -16,26 +21,26 @@ const SESSION_TTL_MS = 72 * 60 * 60 * 1000;
 export interface SessionUser {
   userId: ObjectId;
   name: string;
-  kind: "clerk" | "local";
+  kind: "kinde" | "local";
+  // The verified sign-in address, lower-cased; null when the provider hasn't verified it.
   email: string | null;
 }
 
 const sessionOf = (d: UserDoc): SessionUser => ({
   userId: d._id,
   name: d.name,
-  kind: d.kind,
+  kind: d.kind === "local" ? "local" : "kinde",
   email: d.email && d.emailVerified !== false ? d.email.trim().toLowerCase() : null,
 });
-
-function displayName(u: Awaited<ReturnType<typeof clerkUser>>): string {
-  if (!u) return "Money Lego user";
-  const full = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
-  return (full || u.username || u.primaryEmailAddress?.emailAddress || "Money Lego user").slice(0, 80);
-}
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+// Accounts from before the move to Kinde (Clerk) have no password: they sign in with Kinde,
+// which links them on first use with the same verified email.
+const USES_KINDE = "This email already has a Money Lego account that signs in with Kinde. Use Continue with Kinde.";
+const WRONG_PASSWORD = "Email or password is incorrect. If you signed in with Google or Clerk before, use Continue with Kinde.";
 
 async function passwordHash(password: string): Promise<string> {
   const salt = randomBytes(16);
@@ -89,59 +94,52 @@ async function localUser(): Promise<UserDoc | null> {
   return user;
 }
 
-async function clerkBackedUser(): Promise<UserDoc | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+async function kindeBackedUser(): Promise<UserDoc | null> {
+  const identity = await kindeIdentity();
+  if (!identity) return null;
   const { users } = await collections();
-  const identityKey = `clerk:${userId}`;
-  const existing = await users.findOne({ identityKey });
-  if (existing) {
-    await users.updateOne({ _id: existing._id }, { $set: { lastSignedInAt: new Date() } });
-    return existing;
-  }
-
-  const profile = await clerkUser();
-  const primary = profile?.primaryEmailAddress ?? null;
-  const email = primary?.emailAddress ? normalizeEmail(primary.emailAddress) : null;
-  // A local account is linked only after Clerk has verified the same address.
-  const local = email && primary?.verification?.status === "verified"
-    ? await users.findOne({ email }, { collation: { locale: "en", strength: 2 } })
-    : null;
-  if (local?.kind === "local") {
-    const linked = await users.findOneAndUpdate(
-      { _id: local._id, kind: "local" },
-      { $set: { identityKey, kind: "clerk", emailVerified: true, lastSignedInAt: new Date() }, $unset: { passwordHash: "" } },
-      { returnDocument: "after" },
-    );
-    if (linked) return linked;
-  }
-
+  const identityKey = kindeIdentityKey(identity.id);
   const now = new Date();
-  const doc = await users.findOneAndUpdate(
+
+  const alreadyLinked = await users.findOne({ identityKey });
+  const sameEmail =
+    !alreadyLinked && identity.email && identity.emailVerified
+      ? await users.find({ email: identity.email, kind: { $in: ["clerk", "local"] } }, { collation: EMAIL_COLLATION }).toArray()
+      : [];
+  const plan = planKindeSignIn(identity, alreadyLinked, sameEmail);
+
+  if (plan.action === "use") {
+    await users.updateOne({ _id: plan.member._id }, { $set: { lastSignedInAt: now } });
+    return plan.member;
+  }
+
+  if (plan.action === "link") {
+    // Only if the member is still what we read, so two first requests can't both link it.
+    const linked = await users.findOneAndUpdate({ _id: plan.member._id, identityKey: plan.member.identityKey }, linkUpdate(identity, plan.member, now), { returnDocument: "after" });
+    if (linked) return linked;
+    const linkedMeanwhile = await users.findOne({ identityKey });
+    if (linkedMeanwhile) return linkedMeanwhile;
+  }
+
+  // An upsert on the unique identityKey, so two first requests still make one member.
+  const created = await users.findOneAndUpdate(
     { identityKey },
     {
-      $setOnInsert: {
-        identityKey,
-        kind: "clerk",
-        name: displayName(profile),
-        email: primary?.emailAddress ?? null,
-        emailVerified: primary?.verification?.status === "verified",
-        createdAt: now,
-      },
+      $setOnInsert: { identityKey, kind: "kinde", name: identity.name, email: identity.email, emailVerified: identity.emailVerified, createdAt: now },
       $set: { lastSignedInAt: now },
     },
     { upsert: true, returnDocument: "after" },
   );
-  if (!doc) throw errors.internal();
-  return doc;
+  if (!created) throw errors.internal();
+  return created;
 }
 
 export async function createLocalAccount(input: { name: string; email: string; password: string }): Promise<SessionUser> {
   const email = normalizeEmail(input.email);
   const now = new Date();
   const { users } = await collections();
-  const existing = await users.findOne({ email }, { collation: { locale: "en", strength: 2 } });
-  if (existing) throw errors.conflict("An account already exists for that email.");
+  const existing = await users.findOne({ email }, { collation: EMAIL_COLLATION });
+  if (existing) throw errors.conflict(existing.kind === "local" ? "An account already exists for that email. Sign in instead." : USES_KINDE);
   let doc;
   try {
     doc = await users.insertOne({
@@ -170,7 +168,7 @@ export async function signInLocal(emailInput: string, password: string): Promise
   const { users } = await collections();
   const user = await users.findOne({ identityKey: `local:${email}` });
   if (!user?.passwordHash || !(await passwordMatches(password, user.passwordHash))) {
-    throw errors.unauthenticated();
+    throw errors.unauthenticated(WRONG_PASSWORD);
   }
   await users.updateOne({ _id: user._id }, { $set: { lastSignedInAt: new Date() } });
   await setLocalSession(user._id);
@@ -178,8 +176,8 @@ export async function signInLocal(emailInput: string, password: string): Promise
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
-  const clerk = await clerkBackedUser();
-  if (clerk) return sessionOf(clerk);
+  const kinde = await kindeBackedUser();
+  if (kinde) return sessionOf(kinde);
   const local = await localUser();
   return local ? sessionOf(local) : null;
 }

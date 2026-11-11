@@ -37,7 +37,7 @@ export class AppError extends Error {
 export const errors = {
   validation: (message: string, issues: FieldIssue[] = []) =>
     new AppError("VALIDATION_FAILED", 400, message, { issues }),
-  unauthenticated: () => new AppError("UNAUTHENTICATED", 401, "Sign in to continue."),
+  unauthenticated: (message = "Sign in to continue.") => new AppError("UNAUTHENTICATED", 401, message),
   forbidden: (message = "You don't have access to this.") => new AppError("FORBIDDEN", 403, message),
   notFound: (what: string) => new AppError("NOT_FOUND", 404, `${what} not found.`),
   conflict: (message: string) => new AppError("CONFLICT", 409, message),

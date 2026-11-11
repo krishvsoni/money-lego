@@ -1,37 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
+import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+import { signOutLocal, useAuthSession } from "./session-context";
 
-// Signed in: Clerk's user menu (plus a builder link on marketing pages). Signed out: a quiet
-// "Sign in" and a solid "Sign up", both opening Clerk's modal; either flow can also create
-// an account, so a first-time Google sign-in never dead-ends.
+const QUIET = "press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full border border-line bg-white px-4 text-[14px] font-medium text-ink hover:bg-sunken";
+const SOLID = "press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgb(9_9_11/0.2)] hover:bg-[#27272a]";
+
+// Signed in: the person's name and Sign out (plus a builder link on marketing pages).
+// Signed out: a quiet "Sign in" and a solid "Sign up". Both open our own pages, which offer
+// Kinde first and the email + password fallback below it, so every account can sign in.
 export function AccountControl({ builderLink = false }: { builderLink?: boolean }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const [localUser, setLocalUser] = useState<string | null>(null);
-  useEffect(() => {
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result) => setLocalUser(result.user?.kind === "local" ? result.user.name : null))
-      .catch(() => undefined);
-  }, []);
-  if (!isLoaded) return <span className="h-9 w-[176px] animate-pulse rounded-full bg-sunken" aria-hidden />;
+  const { loaded, user } = useAuthSession();
+  if (!loaded) return <span className="h-9 w-[176px] animate-pulse rounded-full bg-sunken" aria-hidden />;
 
-  if (localUser && !isSignedIn) {
-    return (
-      <div className="flex items-center gap-3">
-        {builderLink && <Link href="/workflows" className="press inline-flex h-9 items-center rounded-full bg-ink px-4 text-[14px] font-medium text-white">Open builder</Link>}
-        <span className="max-w-32 truncate text-sm text-ink-2">{localUser}</span>
-        <button type="button" className="text-sm text-ink-2 hover:text-ink" onClick={async () => { await fetch("/api/auth/session", { method: "DELETE" }); window.location.reload(); }}>
-          Sign out
-        </button>
-      </div>
-    );
-  }
-
-  if (isSignedIn) {
-    // Clerk's avatar at the same 36px as the other buttons.
+  if (user) {
     return (
       <div className="flex items-center gap-3">
         {builderLink && (
@@ -39,23 +22,32 @@ export function AccountControl({ builderLink = false }: { builderLink?: boolean 
             Open builder
           </Link>
         )}
-        <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+        <span className="flex items-center gap-2" title={user.name}>
+          <span aria-hidden className="tactile-soft flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold uppercase text-ink-2">
+            {user.name.charAt(0)}
+          </span>
+          <span className="hidden max-w-32 truncate text-sm text-ink-2 sm:inline">{user.name}</span>
+        </span>
+        {user.kind === "kinde" ? (
+          // A plain <a> to /api/auth/logout, never prefetched: Kinde's sign-out is a full-page redirect.
+          <LogoutLink className="press text-sm text-ink-2 hover:text-ink">Sign out</LogoutLink>
+        ) : (
+          <button type="button" onClick={() => void signOutLocal()} className="press text-sm text-ink-2 hover:text-ink">
+            Sign out
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
-      <SignInButton mode="modal" withSignUp fallbackRedirectUrl="/workflows" signUpFallbackRedirectUrl="/workflows">
-        <button type="button" className="press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full border border-line bg-white px-4 text-[14px] font-medium text-ink hover:bg-sunken">
-          Sign in
-        </button>
-      </SignInButton>
-      <SignUpButton mode="modal" fallbackRedirectUrl="/workflows" signInFallbackRedirectUrl="/workflows">
-        <button type="button" className="press inline-flex h-9 min-w-[84px] items-center justify-center whitespace-nowrap rounded-full bg-ink px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgb(9_9_11/0.2)] hover:bg-[#27272a]">
-          Sign up
-        </button>
-      </SignUpButton>
+      <Link href="/sign-in" className={QUIET}>
+        Sign in
+      </Link>
+      <Link href="/sign-up" className={SOLID}>
+        Sign up
+      </Link>
     </div>
   );
 }

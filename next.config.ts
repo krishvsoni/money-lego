@@ -5,28 +5,18 @@ const isDev = process.env.NODE_ENV !== "production";
 // The browser only ever talks to this origin. The one exception is the hosted checkout
 // (/pay/*), which loads PayPal's JS SDK and its buyer windows, with PayPal's documented
 // domains allowed on that route only.
-// Clerk (sign-in) loads from its Frontend API, serves avatars from img.clerk.com and uses
-// Cloudflare Turnstile for bot protection; those are allowed on every page.
-// Production instances use clerk.<your-domain>: add it via CLERK_FRONTEND_API_URL.
-const CLERK = ["https://*.clerk.accounts.dev", process.env.CLERK_FRONTEND_API_URL].filter(Boolean).join(" ");
-const CLERK_FRAMES = "https://challenges.cloudflare.com";
-// Clerk's bot protection: a script from cdn.protect.clerk.com that probes per-session
-// *.client.protect.clerk.com hosts on several ports (8443, 2082, ...). If it's blocked, Clerk
-// refuses every sign-up with a 403 ("We couldn't complete this request").
-const CLERK_PROTECT = "https://*.protect.clerk.com";
-const CLERK_PROTECT_PROBES = "https://*.protect.clerk.com:*";
-// Clerk's anonymous usage telemetry; blocked, it only fills the console with errors.
-const CLERK_TELEMETRY = "https://clerk-telemetry.com";
+// Sign-in (Kinde) needs nothing here: it is a full-page redirect to Kinde's hosted pages and
+// back, and no Kinde script runs in the browser.
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${CLERK} ${CLERK_PROTECT} ${CLERK_FRAMES}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  // https: covers Channel3 product photos (run panel), served from many merchant CDNs, and Clerk avatars.
+  // https: covers Channel3 product photos (run panel), served from many merchant CDNs.
   "img-src 'self' data: blob: https:",
   "font-src 'self'",
-  `connect-src 'self' ${CLERK} ${CLERK_PROTECT_PROBES} ${CLERK_TELEMETRY}${isDev ? " ws:" : ""}`,
-  `frame-src ${CLERK_FRAMES}`,
+  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  "frame-src 'none'",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -37,13 +27,13 @@ const csp = [
 const PAYPAL = "https://*.paypal.com https://*.paypalobjects.com";
 const checkoutCsp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL} ${CLERK} ${CLERK_PROTECT} ${CLERK_FRAMES}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL}`,
   `style-src 'self' 'unsafe-inline' ${PAYPAL}`,
   // https: covers Channel3 product images, served from many merchant CDNs.
   `img-src 'self' data: blob: https:`,
   "font-src 'self' data:",
-  `connect-src 'self' ${PAYPAL} ${CLERK} ${CLERK_PROTECT_PROBES} ${CLERK_TELEMETRY}${isDev ? " ws:" : ""}`,
-  `frame-src ${PAYPAL} ${CLERK_FRAMES}`,
+  `connect-src 'self' ${PAYPAL}${isDev ? " ws:" : ""}`,
+  `frame-src ${PAYPAL}`,
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",

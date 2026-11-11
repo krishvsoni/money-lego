@@ -22,7 +22,7 @@ Money Lego turns a plain-English payment process into an editable, auditable wor
 
 ## How we built it
 
-Next.js 16 + React 19 + TypeScript, MongoDB, React Flow canvas, a deterministic DAG engine with leases, persisted node runs and durable waits (approvals, delays, payout status). PayPal REST APIs (Orders v2, Payments v2, Payouts v1, Invoicing v2, Subscriptions v1, Transaction Search, Webhooks v1) and the PayPal JS SDK, all server-side with a cached OAuth token. AI through OpenRouter with schema-validated JSON (zod). Clerk for auth. Deployed on Render with a cron heartbeat.
+Next.js 16 + React 19 + TypeScript, MongoDB, React Flow canvas, a deterministic DAG engine with leases, persisted node runs and durable waits (approvals, delays, payout status). PayPal REST APIs (Orders v2, Payments v2, Payouts v1, Invoicing v2, Subscriptions v1, Transaction Search, Webhooks v1) and the PayPal JS SDK, all server-side with a cached OAuth token. AI through OpenRouter with schema-validated JSON (zod). Kinde for auth, with an email + password fallback. Deployed on Render with a cron heartbeat.
 
 ## How AI is used
 
@@ -41,7 +41,7 @@ AI never authorises money movement: deterministic validation plus a fingerprinte
 
 ## Tools used
 
-PayPal Developer Platform (sandbox): Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks · OpenRouter (models configured in OPENROUTER_MODELS) · AG Grid Community · Channel3 API · Elastic (Elasticsearch) · Zapier (Webhooks by Zapier) · Render · Postman · Clerk · MongoDB · Next.js · React Flow · zod.
+PayPal Developer Platform (sandbox): Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks · OpenRouter (models configured in OPENROUTER_MODELS) · AG Grid Community · Channel3 API · Elastic (Elasticsearch) · Zapier (Webhooks by Zapier) · Render · Postman · Kinde · MongoDB · Next.js · React Flow · zod.
 
 ## Challenges
 

@@ -2,11 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthSession } from "./session-context";
 
 type Mode = "sign-in" | "sign-up";
 
-export function FallbackAuthForm({ mode }: { mode: Mode }) {
+const HEADING: Record<Mode, { alone: string; afterKinde: string }> = {
+  "sign-in": { alone: "Sign in with email", afterKinde: "Or sign in with email" },
+  "sign-up": { alone: "Create an account with email", afterKinde: "Or create an account with email" },
+};
+
+// `afterKinde`: the form sits under a Kinde button, so its heading reads as the alternative.
+export function FallbackAuthForm({ mode, afterKinde = false }: { mode: Mode; afterKinde?: boolean }) {
   const router = useRouter();
+  const { refresh } = useAuthSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,8 +33,8 @@ export function FallbackAuthForm({ mode }: { mode: Mode }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message ?? "Could not sign in.");
+      await refresh();
       router.push("/workflows");
-      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not sign in.");
     } finally {
@@ -35,9 +43,9 @@ export function FallbackAuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-8 w-full max-w-[420px] rounded-2xl border border-line bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-ink">{mode === "sign-up" ? "Create your account" : "Sign in with email"}</p>
-      <p className="mt-1 text-xs text-ink-2">Use your Money Lego account credentials.</p>
+    <form onSubmit={submit} className="w-full">
+      <p className="text-sm font-medium text-ink">{HEADING[mode][afterKinde ? "afterKinde" : "alone"]}</p>
+      <p className="mt-1 text-xs text-ink-2">A Money Lego email and password account.</p>
       {mode === "sign-up" && (
         <input required value={name} onChange={(event) => setName(event.target.value)} placeholder="Name" autoComplete="name" className="mt-4 h-10 w-full rounded-lg border border-line px-3 text-sm" />
       )}

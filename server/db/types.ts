@@ -7,18 +7,23 @@ import type { PaypalResourceKind } from "@/lib/paypal/types";
 // Document shapes as stored. Money amounts are integer minor units (cents) stored as
 // strings next to an ISO currency code, so no stored value ever passes through a float.
 
-// A person signs in with Clerk or the first-party fallback. identityKey is the unique lookup;
-// everything they own references this document's _id.
+// A person signs in with Kinde ("kinde:<kinde user id>") or the first-party email + password
+// fallback ("local:<email>"). identityKey is the unique lookup; everything they own references
+// this document's _id, so changing how someone signs in never changes what they own.
+// "clerk" members are from before the move to Kinde: they are no longer signed in to directly
+// and are linked to Kinde on their first Kinde sign-in (server/auth/link-identity.ts).
 export interface UserDoc {
   _id: ObjectId;
   identityKey: string;
-  kind: "clerk" | "local";
+  kind: "kinde" | "local" | "clerk";
   name: string;
   // Shown to the owner only. Never sent to the AI model.
   email: string | null;
-  // Whether Clerk had verified that address at sign-up. Only a verified address can receive
+  // Whether the sign-in provider verified that address. Only a verified address can receive
   // shared workflows; records from before this field existed count as verified.
   emailVerified?: boolean;
+  // Identity keys this member was signed in with before, e.g. "clerk:user_123".
+  previousIdentityKeys?: string[];
   // Present only for first-party fallback accounts. Passwords are never stored plaintext.
   passwordHash?: string;
   createdAt: Date;

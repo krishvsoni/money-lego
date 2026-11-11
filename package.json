@@ -24,7 +24,7 @@
     "@bryntum/core-community": "8.0.0",
     "@bryntum/scheduler-community": "8.0.0",
     "@bryntum/scheduler-react-community": "8.0.0",
-    "@clerk/nextjs": "^7.9.25",
+    "@kinde-oss/kinde-auth-nextjs": "2.13.2",
     "@paypal/agent-toolkit": "^1.11.0",
     "@phosphor-icons/react": "^2.1.10",
     "@xyflow/react": "^12.12.0",

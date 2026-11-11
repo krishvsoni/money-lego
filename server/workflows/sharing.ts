@@ -23,7 +23,7 @@ import { toWorkflowDTO, type WorkflowDTO } from "./service";
 
 const emailIssue = (message: string) => errors.validation(message, [{ path: "email", message }]);
 
-// Only members whose address Clerk verified count: a share is claimed by signing in with it.
+// Only members whose sign-in provider verified their address count: a share is claimed by signing in with it.
 const verifiedMember = (emails: string[]) => ({ email: { $in: emails }, emailVerified: { $ne: false } });
 
 async function sharingOf(doc: WorkflowDoc): Promise<SharingDTO> {

@@ -19,7 +19,7 @@ describe.skipIf(!local)("templates against MongoDB", () => {
     runs: typeof import("@/server/engine/runs");
     once: typeof import("@/server/engine/executors/once");
   };
-  const user = { userId: new ObjectId(), name: "Test Studio", kind: "clerk" as const, email: null };
+  const user = { userId: new ObjectId(), name: "Test Studio", kind: "kinde" as const, email: null };
 
   beforeAll(async () => {
     process.env.MONGODB_URI = uri;

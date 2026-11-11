@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AuthSessionProvider } from "@/features/auth/session-context";
 import { ToastProvider } from "./toast";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      {children}
-    </ToastProvider>
+    <AuthSessionProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </AuthSessionProvider>
   );
 }
