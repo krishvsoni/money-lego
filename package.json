@@ -21,6 +21,9 @@
     "db:cleanup-wallet": "tsx --env-file-if-exists=.env scripts/cleanup-wallet-era.ts"
   },
   "dependencies": {
+    "@bryntum/core-community": "8.0.0",
+    "@bryntum/scheduler-community": "8.0.0",
+    "@bryntum/scheduler-react-community": "8.0.0",
     "@clerk/nextjs": "^7.9.25",
     "@paypal/agent-toolkit": "^1.11.0",
     "@phosphor-icons/react": "^2.1.10",

@@ -13,6 +13,10 @@ import { formatMoney } from "@/lib/paypal/types";
 import { useResource } from "@/lib/use-resource";
 import type { PaymentsOverview } from "@/server/paypal/status";
 import { StudioDashboard } from "@/features/payments/studio-dashboard";
+import { PaymentTimeline } from "@/features/payments/timeline/payment-timeline";
+
+type Tab = "dashboard" | "timeline" | "objects" | "runs";
+const TAB_LABEL: Record<Tab, string> = { dashboard: "Dashboard", timeline: "Timeline", objects: "PayPal objects", runs: "Workflow runs" };
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -126,7 +130,7 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 
 export function View() {
   const { data, error, loading, reload } = useResource<PaymentsOverview>("/api/payments");
-  const [tab, setTab] = useState<"dashboard" | "objects" | "runs">("dashboard");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [kind, setKind] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -217,9 +221,9 @@ export function View() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex rounded-lg border border-line bg-paper p-0.5 text-sm font-semibold" role="tablist">
-          {(["dashboard", "objects", "runs"] as const).map((t) => (
+          {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-md px-3 py-1.5 ${tab === t ? "bg-ink text-paper" : "text-ink-2"}`}>
-              {t === "dashboard" ? "Dashboard" : t === "objects" ? "PayPal objects" : "Workflow runs"}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
@@ -234,12 +238,21 @@ export function View() {
               ))}
             </select>
           )}
-          {tab !== "dashboard" && <input aria-label="Search" placeholder="Search ids, statuses…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm" />}
+          {(tab === "objects" || tab === "runs") && <input aria-label="Search" placeholder="Search ids, statuses…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm" />}
         </div>
       </div>
 
       {tab === "dashboard" && data && <StudioDashboard data={data} />}
-      <div className={tab === "dashboard" ? "hidden" : "h-[520px] w-full"}>
+      {tab === "timeline" && (
+        <PaymentTimeline
+          onFindObject={(text) => {
+            setKind("all");
+            setSearch(text);
+            setTab("objects");
+          }}
+        />
+      )}
+      <div className={tab === "objects" || tab === "runs" ? "h-[520px] w-full" : "hidden"}>
         {tab === "objects" ? (
           <AgGridReact<Resource>
             theme={theme}
