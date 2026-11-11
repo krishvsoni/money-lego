@@ -52,3 +52,50 @@ export async function resolveSlackUser(token: string, value: unknown, signal?: A
   if (target.kind === "email") return slackUserIdByEmail(token, target.email, signal);
   throw new SlackLookupError("invalid", `"${String(value ?? "").slice(0, 60)}" isn't an email address or a Slack member ID (like U0123ABCD).`);
 }
+
+// ---------- sending a direct message ----------
+
+export interface SlackDmResult {
+  channel: string;
+  ts: string;
+  // "dm": a real direct message. "private_note": Slack wouldn't allow a DM from the app, so
+  // the person got the message in the channel instead, visible only to them.
+  via: "dm" | "private_note";
+}
+
+const MESSAGES_TAB_FIX =
+  "Slack blocks direct messages from this app because its Messages tab is off. In your Slack app settings (api.slack.com/apps), open App Home, turn on Messages Tab under Show Tabs, and tick \"Allow users to send Slash commands and messages from the messages tab\". Then run this again.";
+
+async function slackPost(token: string, method: string, payload: Record<string, unknown>, signal?: AbortSignal): Promise<{ ok: boolean; error: string; body: Record<string, unknown> }> {
+  const res = await safeFetch(`https://slack.com/api/${method}`, {
+    method: "POST",
+    headers: { "content-type": "application/json; charset=utf-8", authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+    timeoutMs: 10_000,
+    signal,
+  });
+  const body = (res.body && typeof res.body === "object" ? res.body : {}) as Record<string, unknown>;
+  const ok = res.status === 200 && body.ok === true;
+  return { ok, error: ok ? "" : String(body.error ?? `HTTP ${res.status}`), body };
+}
+
+// Sends `text` to one member. When the app's Messages tab is off, Slack refuses every DM from
+// it; if the run started in a channel, the person gets the message there instead, visible
+// only to them, so a payment link still reaches them and nobody else. Throws
+// SlackLookupError (reason = Slack's error code) with what to fix.
+export async function sendSlackDm(input: { token: string; userId: string; text: string; fallbackChannel?: string | null; signal?: AbortSignal }): Promise<SlackDmResult> {
+  const dm = await slackPost(input.token, "chat.postMessage", { channel: input.userId, text: input.text }, input.signal);
+  if (dm.ok) return { channel: String(dm.body.channel ?? ""), ts: String(dm.body.ts ?? ""), via: "dm" };
+
+  if (dm.error === "messages_tab_disabled") {
+    const channel = input.fallbackChannel && /^[CG][A-Z0-9]{6,}$/.test(input.fallbackChannel) ? input.fallbackChannel : null;
+    if (channel) {
+      const note = await slackPost(input.token, "chat.postEphemeral", { channel, user: input.userId, text: input.text }, input.signal);
+      if (note.ok) return { channel, ts: String(note.body.message_ts ?? ""), via: "private_note" };
+    }
+    throw new SlackLookupError(dm.error, MESSAGES_TAB_FIX);
+  }
+  if (dm.error === "missing_scope") throw new SlackLookupError(dm.error, "This Slack connection can't send direct messages yet. Open Connections, press Reconnect on your Slack connection and allow it.");
+  if (dm.error === "user_not_found" || dm.error === "channel_not_found") throw new SlackLookupError(dm.error, "Slack couldn't find that person. Check the email or member ID.");
+  throw new SlackLookupError(dm.error, `Slack didn't deliver the direct message (${dm.error}).`);
+}

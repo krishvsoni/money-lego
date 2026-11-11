@@ -2,7 +2,7 @@ import "server-only";
 import type { ObjectId } from "mongodb";
 import { isAppError } from "../../errors";
 import { searchProducts } from "../../integrations/channel3";
-import { resolveSlackUser, SlackLookupError } from "../../integrations/slack";
+import { resolveSlackUser, sendSlackDm, SlackLookupError } from "../../integrations/slack";
 import { ZAPIER_HOOK } from "../../workflows/credential-schema";
 import { readCredentialSecret } from "../../workflows/credentials";
 import { safeFetch } from "../safe-fetch";
@@ -93,30 +93,20 @@ export const integrationExecutors: Record<string, Executor> = {
 
   // A direct message from the app's bot to one person, given as an email or a member ID.
   // Slack answers 200 with ok:false on errors, so the body is checked, not just the status.
-  "notify.slack_dm": async ({ config, input, ownerId, signal }) => {
+  "notify.slack_dm": async ({ config, input, ownerId, signal, scope, log }) => {
     const { secret } = await connection(ownerId, config.credentialId, "slack_webhook");
     if (!secret.accessToken) throw new NodeError("This Slack connection can't send direct messages. Reconnect Slack in Connections.");
-    let userId: string;
     try {
-      userId = await resolveSlackUser(secret.accessToken, config.userId, signal);
+      const userId = await resolveSlackUser(secret.accessToken, config.userId, signal);
+      // The channel a Slack mention came from: where a private note can go if DMs are off.
+      const fallbackChannel = String(asObject(scope.trigger).channelId ?? "") || null;
+      const sent = await sendSlackDm({ token: secret.accessToken, userId, text: String(config.message ?? "").slice(0, 3000), fallbackChannel, signal });
+      if (sent.via === "private_note") log("Slack doesn't allow direct messages from this app (its Messages tab is off), so the message went to the person in the channel, visible only to them. Turn on Messages Tab under App Home in the Slack app settings for real DMs.", "warn");
+      return ok({ ...asObject(input), slackDm: sent });
     } catch (error) {
       if (error instanceof SlackLookupError) throw new NodeError(error.message);
       throw error;
     }
-    const res = await safeFetch("https://slack.com/api/chat.postMessage", {
-      method: "POST",
-      headers: { "content-type": "application/json; charset=utf-8", authorization: `Bearer ${secret.accessToken}` },
-      body: JSON.stringify({ channel: userId, text: String(config.message ?? "").slice(0, 3000) }),
-      timeoutMs: 10_000,
-      signal,
-    });
-    const body = asObject(res.body);
-    if (res.status !== 200 || body.ok !== true) {
-      const reason = String(body.error ?? `HTTP ${res.status}`);
-      const hint = reason === "missing_scope" ? " Reconnect Slack in Connections to grant direct messages." : reason === "user_not_found" || reason === "channel_not_found" ? " Check the email or member ID." : "";
-      throw new NodeError(`Slack didn't deliver the direct message (${reason}).${hint}`);
-    }
-    return ok({ ...asObject(input), slackDm: { channel: String(body.channel ?? ""), ts: String(body.ts ?? "") } });
   },
 
   "notify.slack": async ({ config, input, ownerId, signal }) => {
