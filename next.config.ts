@@ -10,15 +10,22 @@ const isDev = process.env.NODE_ENV !== "production";
 // Production instances use clerk.<your-domain>: add it via CLERK_FRONTEND_API_URL.
 const CLERK = ["https://*.clerk.accounts.dev", process.env.CLERK_FRONTEND_API_URL].filter(Boolean).join(" ");
 const CLERK_FRAMES = "https://challenges.cloudflare.com";
+// Clerk's bot protection: a script from cdn.protect.clerk.com that probes per-session
+// *.client.protect.clerk.com hosts on several ports (8443, 2082, ...). If it's blocked, Clerk
+// refuses every sign-up with a 403 ("We couldn't complete this request").
+const CLERK_PROTECT = "https://*.protect.clerk.com";
+const CLERK_PROTECT_PROBES = "https://*.protect.clerk.com:*";
+// Clerk's anonymous usage telemetry; blocked, it only fills the console with errors.
+const CLERK_TELEMETRY = "https://clerk-telemetry.com";
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${CLERK} ${CLERK_FRAMES}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${CLERK} ${CLERK_PROTECT} ${CLERK_FRAMES}`,
   "style-src 'self' 'unsafe-inline'",
   // https: covers Channel3 product photos (run panel), served from many merchant CDNs, and Clerk avatars.
   "img-src 'self' data: blob: https:",
   "font-src 'self'",
-  `connect-src 'self' ${CLERK}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${CLERK} ${CLERK_PROTECT_PROBES} ${CLERK_TELEMETRY}${isDev ? " ws:" : ""}`,
   `frame-src ${CLERK_FRAMES}`,
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
@@ -30,12 +37,12 @@ const csp = [
 const PAYPAL = "https://*.paypal.com https://*.paypalobjects.com";
 const checkoutCsp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL} ${CLERK} ${CLERK_FRAMES}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${PAYPAL} ${CLERK} ${CLERK_PROTECT} ${CLERK_FRAMES}`,
   `style-src 'self' 'unsafe-inline' ${PAYPAL}`,
   // https: covers Channel3 product images, served from many merchant CDNs.
   `img-src 'self' data: blob: https:`,
   "font-src 'self' data:",
-  `connect-src 'self' ${PAYPAL} ${CLERK}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${PAYPAL} ${CLERK} ${CLERK_PROTECT_PROBES} ${CLERK_TELEMETRY}${isDev ? " ws:" : ""}`,
   `frame-src ${PAYPAL} ${CLERK_FRAMES}`,
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
