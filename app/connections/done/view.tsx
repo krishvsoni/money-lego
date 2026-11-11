@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { CONNECT_MESSAGE } from "@/features/connections/use-connect";
 
+
 const safePath = (p: string | null) => (p && /^\/(?!\/)/.test(p) ? p : "/connections");
 
 // Where providers land after consent. In a popup it reports back to the page that opened
