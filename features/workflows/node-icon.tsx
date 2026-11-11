@@ -1,6 +1,6 @@
 import {
   Banknote, Calculator, CalendarClock, ChartColumn, Database, FilePlus2, FileSearch, FileText, Filter, GitBranch, Globe, Hash, Hourglass, Mail, MessageSquare, MousePointerClick,
-  Package, PenLine, Plug, Radar, Radio, Receipt, Repeat, ScrollText, Send, ShieldCheck, ShoppingCart, Shuffle, Sparkles, Split, Undo2, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap, type LucideIcon,
+  Package, PenLine, Plug, Radar, Radio, Receipt, Repeat, ScanSearch, ScrollText, Send, ShieldAlert, ShieldCheck, ShoppingCart, Shuffle, Sparkles, Split, Undo2, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap, type LucideIcon,
 } from "lucide-react";
 import { FingerprintIcon, ListChecksIcon } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
@@ -10,7 +10,7 @@ import type { Category } from "@/lib/nodes/types";
 // Explicit map so only the icons nodes use are bundled.
 const ICONS: Record<string, LucideIcon> = {
   Banknote, Calculator, CalendarClock, ChartColumn, Database, FilePlus2, FileSearch, FileText, Filter, GitBranch, Globe, Hash, Hourglass, Mail, MessageSquare, MousePointerClick,
-  Package, PenLine, Plug, Radar, Radio, Receipt, Repeat, ScrollText, Send, ShieldCheck, ShoppingCart, Shuffle, Sparkles, Split, Undo2, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap,
+  Package, PenLine, Plug, Radar, Radio, Receipt, Repeat, ScanSearch, ScrollText, Send, ShieldAlert, ShieldCheck, ShoppingCart, Shuffle, Sparkles, Split, Undo2, UserCheck, Wallet, Webhook, Workflow, Wrench, Zap,
 };
 
 // Glyphs lucide doesn't ship. Phosphor's ssr entry has no React context, so this file still

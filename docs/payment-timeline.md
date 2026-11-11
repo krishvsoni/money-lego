@@ -20,7 +20,7 @@ Every payment's life on one time axis, next to the workflow runs that handled it
 Ask in plain words, e.g. "Show failed captures last week" or "Summarize payments stuck in pending".
 
 1. The server builds the owner's timeline and sends the model a redacted list of milestones: short PayPal ids, masked emails, no credentials. It uses the existing `askJson` boundary (`server/ai/model.ts`).
-2. The model may only return `{ summary, filter, milestoneIds }`. The server checks every workflow id, milestone id and date against real data before the page uses them.
+2. The model may only return `{ summary, filter, milestoneIds }`. The server checks every workflow id and milestone id against real data, and keeps the filter's dates inside the selected 7/30/90-day period (`boundDateRange` in `lib/payments/timeline-view.ts`): unparseable dates are dropped, and a reversed range or one entirely outside the period is discarded. The page applies the same bound again, so a date from an earlier answer can't escape a shorter period chosen later.
 3. The page shows the summary, applies the filter and outlines the milestones. The model has no tools, so it can't start, refund or pay anything.
 
 Endpoint: `POST /api/payments/timeline/ask { question, days }`, with the agent rate limit (6 per minute).
@@ -32,6 +32,7 @@ Endpoint: `POST /api/payments/timeline/ask { question, days }`, with the agent r
 - **No duplicates.** A milestone's id comes from what it is (kind + PayPal id + status). A webhook PayPal delivers twice, or our own record plus PayPal's confirmation, collapse into one milestone at the earliest time seen.
 - **Privacy.** Full PayPal ids never leave the server: the timeline shows `…last6`, and ids are hashed.
 - **Unknown statuses** show as pending, never as completed.
+- **Bounded reads, never silently partial.** Each source is one newest-first query with a product limit (`TIMELINE_LIMITS`): 1,000 PayPal objects, 1,000 webhook events and 300 workflow runs per timeline. Each query asks for one record more than its limit. If a source has more, the response carries `truncation: { sources, completeSince }`, the page shows a "Showing part of the last N days" notice with the time it is complete from, and the AI is told the history is incomplete. Below the limits, `truncation` is `null`.
 - **Mapping:** `lib/payments/timeline.ts` (pure functions, unit tested in `tests/payment-timeline.test.ts`).
 - **Known gap:** a refund event can't always be linked to its capture, because PayPal's webhook summary we store has no capture id. It still lands on the right workflow row.
 

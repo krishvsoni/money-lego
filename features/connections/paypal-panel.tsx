@@ -98,14 +98,6 @@ export function PaypalPanel() {
                 </StatusLine>
                 {s.configured && !s.error && <StatusLine tone="ok">{s.scopeCount} permissions granted by PayPal</StatusLine>}
               </Card>
-
-              <Card icon={<PaypalKeycap />} title="Webhook">
-                <StatusLine tone={s.webhook.registered ? "ok" : "warn"}>{s.webhook.registered ? `Registered · ${s.webhook.registered.events.length} events` : "Not registered yet (npm run paypal:webhook)"}</StatusLine>
-                <StatusLine tone={s.webhook.configuredId && s.webhook.registered?.matchesConfig ? "ok" : "warn"}>
-                  {s.webhook.configuredId ? "Every event is verified with PayPal before it's used" : "PAYPAL_WEBHOOK_ID missing: checkout still works, events don't"}
-                </StatusLine>
-                <StatusLine tone={s.webhook.publicUrl ? "ok" : "warn"}>{s.webhook.publicUrl ? "Reachable at a public address" : "Local address: PayPal can't reach it"}</StatusLine>
-              </Card>
             </ul>
 
             <div className="tactile mt-3 rounded-2xl p-4">

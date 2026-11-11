@@ -7,8 +7,8 @@ import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { api, errorMessage } from "@/lib/api-client";
-import { KIND_LABEL, MILESTONE_STATES, type Milestone, type MilestoneState, type PaymentTimeline as Timeline } from "@/lib/payments/timeline";
-import { applyFilter, isFiltered, NO_FILTER, rowsFor, type GroupBy, type TimelineFilter } from "@/lib/payments/timeline-view";
+import { KIND_LABEL, MILESTONE_STATES, type Milestone, type MilestoneState, type PaymentTimeline as Timeline, type TimelineSource, type TimelineTruncation } from "@/lib/payments/timeline";
+import { applyFilter, boundDateRange, isFiltered, NO_FILTER, rowsFor, type GroupBy, type TimelineFilter } from "@/lib/payments/timeline-view";
 import { formatMoney } from "@/lib/paypal/types";
 import { useResource } from "@/lib/use-resource";
 import type { TimelineAnswer } from "@/server/paypal/timeline";
@@ -37,7 +37,9 @@ export function PaymentTimeline({ onFindObject }: { onFindObject: (search: strin
   const [answer, setAnswer] = useState<TimelineAnswer | null>(null);
   const [selected, setSelected] = useState<Milestone | null>(null);
 
-  const shown = useMemo(() => applyFilter(timeline?.milestones ?? [], filter), [timeline, filter]);
+  // Dates kept from an earlier answer can't reach outside the period now on screen.
+  const effective = useMemo<TimelineFilter>(() => (timeline ? { ...filter, ...boundDateRange(filter.from, filter.to, timeline) } : filter), [timeline, filter]);
+  const shown = useMemo(() => applyFilter(timeline?.milestones ?? [], effective), [timeline, effective]);
   const rows = useMemo(() => rowsFor(shown, groupBy), [shown, groupBy]);
   const highlighted = useMemo(() => new Set(answer?.milestoneIds ?? []), [answer]);
 
@@ -59,7 +61,7 @@ export function PaymentTimeline({ onFindObject }: { onFindObject: (search: strin
   };
 
   // Kinds, dates and several workflows can only come from an AI answer; the controls set the rest.
-  const narrowedByAi = filter.kinds.length > 0 || filter.from !== null || filter.to !== null || filter.workflowIds.length > 1;
+  const narrowedByAi = effective.kinds.length > 0 || effective.from !== null || effective.to !== null || effective.workflowIds.length > 1;
 
   return (
     <section className="flex flex-col gap-4" aria-label="Payment timeline">
@@ -126,6 +128,8 @@ export function PaymentTimeline({ onFindObject }: { onFindObject: (search: strin
         )}
       </div>
 
+      {timeline?.truncation && <TruncationNotice truncation={timeline.truncation} days={days} />}
+
       {error ? (
         <p role="alert" className="rounded-md bg-danger-wash px-3 py-2 text-sm text-danger">
           {error}
@@ -139,8 +143,8 @@ export function PaymentTimeline({ onFindObject }: { onFindObject: (search: strin
           rows={rows}
           milestones={shown}
           groupBy={groupBy}
-          from={filter.from ?? timeline.from}
-          to={filter.to ?? timeline.to}
+          from={effective.from ?? timeline.from}
+          to={effective.to ?? timeline.to}
           days={days}
           highlighted={highlighted}
           onSelect={setSelected}
@@ -154,6 +158,21 @@ export function PaymentTimeline({ onFindObject }: { onFindObject: (search: strin
         details, click it to open its run.
       </p>
     </section>
+  );
+}
+
+const SOURCE_LABEL: Record<TimelineSource, string> = { resources: "PayPal objects", events: "webhook events", runs: "workflow runs" };
+
+// Shown whenever a source had more records than the timeline reads, so a busy account never
+// mistakes a cut-off history for the whole period.
+function TruncationNotice({ truncation, days }: { truncation: TimelineTruncation; days: Range }) {
+  const since = new Date(truncation.completeSince).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const parts = truncation.sources.map((s) => `the latest ${s.limit.toLocaleString("en")} ${SOURCE_LABEL[s.source]}`);
+  return (
+    <p role="status" className="rounded-md bg-attention-wash px-3 py-2 text-sm text-attention">
+      <span className="font-semibold">Showing part of the last {days} days.</span> This account has more activity than one timeline reads, so it shows {parts.join(", ")}. It is complete from{" "}
+      {since}; earlier activity in this period may be missing.{days > 7 ? " A shorter period may show complete." : ""}
+    </p>
   );
 }
 

@@ -1,5 +1,5 @@
-// A payout route drawn in glyph cells: value leaves a treasury, passes three hops, then
-// splits across four recipients by allocation. Particles stamp "heat" into a cell grid that
+// A payout route drawn in glyph cells: value leaves a PayPal checkout, passes three stages
+// (risk review, approval, settlement), then splits across four payees by allocation. Particles stamp "heat" into a cell grid that
 // decays each frame, which is what makes the trails read like moving ASCII creatures.
 
 export interface Point {
@@ -12,17 +12,17 @@ export const GLYPHS = "$%#@8St:xo";
 // The route hugs the edges of the hero, so the headline and card in the middle stay
 // clear: down the left side, along the bottom, then up the right into the recipients.
 export const SOURCE: Point = { x: 0.05, y: 0.16 };
-export const HOPS: Point[] = [
-  { x: 0.15, y: 0.5 },
-  { x: 0.07, y: 0.84 },
-  { x: 0.5, y: 0.96 },
+export const HOPS: Array<Point & { label: string }> = [
+  { x: 0.15, y: 0.5, label: "risk review" },
+  { x: 0.07, y: 0.84, label: "approval" },
+  { x: 0.5, y: 0.96, label: "settlement" },
 ];
 export const SPLIT: Point = { x: 0.82, y: 0.9 };
 export const RECIPIENTS = [
-  { at: { x: 0.94, y: 0.16 }, share: 0.4, label: "design 40%" },
-  { at: { x: 0.88, y: 0.38 }, share: 0.3, label: "eng 30%" },
-  { at: { x: 0.95, y: 0.58 }, share: 0.2, label: "ops 20%" },
-  { at: { x: 0.9, y: 0.76 }, share: 0.1, label: "community 10%" },
+  { at: { x: 0.94, y: 0.16 }, share: 0.4, label: "seller payout 40%" },
+  { at: { x: 0.88, y: 0.38 }, share: 0.3, label: "affiliate 30%" },
+  { at: { x: 0.95, y: 0.58 }, share: 0.2, label: "platform fee 20%" },
+  { at: { x: 0.9, y: 0.76 }, share: 0.1, label: "tax reserve 10%" },
 ];
 
 function catmullRom(points: Point[], samples = 40): Point[] {

@@ -1,6 +1,10 @@
 import "server-only";
 import { z } from "zod";
-import { buildTimeline, KIND_LABEL, MILESTONE_STATES, type Milestone, type MilestoneKind, type MilestoneState, type PaymentTimeline } from "@/lib/payments/timeline";
+import {
+  buildTimeline, KIND_LABEL, MILESTONE_STATES, takeBounded, TIMELINE_LIMITS, truncationOf,
+  type Milestone, type MilestoneKind, type MilestoneState, type PaymentTimeline, type TimelineLimits,
+} from "@/lib/payments/timeline";
+import { boundDateRange } from "@/lib/payments/timeline-view";
 import { formatMoney, referenceFor } from "@/lib/paypal/types";
 import type { SessionUser } from "../auth/session";
 import { askJson, ownerTag, redact } from "../ai/model";
@@ -14,20 +18,25 @@ export type TimelineRange = (typeof TIMELINE_RANGES)[number];
 
 const CAPTURE_RUN_KEY = "paypal:capture:";
 
-export async function paymentTimeline(user: SessionUser, days: TimelineRange): Promise<PaymentTimeline> {
+// Each source is one bounded read, newest first, asking for one record more than its limit so
+// a cut-off history is reported (PaymentTimeline.truncation) rather than shown as complete.
+// `limits` is only overridden by tests.
+export async function paymentTimeline(user: SessionUser, days: TimelineRange, limits: TimelineLimits = TIMELINE_LIMITS): Promise<PaymentTimeline> {
   const to = new Date();
   const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
   const { workflows, paypalResources, paypalEvents, workflowRuns } = await collections();
 
-  const [flows, resources, runs] = await Promise.all([
+  const [flows, resourceRows, runRows] = await Promise.all([
     workflows.find({ ownerId: user.userId }, { projection: { _id: 1, name: 1, webhookKey: 1 } }).toArray(),
-    paypalResources.find({ ownerId: user.userId, updatedAt: { $gte: from } }).sort({ updatedAt: -1 }).limit(1000).toArray(),
-    workflowRuns.find({ ownerId: user.userId, startedAt: { $gte: from } }, { projection: { graph: 0, log: 0 } }).sort({ startedAt: -1 }).limit(300).toArray(),
+    paypalResources.find({ ownerId: user.userId, updatedAt: { $gte: from } }).sort({ updatedAt: -1, _id: -1 }).limit(limits.resources + 1).toArray(),
+    workflowRuns.find({ ownerId: user.userId, startedAt: { $gte: from } }, { projection: { graph: 0, log: 0 } }).sort({ startedAt: -1, _id: -1 }).limit(limits.runs + 1).toArray(),
   ]);
+  const { rows: resources, truncated: resourcesTruncated } = takeBounded(resourceRows, limits.resources);
+  const { rows: runs, truncated: runsTruncated } = takeBounded(runRows, limits.runs);
 
   // Webhook events aren't stored per owner; one is ours when it is about an object we own,
   // was routed to one of our workflows, or carries one of our workflows' references.
-  const events = await paypalEvents
+  const eventRows = await paypalEvents
     .find({
       receivedAt: { $gte: from },
       $or: [
@@ -36,13 +45,21 @@ export async function paymentTimeline(user: SessionUser, days: TimelineRange): P
         { reference: { $in: flows.map((w) => referenceFor(w.webhookKey)) } },
       ],
     })
-    .sort({ receivedAt: -1 })
-    .limit(1000)
+    .sort({ receivedAt: -1, _id: -1 })
+    .limit(limits.events + 1)
     .toArray();
+  const { rows: events, truncated: eventsTruncated } = takeBounded(eventRows, limits.events);
+
+  const truncation = truncationOf([
+    { source: "resources", limit: limits.resources, truncated: resourcesTruncated, oldestKept: resources.at(-1)?.updatedAt ?? null },
+    { source: "events", limit: limits.events, truncated: eventsTruncated, oldestKept: events.at(-1)?.receivedAt ?? null },
+    { source: "runs", limit: limits.runs, truncated: runsTruncated, oldestKept: runs.at(-1)?.startedAt ?? null },
+  ]);
 
   return buildTimeline({
     from,
     to,
+    truncation,
     workflows: flows.map((w) => ({ id: w._id.toHexString(), name: w.name })),
     resources: resources.map((r) => ({
       kind: r.kind,
@@ -132,6 +149,9 @@ export async function askTimeline(user: SessionUser, question: string, days: Tim
   const recent = timeline.milestones.slice(-MAX_FACTS);
   const facts = [
     `Now: ${timeline.to}. Period: ${timeline.from} to ${timeline.to}.${timeline.milestones.length > MAX_FACTS ? ` Only the latest ${MAX_FACTS} of ${timeline.milestones.length} milestones are listed.` : ""}`,
+    ...(timeline.truncation
+      ? [`The history is incomplete: this merchant has more activity than the timeline reads, so it is complete only from ${timeline.truncation.completeSince}. Say so if the question is about anything earlier.`]
+      : []),
     `Workflows (id | name): ${timeline.workflows.map((w) => `${w.id} | ${String(redact(w.name))}`).join("; ") || "none"}`,
     "Milestones (id | time | kind | state | label | amount | workflow | PayPal id | reason):",
     ...(recent.length ? recent.map(factLine) : ["none"]),
@@ -144,18 +164,23 @@ export async function askTimeline(user: SessionUser, question: string, days: Tim
     tag: ownerTag(user.userId),
   });
 
-  // The model's ids and dates are checked against what really exists before the page uses them.
+  return checkAnswer(answer, timeline);
+}
+
+// The model's ids and dates are checked against what really exists before the page uses them:
+// ids must be known, and dates must lie in the period the timeline was built for.
+export function checkAnswer(answer: z.infer<typeof answerSchema>, timeline: Pick<PaymentTimeline, "from" | "to" | "workflows" | "milestones">): TimelineAnswer {
   const knownWorkflows = new Set(timeline.workflows.map((w) => w.id));
   const knownMilestones = new Set(timeline.milestones.map((m) => m.id));
-  const isoOrNull = (value: string | null) => (value && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : null);
+  const range = boundDateRange(answer.filter.from, answer.filter.to, timeline);
   return {
     summary: answer.summary,
     filter: {
       states: answer.filter.states,
       kinds: answer.filter.kinds,
       workflowIds: answer.filter.workflowIds.filter((id) => knownWorkflows.has(id)),
-      from: isoOrNull(answer.filter.from),
-      to: isoOrNull(answer.filter.to),
+      from: range.from,
+      to: range.to,
     },
     milestoneIds: answer.milestoneIds.filter((id) => knownMilestones.has(id)),
   };
