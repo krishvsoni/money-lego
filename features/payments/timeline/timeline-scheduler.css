@@ -1,0 +1,22 @@
+/* Bryntum takes the app's font, so the timeline reads like the rest of Money Lego. */
+.b-scheduler {
+  font-family: inherit;
+}
+
+/* Milestones the AI answer points at get a ring the eye finds at once. */
+.b-sch-event-wrap.ml-highlight .b-sch-event {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.ml-tip {
+  display: flex;
+  max-width: 280px;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ml-tip strong {
+  font-size: 13px;
+}
