@@ -2,18 +2,22 @@ import "server-only";
 import { appUrl, env } from "../config/env";
 import { AppError, errors } from "../errors";
 import { log } from "../log";
+import type { ResponseFormat } from "./response-format";
 
 // The only code that talks to model providers. Every call names a tier:
-//  - "main": the agents (Sage's planner and fixer, the Money Lego assistant and its PayPal
-//    sub-agent, AG Studio's dashboard agents) run on OpenAI, falling back to OpenRouter.
-//  - "small": bounded node tasks (AI review, write, pick, run explanations) run on OpenRouter,
-//    falling back to OpenAI's small model.
+//  - "deep": Sage designing or repairing a workflow. OpenAI's large model with more reasoning,
+//    since a better plan saves the person fixing blocks by hand; it may take a little longer.
+//  - "main": the agents and AI features people use directly (the Money Lego assistant,
+//    AG Studio's dashboard agents, workflow AI blocks, timeline questions, run explanations).
+//    OpenAI's large model with light reasoning, falling back to OpenRouter.
+//  - "fast": sub-agents working inside another agent's turn (the assistant's PayPal look-ups
+//    and product picks): OpenAI's small model, so they never hold the main answer up.
+//  - "small": OpenRouter's free models first, OpenAI's small model as fallback (kept for
+//    deployments without an OpenAI key).
 // Keys stay server-side and provider error bodies never reach the browser: callers see one of
 // a few plain app errors. JSON replies stream, so the crew can show a plan taking shape.
 
-// "fast": a small task someone is waiting on (explaining a run): OpenAI's small model first,
-// free OpenRouter models only as a fallback, since those can queue for a long time.
-export type Tier = "main" | "small" | "fast";
+export type Tier = "deep" | "main" | "small" | "fast";
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
 const OPENAI = "https://api.openai.com/v1/chat/completions";
@@ -52,6 +56,9 @@ interface Target {
   provider: "openai" | "openrouter";
   label: string;
   models: string[];
+  // OpenAI reasoning models only: how hard to think, and the room that needs.
+  effort?: "low" | "medium";
+  maxTokens?: number;
 }
 
 function openRouterGroups(): Target[] {
@@ -65,13 +72,15 @@ function openRouterGroups(): Target[] {
 
 function targetsFor(tier: Tier): Target[] {
   const e = env();
-  const openai = (model: string): Target[] => (e.OPENAI_API_KEY ? [{ provider: "openai", label: "OpenAI", models: [model] }] : []);
+  const openai = (model: string, extra: Partial<Target> = {}): Target[] => (e.OPENAI_API_KEY ? [{ provider: "openai", label: "OpenAI", models: [model], ...extra }] : []);
   const list =
-    tier === "main"
-      ? [...openai(e.OPENAI_MODEL), ...openRouterGroups()]
-      : tier === "fast"
-        ? [...openai(e.OPENAI_SMALL_MODEL), ...openRouterGroups()]
-        : [...openRouterGroups(), ...openai(e.OPENAI_SMALL_MODEL)];
+    tier === "deep"
+      ? [...openai(e.OPENAI_MODEL, { effort: "medium", maxTokens: 20_000 }), ...openai(e.OPENAI_MODEL), ...openRouterGroups()]
+      : tier === "main"
+        ? [...openai(e.OPENAI_MODEL), ...openRouterGroups()]
+        : tier === "fast"
+          ? [...openai(e.OPENAI_SMALL_MODEL), ...openai(e.OPENAI_MODEL), ...openRouterGroups()]
+          : [...openRouterGroups(), ...openai(e.OPENAI_SMALL_MODEL)];
   if (!list.length) throw errors.notConfigured("The AI model (OPENAI_API_KEY or OPENROUTER_API_KEY)");
   return list;
 }
@@ -92,7 +101,7 @@ function requestFor(t: Target, body: Record<string, unknown>, userTag: string, m
       body: {
         model,
         ...body,
-        ...(isReasoningModel(model) ? { max_completion_tokens: maxTokens, reasoning_effort: Array.isArray(body.tools) && body.tools.length ? "none" : "low" } : { max_tokens: maxTokens, temperature: 0.2 }),
+        ...(isReasoningModel(model) ? { max_completion_tokens: maxTokens, reasoning_effort: Array.isArray(body.tools) && body.tools.length ? "none" : (t.effort ?? "low") } : { max_tokens: maxTokens, temperature: 0.2 }),
         user: userTag,
       },
     };
@@ -165,7 +174,7 @@ async function readStream(res: Response, hooks: CompletionHooks, alive: () => vo
   return { text, model };
 }
 
-async function completeOnce(t: Target, messages: ChatMessage[], userTag: string, hooks: CompletionHooks): Promise<unknown> {
+async function completeOnce(t: Target, messages: ChatMessage[], userTag: string, hooks: CompletionHooks, format: ResponseFormat | null = null): Promise<unknown> {
   // The provider and model are an operator detail (server log only), never shown to the user.
   hooks.onLog?.("Thinking about how to build it");
   const abort = new AbortController();
@@ -180,7 +189,10 @@ async function completeOnce(t: Target, messages: ChatMessage[], userTag: string,
     clearTimeout(idle);
   };
 
-  const req = requestFor(t, { messages, stream: true, response_format: { type: "json_object" } }, userTag, 8_000);
+  // OpenAI gets the answer's JSON schema (Structured Outputs) so it's valid the first time;
+  // OpenRouter's free models only promise a JSON object.
+  const responseFormat = t.provider === "openai" && format ? format : { type: "json_object" };
+  const req = requestFor(t, { messages, stream: true, response_format: responseFormat }, userTag, t.maxTokens ?? 8_000);
   let res: Response;
   try {
     res = await fetch(req.url, { method: "POST", headers: req.headers, body: JSON.stringify(req.body), signal: abort.signal, cache: "no-store" });
@@ -191,6 +203,12 @@ async function completeOnce(t: Target, messages: ChatMessage[], userTag: string,
   }
   if (!res.ok || !res.body) stop();
   if (res.status === 429) throw errors.rateLimited(Number(res.headers.get("retry-after")) || 20);
+  // A schema OpenAI won't accept must never cost the answer: ask the same model again with a
+  // plain JSON object instead of falling through to a slower provider.
+  if (res.status === 400 && t.provider === "openai" && format) {
+    log.warn("agent.schema_rejected", { name: format.json_schema.name, body: (await res.text().catch(() => "")).slice(0, 300) });
+    return completeOnce(t, messages, userTag, hooks, null);
+  }
   if (!res.ok || !res.body) {
     log.warn("agent.http", { provider: t.provider, status: res.status });
     throw unavailable();
@@ -218,12 +236,12 @@ async function completeOnce(t: Target, messages: ChatMessage[], userTag: string,
 // rate limit, or an unusable answer. Anything else is the same everywhere, so it stops.
 const FALL_THROUGH = new Set(["AGENT_UNAVAILABLE", "AGENT_BAD_OUTPUT", "RATE_LIMITED"]);
 
-export async function completeJson(messages: ChatMessage[], userTag: string, hooks: CompletionHooks = {}, tier: Tier = "main"): Promise<unknown> {
+export async function completeJson(messages: ChatMessage[], userTag: string, hooks: CompletionHooks = {}, tier: Tier = "main", format: ResponseFormat | null = null): Promise<unknown> {
   let last: unknown = unavailable();
   const targets = targetsFor(tier);
   for (const [i, t] of targets.entries()) {
     try {
-      return await completeOnce(t, messages, userTag, hooks);
+      return await completeOnce(t, messages, userTag, hooks, format);
     } catch (error) {
       if (!(error instanceof AppError) || !FALL_THROUGH.has(error.code)) throw error;
       log.warn("agent.target_failed", { provider: t.provider, models: t.models, code: error.code });

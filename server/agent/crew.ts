@@ -11,7 +11,10 @@ import { linkConnections, type LinkResult } from "./connector";
 import type { FindingArea, FindingLevel, SageAction } from "./doctor";
 import { reviewGraph } from "./guardrails";
 import { completeJson, type ChatMessage } from "./openrouter";
+import { responseFormatFor } from "./response-format";
 import { agentDraftSchema, type AgentDraft } from "./schema";
+
+const DRAFT_FORMAT = responseFormatFor("workflow_draft", agentDraftSchema);
 
 // The steps Sage's crew shares between building a new workflow and editing an open one.
 // Planner and Fixer are model calls; Guard, Connector and Builder are plain code, so the
@@ -100,13 +103,14 @@ export class Crew {
         }
       },
     };
-    const raw = await completeJson(messages, this.tag, hooks);
+    // Sage's planning and repairs get the deep tier: OpenAI's large model, thinking harder.
+    const raw = await completeJson(messages, this.tag, hooks, "deep", DRAFT_FORMAT);
     const parsed = agentDraftSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
     this.log(agent, "The answer was missing pieces, asking again");
     messages.push({ role: "assistant", content: JSON.stringify(raw).slice(0, 6_000) });
     messages.push({ role: "user", content: `That JSON doesn't match the required shape: ${parsed.error.issues[0]?.message}. Reply with the corrected JSON only.` });
-    const retry = agentDraftSchema.safeParse(await completeJson(messages, this.tag, hooks));
+    const retry = agentDraftSchema.safeParse(await completeJson(messages, this.tag, hooks, "deep", DRAFT_FORMAT));
     if (retry.success) return retry.data;
     throw new AppError("AGENT_BAD_OUTPUT", 502, "The plan came back unusable. Try naming what starts it, what PayPal should do and who approves it.");
   }
@@ -122,8 +126,7 @@ export class Crew {
     if (!blocking.length) {
       if (transfers) this.log("guard", "Every PayPal money action waits for your approval of exactly what it will do");
       this.status("guard", "done", transfers ? "Approvals are in place" : "Wiring is sound");
-      this.status("fixer", "skipped", "Nothing to fix");
-      return { draft, graph };
+      return this.fillSettings(draft, graph, messages, build);
     }
     for (const issue of blocking.slice(0, 3)) this.log("guard", issue.message);
     this.status("guard", "done", `Flagged ${plural(blocking.length, "problem")}`);
@@ -145,6 +148,42 @@ export class Crew {
     this.log("guard", "Checked again: every money action is behind an approval now");
     this.status("fixer", "done", "Guard's checks pass now");
     return { draft: fixed, graph };
+  }
+
+  // Settings left empty that the request may already answer (a budget, a phrase, an amount)
+  // get one pass from Fixer. Connections are never asked for: Connector links those. If the
+  // pass breaks anything Guard checks, the earlier, safe draft is kept.
+  private async fillSettings(draft: AgentDraft, graph: WorkflowGraph, messages: ChatMessage[], build: (d: AgentDraft) => WorkflowGraph): Promise<{ draft: AgentDraft; graph: WorkflowGraph }> {
+    const empty = reviewGraph(graph).setup.filter((i) => {
+      const node = graph.nodes.find((n) => n.id === i.nodeId);
+      const field = node ? nodeDefinition(node.type)?.fields.find((f) => f.key === i.field) : undefined;
+      return field && field.kind !== "credential";
+    });
+    // Only worth a second look when the request holds concrete values to copy in.
+    const request = messages.filter((m) => m.role === "user").map((m) => m.content).join(" ");
+    if (!empty.length || !/\d|["“”']|@/.test(request)) {
+      this.status("fixer", "skipped", "Nothing to fix");
+      return { draft, graph };
+    }
+    this.status("fixer", "working", `Filling ${plural(empty.length, "empty setting")}`);
+    messages.push({ role: "assistant", content: JSON.stringify(draft).slice(0, 6_000) });
+    messages.push({
+      role: "user",
+      content: `These settings are still empty:
+${describeIssues(empty)}
+Fill each one whose value the request states or clearly implies (an amount, a budget, a phrase, a person, a schedule). Leave the others as "". Keep every block id and all wiring. Reply with the full corrected JSON only.`,
+    });
+    try {
+      const filled = await this.think("fixer", messages);
+      const next = build(filled);
+      if (reviewGraph(next).blocking.length) throw new Error("fill broke the plan");
+      const left = reviewGraph(next).setup.length;
+      this.status("fixer", "done", left < reviewGraph(graph).setup.length ? "Filled what your request already said" : "Left the rest for you to fill in");
+      return { draft: filled, graph: next };
+    } catch {
+      this.status("fixer", "done", "Left the rest for you to fill in");
+      return { draft, graph };
+    }
   }
 
   async connect(graph: WorkflowGraph): Promise<LinkResult> {

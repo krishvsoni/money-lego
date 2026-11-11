@@ -174,5 +174,37 @@ const pick: Executor = async (ctx) => {
   return ok({ ...asObject(ctx.input), pick: chosen, pickReason: answer.reason, alternatives });
 };
 
+const decisionSchema = z.object({
+  answer: z.enum(["yes", "no", "unsure"]),
+  confidence: z.enum(["high", "medium", "low"]),
+  reason: z.string().min(1).max(300),
+});
+
+// Picks a branch. Low confidence counts as unsure, and an unavailable model takes Unsure too:
+// a busy AI provider can never send a run down Yes or No on a guess.
+const decide: Executor = async (ctx) => {
+  const question = String(ctx.config.question ?? "").trim();
+  if (!question) throw new NodeError("Write the question the AI should answer.");
+  let answer: z.infer<typeof decisionSchema>;
+  try {
+    answer = await askJson({
+      name: "decision",
+      tag: ownerTag(ctx.ownerId),
+      schema: decisionSchema,
+      system:
+        "You answer one yes/no question about a business workflow's data. Decide only from the data given and the owner's guidance. Answer unsure when the data doesn't settle it. Give a one-sentence reason that names the facts you used.",
+      user: JSON.stringify({ question: question.slice(0, 500), guidance: String(ctx.config.guidance ?? "").slice(0, 800), data: redact(ctx.config.data ?? ctx.input) }),
+    });
+  } catch (error) {
+    const why = isAppError(error) ? error.message : "The AI is unavailable.";
+    ctx.log(`AI decision unavailable (${why}), so the run takes Unsure.`, "warn");
+    return ok({ ...asObject(ctx.input), decision: { answer: "unsure", reason: "The AI was unavailable, so no decision was made.", confidence: "low" } }, "unsure");
+  }
+  const port = answer.confidence === "low" ? "unsure" : answer.answer;
+  ctx.log(`AI decided ${port}: ${answer.reason}`);
+  return ok({ ...asObject(ctx.input), decision: { ...answer, answer: port } }, port);
+};
+
 export const aiExecutors: Record<string, Executor> = {
+  "ai.decide": decide,
   "ai.pick": pick, "ai.review": review, "ai.write": write };

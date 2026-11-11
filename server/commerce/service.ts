@@ -37,7 +37,9 @@ export async function assistantSearch(user: SessionUser, request: string, maxPri
 
   let picks: z.infer<typeof pickSchema> | null = null;
   try {
+    // A helper inside a shopping answer: the fast tier keeps it from holding the answer up.
     picks = await askJson({
+      tier: "fast",
       tag: ownerTag(user.userId),
       schema: pickSchema,
       system:

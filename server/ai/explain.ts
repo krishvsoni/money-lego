@@ -86,7 +86,7 @@ export async function explainRun(user: SessionUser, runId: string) {
   return askJson({
     tag: ownerTag(user.userId),
     schema,
-    tier: "fast",
+    tier: "main",
     system:
       "You explain a finished or paused payment-automation run to a small-business owner. Use only the run record. " +
       "headline: one sentence, under 120 characters, saying how the run ended. " +

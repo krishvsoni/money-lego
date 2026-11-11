@@ -73,4 +73,27 @@ export const aiNodes: NodeDefinition[] = [
     retrySafe: true,
     outputHint: "The input plus { draft: { subject, message } } or, for a list, the same list with { subject, message } added to each item, plus { drafts }.",
   },
+  {
+    type: "ai.decide",
+    summary: "AI answers a yes/no question about the run and picks the branch.",
+    title: "AI decision",
+    category: "ai",
+    description:
+      "Ask a yes/no question about the run's data (\"Is this a refund request?\", \"Does the buyer sound upset?\") and continue down Yes, No or Unsure, with the AI's reason kept on the run. It only chooses a path: any PayPal money step after it still needs an approval. If the AI isn't sure, or isn't available, the run takes Unsure, never a guess.",
+    icon: "Signpost",
+    fields: [
+      { key: "question", label: "Question", kind: "textarea", required: true, maxLength: 500, placeholder: "Is this message asking for a refund?" },
+      { key: "data", label: "Data", kind: "text", expression: true, placeholder: "{{ input }}", help: "What the AI should read to decide." },
+      { key: "guidance", label: "How to decide", kind: "textarea", maxLength: 800, placeholder: "Yes only if they clearly ask for money back. A complaint alone is No." },
+    ],
+    inputs: MAIN_IN,
+    outputs: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+      { id: "unsure", label: "Unsure" },
+    ],
+    defaults: { data: "{{ input }}", guidance: "" },
+    retrySafe: true,
+    outputHint: "The input plus { decision: { answer: yes|no|unsure, reason, confidence } }, on the port of the answer.",
+  },
 ];

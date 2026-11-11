@@ -4,6 +4,7 @@ import type { SessionUser } from "../auth/session";
 import { createDraftWorkflow } from "../workflows/service";
 import { systemPrompt } from "./catalog";
 import { Crew, missingNotes, plural, type Emit } from "./crew";
+import { fillFromRequest } from "./fill";
 import { toGraph } from "./guardrails";
 import type { ChatMessage } from "./openrouter";
 
@@ -28,7 +29,7 @@ export async function runCrew(user: SessionUser, prompt: string, requestKey: str
   });
   crew.status("planner", "done", `Picked ${plural(first.nodes.length, "block")}`);
 
-  const { draft, graph: safe } = await crew.secure(first, messages, toGraph);
+  const { draft, graph: safe } = await crew.secure(first, messages, (d) => fillFromRequest(toGraph(d), prompt));
   crew.plan(safe);
   const links = await crew.connect(safe);
 

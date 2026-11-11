@@ -7,6 +7,7 @@ import type { SessionUser } from "../auth/session";
 import { getWorkflowDoc } from "../workflows/service";
 import { systemPrompt } from "./catalog";
 import { Crew, missingNotes, plural, type Emit } from "./crew";
+import { fillFromRequest } from "./fill";
 import { toGraph } from "./guardrails";
 import type { ChatMessage } from "./openrouter";
 import type { AgentDraft } from "./schema";
@@ -106,7 +107,7 @@ export async function runEdit(
   });
   if (lead === "planner") crew.status("planner", "done", `Planned ${plural(first.nodes.length, "block")}`);
 
-  const build = (d: AgentDraft) => mergeWithCurrent(toGraph(d), current);
+  const build = (d: AgentDraft) => mergeWithCurrent(fillFromRequest(toGraph(d), request), current);
   const { draft, graph: safe } = await crew.secure(first, messages, build);
   if (lead === "fixer") crew.status("fixer", "done", "Repaired");
   crew.plan(safe);

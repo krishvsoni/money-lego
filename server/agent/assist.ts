@@ -8,6 +8,7 @@ import { Crew, type Emit } from "./crew";
 import { describeDiagnosis, diagnose, type Diagnosis, type Finding, type SageAction } from "./doctor";
 import { describeForModel, runEdit } from "./edit";
 import { completeJson, type ChatMessage } from "./openrouter";
+import { responseFormatFor } from "./response-format";
 
 // Sage's front door in the editor. Every message first gets a live health check (doctor.ts,
 // plain code). Then one model call reads the findings and the message and either answers it
@@ -87,7 +88,7 @@ export async function runAssist(user: SessionUser, input: { workflowId: string; 
   ];
   let parsed: z.infer<typeof replySchema> | null = null;
   try {
-    const raw = await completeJson(messages, crew.tag, { onLog: (line) => crew.log("planner", line) });
+    const raw = await completeJson(messages, crew.tag, { onLog: (line) => crew.log("planner", line) }, "deep", responseFormatFor("sage_reply", replySchema));
     const r = replySchema.safeParse(raw);
     parsed = r.success ? r.data : null;
   } catch (error) {

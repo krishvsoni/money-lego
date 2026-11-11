@@ -114,7 +114,7 @@ export async function runPaypalAgent(question: string, userTag: string, ownerId:
   const calls: PaypalAgentResult["calls"] = [];
 
   for (let step = 0; step < MAX_STEPS; step++) {
-    const turn = await chatCompletion({ messages, tools: tools as unknown as Array<Record<string, unknown>>, tool_choice: "auto" }, userTag, "main");
+    const turn = await chatCompletion({ messages, tools: tools as unknown as Array<Record<string, unknown>>, tool_choice: "auto" }, userTag, "fast");
     if (!turn.toolCalls.length) return { answer: turn.content || "PayPal didn't return anything for that.", calls };
 
     messages.push({ role: "assistant", content: turn.content || null, tool_calls: turn.toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
