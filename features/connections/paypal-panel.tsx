@@ -61,8 +61,6 @@ const FEATURES: Array<[string, string]> = [
 const PARTNERS: Array<{ key: string; title: string; brand: Brand; on: string; off: string }> = [
   { key: "agent", title: "AI model (OpenRouter)", brand: "openrouter", on: "Drafts workflows, reviews payments, writes reminders and explains runs.", off: "Set OPENROUTER_API_KEY to turn on the AI features." },
   { key: "channel3", title: "Channel3", brand: "channel3", on: "Real product data for the Channel3 product search block.", off: "Set CHANNEL3_API_KEY to search real products." },
-  { key: "elastic", title: "Elastic", brand: "elastic", on: "Run history is indexed; search and AI explanations use it.", off: "Set ELASTIC_URL and ELASTIC_API_KEY. Search uses the database until then." },
-  { key: "zapier", title: "Zapier", brand: "zapier", on: "The Zapier block can send run data to your Zaps.", off: "Add a Zapier Catch Hook under Your own secrets to use the Zapier block." },
   { key: "agGrid", title: "AG Grid & AG Studio", brand: "ag-grid", on: "Powers the Payments dashboard and tables.", off: "" },
 ];
 

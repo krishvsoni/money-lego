@@ -16,7 +16,7 @@ Money Lego turns a plain-English payment process into an editable, auditable wor
 - **PayPal checkout trigger**: every workflow can have a hosted PayPal checkout page; a completed capture starts the run, and the verified webhook for the same capture never starts a second one.
 - **Real PayPal actions**: Payouts (with item-level status follow-up), Refunds, Invoicing (find, create, send, remind), Subscriptions and Transaction Search, all with idempotency keys.
 - **Approvals bound to exact intents**: the approver sees recipients, amounts, captures and invoices plus an AI risk review; each action is fingerprinted and refuses to run if anything changed after approval.
-- **AI that helps, never pays**: AI risk review, AI-drafted reminders, AI run explanations grounded in the stored run (and similar past failures via Elastic). Emails are masked before reaching the model.
+- **AI that helps, never pays**: AI risk review, AI-drafted reminders, AI run explanations grounded in the stored run (and similar past failures). Emails are masked before reaching the model.
 - **Payments dashboard** on AG Grid with every PayPal object and run, plus full-text run search.
 - **Agentic commerce**: an AI shopping assistant grounded in Channel3 product data, with the buyer approving a PayPal checkout.
 
@@ -34,14 +34,14 @@ Model routing: **OpenAI** runs the main agents (Sage planner/fixer, the Money Le
 2. Editing an open workflow by instruction.
 3. AI risk review node (combined with deterministic checks) shown to the approver.
 4. AI write node: per-item drafts (e.g. overdue invoice reminders) from real invoice data.
-5. Explain this run: plain-language summary of a run from its persisted record, citing similar past failures (Elastic).
+5. Explain this run: plain-language summary of a run from its persisted record, citing similar past failures.
 6. Channel3 product search: AI picks and explains only Channel3-returned products.
 
 AI never authorises money movement: deterministic validation plus a fingerprinted human approval gate every payout, refund and invoice send.
 
 ## Tools used
 
-PayPal Developer Platform (sandbox): Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks · OpenRouter (models configured in OPENROUTER_MODELS) · AG Grid Community · Channel3 API · Elastic (Elasticsearch) · Zapier (Webhooks by Zapier) · Render · Postman · Kinde · MongoDB · Next.js · React Flow · zod.
+PayPal Developer Platform (sandbox): Orders/Checkout + JS SDK, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks · OpenRouter (models configured in OPENROUTER_MODELS) · AG Grid Community · Channel3 API · Render · Postman · Kinde · MongoDB · Next.js · React Flow · zod.
 
 ## Challenges
 
