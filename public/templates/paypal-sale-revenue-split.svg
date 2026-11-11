@@ -17,7 +17,7 @@
 <path d="M908 242 C949 242 949 242 990 242" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
 <path d="M1110 284 L1110 406" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
 <path d="M1000 462 C935 462 935 462 870 462" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/><text x="935" y="452" font-size="14" font-weight="700" fill="#c9d3f5" text-anchor="middle">approved</text>
-<path d="M660 462 C623.5 462 623.5 462 587 462" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M660 462 C666 462 666 462 672 462" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
 <path d="M360 462 C315 462 315 462 270 462" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
 <g transform="translate(60 200)">
   <rect x="22" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/>
@@ -75,11 +75,11 @@
 </g>
 <g transform="translate(360 420)">
   <rect x="22" y="-7" width="26" height="9" rx="3" fill="#0070e0"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#0070e0"/>
-  <rect width="217" height="84" rx="14" fill="#ffffff" />
-  <rect width="217" height="8" rx="4" fill="#0070e0"/>
+  <rect width="302" height="84" rx="14" fill="#ffffff" />
+  <rect width="302" height="8" rx="4" fill="#0070e0"/>
   <circle cx="34" cy="48" r="17" fill="#0070e0" fill-opacity="0.16"/>
   <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#0070e0">◷</text>
-  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Wait until paid</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Wait for payouts to land</text>
   <text x="60" y="66" font-size="14" fill="#52525b">item by item</text>
 </g>
 <g transform="translate(60 420)">

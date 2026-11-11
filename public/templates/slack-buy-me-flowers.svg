@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-label="Slack: Buy Me Flowers workflow">
+<title>Slack: Buy Me Flowers workflow</title>
+<defs>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#24305c"/></pattern>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121c3d"/><stop offset="1" stop-color="#0b1229"/></linearGradient>
+  <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8ea0d6"/></marker>
+</defs>
+<g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect width="1280" height="720" fill="url(#dots)"/>
+<rect x="60" y="48" width="206" height="30" rx="15" fill="#e3a21a" fill-opacity="0.16"/>
+<text x="74" y="68" font-size="15" font-weight="700" fill="#f2c45a">AGENTIC COMMERCE</text>
+<text x="60" y="124" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="-0.5">Slack: Buy Me Flowers</text>
+<g transform="translate(1000 54)"><rect width="220" height="32" rx="16" fill="#17784a" fill-opacity="0.22"/><path d="M18 9 l9 3.5 v6 c0 5 -4 8 -9 9.5 c-5 -1.5 -9 -4.5 -9 -9.5 v-6 z" fill="#4cc38a"/><text x="36" y="21.5" font-size="14" font-weight="700" fill="#9be3bf">You approve every action</text></g>
+<path d="M334 252 C362 252 362 252 390 252" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M600 252 C655 252 655 252 710 252" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M820 294 L820 416" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/><text x="832" y="355" font-size="14" font-weight="700" fill="#c9d3f5" text-anchor="start">approved</text>
+<path d="M720 472 C665 472 665 472 610 472" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M400 472 C345 472 345 472 290 472" fill="none" stroke="#8ea0d6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+<g transform="translate(60 210)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#e3a21a"/>
+  <rect width="274" height="84" rx="14" fill="#ffffff" stroke="#e3a21a" stroke-width="3"/>
+  <rect width="274" height="8" rx="4" fill="#e3a21a"/>
+  <circle cx="34" cy="48" r="17" fill="#e3a21a" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#e3a21a">@</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">@Krish buy me flowers</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Slack mention</text>
+</g>
+<g transform="translate(400 210)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#3c8dbc"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#3c8dbc"/>
+  <circle cx="34" cy="48" r="17" fill="#3c8dbc" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#3c8dbc">C3</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Find bouquets</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">Channel3 + AI pick</text>
+</g>
+<g transform="translate(720 210)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#a066b8"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#a066b8"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#a066b8"/>
+  <circle cx="34" cy="48" r="17" fill="#a066b8" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#a066b8">✓</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">You approve</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">bouquet + price</text>
+</g>
+<g transform="translate(720 430)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#d0563f"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#d0563f"/>
+  <rect width="227" height="84" rx="14" fill="#ffffff" />
+  <rect width="227" height="8" rx="4" fill="#d0563f"/>
+  <circle cx="34" cy="48" r="17" fill="#d0563f" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#d0563f">✉</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Link by Slack DM</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">to Krish</text>
+</g>
+<g transform="translate(400 430)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#0070e0"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#0070e0"/>
+  <rect width="200" height="84" rx="14" fill="#ffffff" />
+  <rect width="200" height="8" rx="4" fill="#0070e0"/>
+  <circle cx="34" cy="48" r="17" fill="#0070e0" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#0070e0">PP</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Krish pays</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">PayPal checkout</text>
+</g>
+<g transform="translate(60 430)">
+  <rect x="22" y="-7" width="26" height="9" rx="3" fill="#d0563f"/><rect x="62" y="-7" width="26" height="9" rx="3" fill="#d0563f"/>
+  <rect width="220" height="84" rx="14" fill="#ffffff" />
+  <rect width="220" height="8" rx="4" fill="#d0563f"/>
+  <circle cx="34" cy="48" r="17" fill="#d0563f" fill-opacity="0.16"/>
+  <text x="34" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#d0563f">#</text>
+  <text x="60" y="44" font-size="17" font-weight="700" fill="#09090b">Channel: bought</text>
+  <text x="60" y="66" font-size="14" fill="#52525b">for Neha</text>
+</g>
+<g transform="translate(60 640)"><rect width="80" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#e01e5a"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">Slack</text></g><g transform="translate(150 640)"><rect width="107.6" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#e6edf3"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">Channel3</text></g><g transform="translate(267.6 640)"><rect width="89.19999999999999" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#0070e0"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">PayPal</text></g><g transform="translate(366.8 640)"><rect width="52.4" height="36" rx="18" fill="#1c2750" stroke="#2f3d6e"/><circle cx="18" cy="18" r="6" fill="#7c5cff"/><text x="31" y="23.5" font-size="15" font-weight="600" fill="#dfe5f7">AI</text></g>
+</g>
+</svg>

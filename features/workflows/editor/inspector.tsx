@@ -51,6 +51,44 @@ function CheckoutHelp({ workflow }: { workflow: WorkflowDTO }) {
   );
 }
 
+// The Slack mention trigger listens on the platform's one Slack endpoint, not a per-workflow
+// URL; this is what has to be set once in the Slack app, and where the bot must be invited.
+function SlackMentionHelp({ workflow }: { workflow: WorkflowDTO }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window === "undefined" ? "/api/integrations/slack" : `${window.location.origin}/api/integrations/slack`;
+  return (
+    <div className="rounded-lg bg-sunken p-3 text-xs text-ink-2">
+      <p className="font-semibold text-ink">Slack setup {workflow.enabled ? "(listening)" : "(turn the workflow on to start listening)"}</p>
+      <ol className="mt-2 flex list-decimal flex-col gap-1.5 pl-4">
+        <li>
+          In your Slack app, open <span className="font-semibold text-ink">Event Subscriptions</span>, turn it on and paste this Request URL:
+          <span className="mt-1.5 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate font-mono text-[0.6875rem]">{url}</code>
+            <button
+              className="press shrink-0 rounded px-1.5 py-0.5 hover:bg-surface"
+              onClick={() => {
+                navigator.clipboard.writeText(url).catch(() => null);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+              }}
+            >
+              {copied ? "Copied" : <Copy className="h-3.5 w-3.5" aria-label="Copy URL" />}
+            </button>
+          </span>
+        </li>
+        <li>
+          Under <span className="font-semibold text-ink">Subscribe to bot events</span>, add <code className="font-mono">message.channels</code> (and <code className="font-mono">message.groups</code> for private channels).
+        </li>
+        <li>Reconnect Slack in Connections once, so the app gets permission to read mentions and send DMs.</li>
+        <li>
+          In the Slack channel, type <code className="font-mono">/invite @Money Lego</code> so the app can see messages there.
+        </li>
+      </ol>
+      <p className="mt-2">Then a message like &ldquo;@Krish buy me flowers&rdquo; starts a run. Slack&apos;s retries of the same message never start a second run.</p>
+    </div>
+  );
+}
+
 function WebhookHelp({ workflow, type }: { workflow: WorkflowDTO; type: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window === "undefined" ? workflow.webhookPath : `${window.location.origin}${workflow.webhookPath}`;
@@ -171,6 +209,7 @@ export function Inspector({
           <div className="flex flex-col gap-4">
             {(node.type === "trigger.webhook" || ENDPOINT_HELP[node.type]) && <WebhookHelp workflow={editor.workflow} type={node.type} />}
             {node.type === "trigger.paypal_checkout" && <CheckoutHelp workflow={editor.workflow} />}
+            {node.type === "trigger.slack_mention" && <SlackMentionHelp workflow={editor.workflow} />}
             {node.type === "trigger.paypal_event" && (
               <p className="rounded-lg bg-sunken p-3 text-xs text-ink-2">
                 Events arrive at the server&apos;s verified PayPal webhook and are routed to your workspace when they concern an order, invoice or payout your workflows created. Turn the workflow on to subscribe.

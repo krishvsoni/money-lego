@@ -67,6 +67,8 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   SLACK_CLIENT_ID: z.string().optional(),
   SLACK_CLIENT_SECRET: z.string().optional(),
+  // Verifies Slack's event deliveries (Slack app → Basic Information → Signing Secret).
+  SLACK_SIGNING_SECRET: z.string().regex(/^[0-9a-f]{32}$/i).optional(),
   DISCORD_CLIENT_ID: z.string().regex(/^\d{17,20}$/).optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),
   DISCORD_PUBLIC_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional(),

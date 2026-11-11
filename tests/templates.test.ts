@@ -9,7 +9,7 @@ import { WORKFLOW_SCHEMA_VERSION } from "@/lib/workflow/types";
 import { validateGraph } from "@/lib/workflow/validate";
 import { TEMPLATE_DEFINITIONS } from "@/server/templates/definitions";
 
-const SLUGS = ["paypal-sale-revenue-split", "paypal-invoice-reminders", "paypal-subscription-recovery", "paypal-refund-desk", "paypal-weekly-ops-report", "paypal-ai-product-sourcing"];
+const SLUGS = ["paypal-sale-revenue-split", "paypal-invoice-reminders", "paypal-subscription-recovery", "paypal-refund-desk", "paypal-weekly-ops-report", "paypal-ai-product-sourcing", "slack-buy-me-flowers"];
 
 describe("template definitions", () => {
   it("are exactly the specified templates", () => {

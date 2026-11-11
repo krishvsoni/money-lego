@@ -60,9 +60,15 @@ export const CONNECTIONS: ConnectionInfo[] = [
     provider: "slack",
     label: "Slack",
     action: "Add to Slack",
-    blurb: "Post payout updates to a channel you pick.",
+    blurb: "Post payout updates to a channel you pick, DM a person, and start workflows from a Slack mention.",
     method: "oauth",
-    permissions: [{ scope: "incoming-webhook", label: "Post messages to the one channel you pick" }],
+    permissions: [
+      { scope: "incoming-webhook", label: "Post messages to the one channel you pick" },
+      { scope: "chat:write", label: "Send messages as the Money Lego app, including direct messages" },
+      { scope: "im:write", label: "Open a direct message with one person" },
+      { scope: "channels:history", label: "Read messages in public channels the app is invited to (only matching ones are kept)" },
+      { scope: "groups:history", label: "Read messages in private channels the app is invited to (only matching ones are kept)" },
+    ],
     required: ["incoming-webhook"],
   },
   {

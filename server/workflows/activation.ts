@@ -99,6 +99,16 @@ export async function activateTrigger(doc: WorkflowDoc): Promise<Activation> {
     return { inboundRoute: null, remoteHook: null };
   }
 
+  // Slack delivers every workspace's events to one endpoint; the route is the workspace (team)
+  // of the Slack connection picked on the trigger.
+  if (trigger.type === "trigger.slack_mention") {
+    if (!env().SLACK_SIGNING_SECRET) throw errors.validation("Slack events aren't set up on this server yet (SLACK_SIGNING_SECRET).");
+    const { account } = await call(() => openConnection(doc.ownerId, config.credentialId, "slack_webhook"));
+    const team = account.id.split(":")[0];
+    if (!/^T[A-Z0-9]{6,}$/.test(team)) throw errors.validation("Reconnect Slack in Connections so Money Lego knows which workspace to listen to.");
+    return { inboundRoute: `slack:${team}`, remoteHook: null };
+  }
+
   if (trigger.type === "trigger.shopify") {
     const { account } = await call(() => openConnection(doc.ownerId, config.credentialId, "shopify_store"));
     return { inboundRoute: `shopify:${account.id}`, remoteHook: null };

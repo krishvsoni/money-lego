@@ -4,7 +4,9 @@ import { oauthRequest, scopeList } from "../http";
 import { OAuthError, type Adapter } from "../types";
 
 // Messaging connections. Slack and Discord both hand back a webhook for the one channel
-// the user picks on their consent screen, so posting never needs a broad token.
+// the user picks on their consent screen. Slack's bot token also gets the narrow scopes the
+// Slack mention trigger and Slack DM block need: read messages in channels the bot was
+// invited to, and post as the bot (including a direct message to one person).
 
 const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
 const need = (v: string | undefined): string => {
@@ -13,10 +15,12 @@ const need = (v: string | undefined): string => {
 };
 const discordBasic = () => ({ user: need(env().DISCORD_CLIENT_ID), password: need(env().DISCORD_CLIENT_SECRET) });
 
+export const SLACK_SCOPES = "incoming-webhook,chat:write,im:write,channels:history,groups:history";
+
 export const slack: Adapter = {
   type: "slack_webhook",
   configured: () => Boolean(env().SLACK_CLIENT_ID && env().SLACK_CLIENT_SECRET),
-  authorizeUrl: ({ state, redirectUri }) => `https://slack.com/oauth/v2/authorize?${q({ client_id: need(env().SLACK_CLIENT_ID), scope: "incoming-webhook", redirect_uri: redirectUri, state })}`,
+  authorizeUrl: ({ state, redirectUri }) => `https://slack.com/oauth/v2/authorize?${q({ client_id: need(env().SLACK_CLIENT_ID), scope: SLACK_SCOPES, redirect_uri: redirectUri, state })}`,
   async exchange({ code, redirectUri }) {
     const t = await oauthRequest<{ access_token?: string; scope?: string; team?: { id: string; name: string }; incoming_webhook?: { url: string; channel: string; channel_id: string } }>({
       provider: "Slack",

@@ -134,3 +134,46 @@ export function verifyDiscord(raw: Buffer, headers: Headers, publicKey: string, 
     payload: { interactionId: id, guildId, channelId: text(interaction.channel_id), userId: text(obj(member.user).id), command: data.name, options },
   };
 }
+
+// Slack Events API: X-Slack-Signature = "v0=" + HMAC-SHA256(signing secret, "v0:" + ts + ":" + raw body).
+// Only plain messages from people are read (no bots, edits or joins); anything that doesn't
+// match a workflow is dropped here and never stored.
+export type SlackEvent =
+  | { kind: "challenge"; challenge: string }
+  | { kind: "message"; eventId: string; teamId: string; channelId: string; userId: string; text: string; ts: string; mentions: string[] }
+  | { kind: "other" };
+
+export function verifySlack(raw: Buffer, headers: Headers, signingSecret: string, nowMs: number): SlackEvent {
+  const signature = headers.get("x-slack-signature") ?? "";
+  const timestamp = headers.get("x-slack-request-timestamp") ?? "";
+  if (!/^v0=[0-9a-f]{64}$/i.test(signature) || !/^\d{9,11}$/.test(timestamp)) throw new InboundRejected("Missing Slack signature.");
+  if (Math.abs(nowMs - Number(timestamp) * 1000) > REPLAY_WINDOW_MS) throw new InboundRejected("Slack timestamp outside tolerance.");
+  if (!hmacMatches(signingSecret, Buffer.concat([Buffer.from(`v0:${timestamp}:`), raw]), signature.slice(3), "hex")) throw new InboundRejected("Slack signature mismatch.");
+  const body = parseJsonBody(raw);
+  if (body.type === "url_verification") return { kind: "challenge", challenge: text(body.challenge, 200) ?? "" };
+  if (body.type !== "event_callback") return { kind: "other" };
+  const event = obj(body.event);
+  if ((event.type !== "message" && event.type !== "app_mention") || event.subtype || event.bot_id) return { kind: "other" };
+  const eventId = text(body.event_id, 40) ?? "";
+  const teamId = text(body.team_id, 20) ?? "";
+  const userId = text(event.user, 20) ?? "";
+  const channelId = text(event.channel, 20) ?? "";
+  if (!/^Ev[A-Z0-9]{6,}$/.test(eventId) || !/^T[A-Z0-9]{6,}$/.test(teamId) || !/^[UW][A-Z0-9]{6,}$/.test(userId) || !channelId) return { kind: "other" };
+  const message = text(event.text, 2000) ?? "";
+  const mentions = [...message.matchAll(/<@([UW][A-Z0-9]{6,})(?:\|[^>]*)?>/g)].map((m) => m[1]);
+  return { kind: "message", eventId, teamId, channelId, userId, text: message, ts: text(event.ts, 30) ?? "", mentions };
+}
+
+// Whether one Slack message starts a Slack mention workflow: it must contain the phrase
+// (any case) and tag someone other than its author; with a tagged person set, it must tag
+// exactly that person. Returns the run payload, or null.
+export function matchSlackMention(config: Record<string, unknown>, m: Extract<SlackEvent, { kind: "message" }>): Record<string, unknown> | null {
+  const phrase = String(config.phrase ?? "").trim().toLowerCase();
+  const wanted = String(config.taggedUserId ?? "").trim();
+  const words = m.text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!phrase || !words.toLowerCase().includes(phrase)) return null;
+  const others = m.mentions.filter((id) => id !== m.userId);
+  const tagged = wanted ? (others.includes(wanted) ? wanted : null) : (others[0] ?? null);
+  if (!tagged) return null;
+  return { eventId: m.eventId, teamId: m.teamId, channelId: m.channelId, requesterId: m.userId, taggedUserId: tagged, request: words.slice(0, 200), ts: m.ts };
+}

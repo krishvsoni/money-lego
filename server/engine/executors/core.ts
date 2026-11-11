@@ -96,6 +96,7 @@ export const coreExecutors: Record<string, Executor> = {
   "trigger.stripe": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.shopify": async ({ run }) => ok(run.trigger.payload ?? {}),
   "trigger.discord": async ({ run }) => ok(run.trigger.payload ?? {}),
+  "trigger.slack_mention": async ({ run }) => ok(run.trigger.payload ?? {}),
   "logic.condition": async ({ config, input }: ExecContext): Promise<ExecResult> =>
     ok(input, compare(config.left, config.operator, config.right) ? "true" : "false"),
   "logic.filter": async ({ config, input, log }) => {

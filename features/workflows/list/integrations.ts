@@ -11,7 +11,7 @@ export interface Integration {
 
 // The outside services a workflow talks to (Discord, Slack, HTTP…), named the way people
 // know them rather than by node type.
-const SHORT: Record<string, string> = { "http.request": "HTTP", "notify.discord": "Discord", "notify.slack": "Slack", "notify.telegram": "Telegram", "notify.email": "Email" };
+const SHORT: Record<string, string> = { "http.request": "HTTP", "notify.discord": "Discord", "notify.slack": "Slack", "notify.slack_dm": "Slack DM", "notify.telegram": "Telegram", "notify.email": "Email" };
 
 export function integrationsOf(w: WorkflowDTO): Integration[] {
   const seen = new Map<string, Integration>();

@@ -90,6 +90,29 @@ export const integrationExecutors: Record<string, Executor> = {
     return ok(asObject(input));
   },
 
+  // A direct message from the app's bot to one member. Slack answers 200 with ok:false on
+  // errors, so the body is checked, not just the status.
+  "notify.slack_dm": async ({ config, input, ownerId, signal }) => {
+    const userId = String(config.userId ?? "").trim();
+    if (!/^[UW][A-Z0-9]{6,}$/.test(userId)) throw new NodeError(`"${userId.slice(0, 40)}" isn't a Slack member ID (like U0123ABCD).`);
+    const { secret } = await connection(ownerId, config.credentialId, "slack_webhook");
+    if (!secret.accessToken) throw new NodeError("This Slack connection can't send direct messages. Reconnect Slack in Connections.");
+    const res = await safeFetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8", authorization: `Bearer ${secret.accessToken}` },
+      body: JSON.stringify({ channel: userId, text: String(config.message ?? "").slice(0, 3000) }),
+      timeoutMs: 10_000,
+      signal,
+    });
+    const body = asObject(res.body);
+    if (res.status !== 200 || body.ok !== true) {
+      const reason = String(body.error ?? `HTTP ${res.status}`);
+      const hint = reason === "missing_scope" ? " Reconnect Slack in Connections to grant direct messages." : reason === "user_not_found" || reason === "channel_not_found" ? " Check the member ID." : "";
+      throw new NodeError(`Slack didn't deliver the direct message (${reason}).${hint}`);
+    }
+    return ok({ ...asObject(input), slackDm: { channel: String(body.channel ?? ""), ts: String(body.ts ?? "") } });
+  },
+
   "notify.slack": async ({ config, input, ownerId, signal }) => {
     const url = await webhookOf(ownerId, config.credentialId, "slack_webhook");
     await post(url, { text: String(config.message ?? "").slice(0, 3000) }, signal, "Slack");

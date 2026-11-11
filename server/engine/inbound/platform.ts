@@ -7,7 +7,7 @@ import { errors } from "../../errors";
 import { log } from "../../log";
 import { advanceRun } from "../advance";
 import { createRun } from "../runs";
-import { verifyDiscord, verifyShopify, verifyStripe } from "./providers";
+import { matchSlackMention, verifyDiscord, verifyShopify, verifySlack, verifyStripe } from "./providers";
 import { InboundRejected } from "./types";
 
 // Platform endpoints: one per provider for every user. Each event is verified with the
@@ -104,4 +104,22 @@ export async function receiveDiscord(raw: Buffer, headers: Headers): Promise<Pla
   if (!allowed.length) return { status: 200, body: ephemeral("You don't have the role needed to start a payout.") };
   for (const w of allowed) await start(w, "trigger.discord", `discord:${interaction.id}`, interaction.payload, 600);
   return { status: 200, body: ephemeral("Request received. Nothing is paid until an operator reviews and approves it.") };
+}
+
+// Slack expects an answer within three seconds and retries otherwise, so runs get a short
+// head start and the event id keeps a retry from starting a second run. Messages that match
+// no workflow are dropped without being stored.
+export async function receiveSlack(raw: Buffer, headers: Headers): Promise<PlatformResult> {
+  const secret = env().SLACK_SIGNING_SECRET;
+  if (!secret) throw errors.notConfigured("Slack");
+  const event = guard(() => verifySlack(raw, headers, secret, Date.now()));
+  if (event.kind === "challenge") return { status: 200, body: { challenge: event.challenge } };
+  if (event.kind !== "message") return { status: 200, body: { ignored: true } };
+  let started = 0;
+  for (const w of await routed(`slack:${event.teamId}`)) {
+    const trigger = w.graph.nodes.find((n) => n.type === "trigger.slack_mention");
+    const payload = trigger ? matchSlackMention(trigger.config, event) : null;
+    if (payload && (await start(w, "trigger.slack_mention", `slack:${event.eventId}`, payload, 600))) started++;
+  }
+  return { status: 200, body: { ok: true, started } };
 }

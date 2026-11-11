@@ -226,6 +226,21 @@ const THUMBS: Thumb[] = [
     edges: [["r", "c3"], ["c3", "ai"], ["ai", "ok"], ["ok", "co", "approved"], ["co", "paid"]],
     badges: [B.channel3, B.paypal, B.ai, B.slack],
   },
+  {
+    slug: "slack-buy-me-flowers",
+    title: "Slack: Buy Me Flowers",
+    category: "Agentic Commerce",
+    cards: [
+      { id: "m", x: 60, y: 210, label: "@Krish buy me flowers", sub: "Slack mention", kind: "trigger", mono: "@", w: 260 },
+      { id: "c3", x: 400, y: 210, label: "Find bouquets", sub: "Channel3 + AI pick", kind: "data", mono: "C3" },
+      { id: "ok", x: 720, y: 210, label: "You approve", sub: "bouquet + price", kind: "logic", mono: "✓" },
+      { id: "dm", x: 720, y: 430, label: "Link by Slack DM", sub: "to Krish", kind: "notify", mono: "✉" },
+      { id: "pay", x: 400, y: 430, label: "Krish pays", sub: "PayPal checkout", kind: "money", mono: "PP" },
+      { id: "ch", x: 60, y: 430, label: "Channel: bought", sub: "for Neha", kind: "notify", mono: "#", w: 220 },
+    ],
+    edges: [["m", "c3"], ["c3", "ok"], ["ok", "dm", "approved"], ["dm", "pay"], ["pay", "ch"]],
+    badges: [B.slack, B.channel3, B.paypal, B.ai],
+  },
 ];
 
 const FALLBACK: Thumb = {
