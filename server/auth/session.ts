@@ -11,6 +11,7 @@ import { errors } from "../errors";
 
 const scrypt = promisify(nodeScrypt);
 const LOCAL_SESSION_COOKIE = "money_lego_session";
+const SESSION_TTL_MS = 72 * 60 * 60 * 1000;
 
 export interface SessionUser {
   userId: ObjectId;
@@ -57,7 +58,7 @@ function tokenDigest(token: string): string {
 async function setLocalSession(userId: ObjectId): Promise<void> {
   const token = randomUUID() + randomBytes(24).toString("base64url");
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + env().SESSION_TTL_HOURS * 60 * 60 * 1000);
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
   const { authSessions } = await collections();
   await authSessions.insertOne({ _id: tokenDigest(token), userId, createdAt: now, expiresAt });
   (await cookies()).set(LOCAL_SESSION_COOKIE, token, {

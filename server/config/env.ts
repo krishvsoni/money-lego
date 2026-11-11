@@ -21,7 +21,6 @@ const schema = z.object({
   APP_URL: z.url().default("http://localhost:3000"),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   MONGODB_DB: z.string().min(1).default("money_lego"),
-  SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 30).default(72),
   CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters").optional(),
   CLIENT_IP_HEADER: z.string().regex(/^[a-z0-9-]+$/).optional(),
   CREDENTIALS_KEY: z
