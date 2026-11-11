@@ -13,6 +13,7 @@ const INDEXES: Record<string, IndexDescription[]> = {
     // Sharing looks members up by address, whatever its capitalisation.
     { key: { email: 1 }, name: "email_ci", collation: EMAIL_COLLATION },
   ],
+  [COLLECTIONS.authSessions]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
   // TTL indexes: Mongo's background monitor deletes expired rows, so no instance runs a cleanup job.
   [COLLECTIONS.rateLimits]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 0 }],
   [COLLECTIONS.locks]: [{ key: { expiresAt: 1 }, name: "ttl", expireAfterSeconds: 300 }],

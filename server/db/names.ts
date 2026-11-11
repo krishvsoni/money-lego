@@ -5,6 +5,7 @@ export const COLLECTIONS = {
   // Accounts live in "members". Older collections ("users", "accounts") from the wallet
   // era are left untouched; nothing reads or deletes them.
   users: "members",
+  authSessions: "auth_sessions",
   rateLimits: "rate_limits",
   locks: "locks",
   workflows: "workflows",

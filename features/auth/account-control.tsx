@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 
 // Signed in: Clerk's user menu (plus a builder link on marketing pages). Signed out: a quiet
@@ -8,7 +9,26 @@ import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 // an account, so a first-time Google sign-in never dead-ends.
 export function AccountControl({ builderLink = false }: { builderLink?: boolean }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const [localUser, setLocalUser] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => setLocalUser(result.user?.kind === "local" ? result.user.name : null))
+      .catch(() => undefined);
+  }, []);
   if (!isLoaded) return <span className="h-9 w-[176px] animate-pulse rounded-full bg-sunken" aria-hidden />;
+
+  if (localUser && !isSignedIn) {
+    return (
+      <div className="flex items-center gap-3">
+        {builderLink && <Link href="/workflows" className="press inline-flex h-9 items-center rounded-full bg-ink px-4 text-[14px] font-medium text-white">Open builder</Link>}
+        <span className="max-w-32 truncate text-sm text-ink-2">{localUser}</span>
+        <button type="button" className="text-sm text-ink-2 hover:text-ink" onClick={async () => { await fetch("/api/auth/session", { method: "DELETE" }); window.location.reload(); }}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
 
   if (isSignedIn) {
     // Clerk's avatar at the same 36px as the other buttons.

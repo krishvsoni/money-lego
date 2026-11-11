@@ -7,20 +7,29 @@ import type { PaypalResourceKind } from "@/lib/paypal/types";
 // Document shapes as stored. Money amounts are integer minor units (cents) stored as
 // strings next to an ISO currency code, so no stored value ever passes through a float.
 
-// A person signs in with Clerk. identityKey = "clerk:<clerk user id>" is the unique lookup;
+// A person signs in with Clerk or the first-party fallback. identityKey is the unique lookup;
 // everything they own references this document's _id.
 export interface UserDoc {
   _id: ObjectId;
   identityKey: string;
-  kind: "clerk";
+  kind: "clerk" | "local";
   name: string;
   // Shown to the owner only. Never sent to the AI model.
   email: string | null;
   // Whether Clerk had verified that address at sign-up. Only a verified address can receive
   // shared workflows; records from before this field existed count as verified.
   emailVerified?: boolean;
+  // Present only for first-party fallback accounts. Passwords are never stored plaintext.
+  passwordHash?: string;
   createdAt: Date;
   lastSignedInAt: Date;
+}
+
+export interface AuthSessionDoc {
+  _id: string;
+  userId: ObjectId;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 export interface RateLimitDoc {
