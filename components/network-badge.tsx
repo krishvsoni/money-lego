@@ -10,4 +10,5 @@ export function NetworkBadge() {
       {live ? "Live" : "Sandbox"}
     </span>
   );
+  
 }
