@@ -41,7 +41,7 @@ export async function slackUserIdByEmail(token: string, email: string, signal?: 
   }
   const reason = String(body.error ?? `HTTP ${res.status}`);
   if (reason === "users_not_found") throw new SlackLookupError(reason, `No one in this Slack workspace uses ${email}. Use the email they sign in to Slack with, or their member ID.`);
-  if (reason === "missing_scope") throw new SlackLookupError(reason, "This Slack connection can't look people up by email yet. Reconnect Slack in Connections, or use a member ID.");
+  if (reason === "missing_scope") throw new SlackLookupError(reason, "This Slack connection was made before Money Lego could find people by email. Open Connections, press Reconnect on your Slack connection and allow it, then run this again. Until then, use a member ID or {{ trigger.taggedUserId }}.");
   throw new SlackLookupError(reason, `Slack couldn't look up ${email} (${reason}).`);
 }
 

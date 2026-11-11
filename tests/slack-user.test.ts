@@ -38,7 +38,7 @@ describe("resolveSlackUser", () => {
     safeFetch.mockResolvedValue({ status: 200, body: { ok: false, error: "users_not_found" } });
     await expect(resolveSlackUser("xoxb-token-cccccccccccc", "nobody@company.com")).rejects.toThrow(/No one in this Slack workspace uses nobody@company.com/);
     safeFetch.mockResolvedValue({ status: 200, body: { ok: false, error: "missing_scope" } });
-    await expect(resolveSlackUser("xoxb-token-dddddddddddd", "neha@company.com")).rejects.toThrow(/Reconnect Slack/);
+    await expect(resolveSlackUser("xoxb-token-dddddddddddd", "neha@company.com")).rejects.toThrow(/press Reconnect on your Slack connection/);
   });
 
   it("refuses text that is neither an email nor a member ID", async () => {

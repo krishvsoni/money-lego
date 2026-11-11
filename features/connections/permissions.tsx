@@ -16,7 +16,7 @@ export function PermissionList({ type, granted }: { type: string; granted: strin
             {has ? <CheckIcon size={15} weight="bold" className="mt-0.5 shrink-0 text-success" aria-label="Granted" /> : <WarningIcon size={15} weight="fill" className="mt-0.5 shrink-0 text-attention" aria-label="Not granted" />}
             <span className={has ? "text-ink-2" : "text-attention"}>
               {p.label}
-              {!has && (required ? " — not granted, reconnect and allow it" : " — not granted")}
+              {!has && (required ? " — not granted, reconnect and allow it" : " — not granted yet; press Reconnect to add it")}
             </span>
           </li>
         );
