@@ -181,6 +181,8 @@ How AG Studio is wired in:
 - **Ask it in words.** AG Studio's own AI agents can build pages from a sentence, with starters such as *"Build a payouts page: total paid out, payout problems, paid out by workflow, and a ledger of payout items"*, *"Show captured revenue by week and by workflow"* and *"Add a page for workflow run health"*. Their model calls go through Money Lego's server (`/api/studio/llm`), so no AI key reaches the browser, and the agents can only change the dashboard, never PayPal or a workflow.
 - **Every number explained.** Above the dashboard, a summary row shows Captured, Paid out, Refunded and Net kept; each opens to the PayPal ids, workflows and runs that add up to it.
 
+<img src="docs/assets/partners/bryntum.png" width="48" alt="Bryntum" align="right" />
+
 How the Bryntum timeline is wired in:
 
 - **What it shows.** Milestones come from the owner's PayPal objects, verified PayPal webhooks and workflow runs. A webhook PayPal sends twice still shows once, and colour shows the state: completed, pending, failed, refunded, disputed or payout problem.
@@ -237,7 +239,7 @@ Runs started with the editor's **Run** button use the trigger's test data; their
 | <img src="docs/assets/partners/paypal.png" width="36" alt="PayPal" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
 | <img src="docs/assets/partners/channel3.png" width="36" alt="Channel3" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
 | <img src="docs/assets/partners/ag-grid.png" width="36" alt="AG Grid" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
-| | **Bryntum** | The Payments timeline: every payment's milestones on one scheduler, filterable and read-only (Community edition, no licence key) |
+| <img src="docs/assets/partners/bryntum.png" width="36" alt="Bryntum" /> | **Bryntum** | The Payments timeline: every payment's milestones on one scheduler, filterable and read-only (Community edition, no licence key) |
 | <img src="docs/assets/partners/slack.png" width="36" alt="Slack" /> | **Slack** | Notifications with member tagging, per workflow branch |
 | <img src="docs/assets/partners/openrouter.png" width="36" alt="OpenRouter" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
 
