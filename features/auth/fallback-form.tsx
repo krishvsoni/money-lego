@@ -36,8 +36,8 @@ export function FallbackAuthForm({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={submit} className="mt-8 w-full max-w-[420px] rounded-2xl border border-line bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-ink">Email {mode === "sign-up" ? "account" : "sign-in"}</p>
-      <p className="mt-1 text-xs text-ink-2">Use this if the hosted sign-in is temporarily unavailable.</p>
+      <p className="text-sm font-medium text-ink">{mode === "sign-up" ? "Create your account" : "Sign in with email"}</p>
+      <p className="mt-1 text-xs text-ink-2">Use your Money Lego account credentials.</p>
       {mode === "sign-up" && (
         <input required value={name} onChange={(event) => setName(event.target.value)} placeholder="Name" autoComplete="name" className="mt-4 h-10 w-full rounded-lg border border-line px-3 text-sm" />
       )}
