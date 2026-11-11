@@ -14,6 +14,7 @@ import { useResource } from "@/lib/use-resource";
 import type { PaymentsOverview } from "@/server/paypal/status";
 import { StudioDashboard } from "@/features/payments/studio-dashboard";
 import { PaymentTimeline } from "@/features/payments/timeline/payment-timeline";
+import { RecentActivity } from "@/features/payments/timeline/recent-activity";
 
 type Tab = "dashboard" | "timeline" | "objects" | "runs";
 const TAB_LABEL: Record<Tab, string> = { dashboard: "Dashboard", timeline: "Timeline", objects: "PayPal objects", runs: "Workflow runs" };
@@ -242,6 +243,7 @@ export function View() {
         </div>
       </div>
 
+      {tab === "dashboard" && <RecentActivity onOpenTimeline={() => setTab("timeline")} />}
       {tab === "dashboard" && data && <StudioDashboard data={data} />}
       {tab === "timeline" && (
         <PaymentTimeline
