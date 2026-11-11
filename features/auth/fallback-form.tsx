@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -47,6 +48,12 @@ export function FallbackAuthForm({ mode }: { mode: Mode }) {
       <button disabled={busy} type="submit" className="press mt-4 h-10 w-full rounded-full bg-ink px-4 text-sm font-medium text-white disabled:opacity-50">
         {busy ? "Working…" : "Continue"}
       </button>
+      <p className="mt-4 text-center text-xs text-ink-2">
+        {mode === "sign-up" ? "Already have an account? " : "New to Money Lego? "}
+        <Link href={mode === "sign-up" ? "/sign-in" : "/sign-up"} className="font-medium text-ink underline underline-offset-2">
+          {mode === "sign-up" ? "Sign in" : "Create an account"}
+        </Link>
+      </p>
     </form>
   );
 }
