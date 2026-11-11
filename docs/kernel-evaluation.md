@@ -34,7 +34,7 @@ Money Lego moves money through PayPal's APIs, which a browser must not replace. 
   - Every run gets a fresh browser; there are no shared profiles or persisted cookies in v1.
   - Browsers are isolated from each other at the hypervisor level (Kernel runs each one in its own unikernel VM).
   - Tag browsers with the hashed owner tag we already use for AI calls (`ownerTag`), never a raw id or email.
-- **SSRF.** The browser runs on Kernel's network, not ours, so it can't reach our internal services. That's the threat `safe-fetch.ts` guards against. We still require `https://`, support an "allowed host" like the HTTP step does, and fail if the page redirects to another host.
+- **SSRF.** The browser runs on Kernel's network, not ours, so it can't reach our internal services. That's the threat `safe-fetch.ts` guards against. We still require `https://` (no credentials in the URL), support an "allowed host" like the HTTP step does, and fail if the page redirects to another host or downgrades to `http://`. These rules live in `lib/browser/url-policy.ts` and the browser lifecycle in `lib/browser/kernel-check.ts` (`checkPage`); the PoC and the eventual executor both call `checkPage`, so neither relies on a printed label. Hosts are compared after normalizing (lowercase, punycode, no trailing dot), and a subdomain counts as another host.
 - **Untrusted page content.** Pages can carry prompt injection. The step returns only structured fields (title, price, currency, availability, final URL), with truncated text, before anything reaches an AI step. AI already can't move money.
 - **Replay URLs are sensitive** (Kernel says so). They're shown only to the workflow owner and never sent to AI or to viewers of shared workflows.
 - **Stored logins (Kernel Managed Auth / Vaults)** would mean holding users' third-party credentials. Out of scope until there's a concrete use case and a per-tenant vault design.
@@ -75,10 +75,10 @@ Headless browsers cost $0.0000166667/s (about $0.06/hour), billed only while act
 npm run kernel:poc -- https://<a product page> [allowed-host]
 ```
 
-It creates a headless stealth browser (60 s auto-delete), loads the page, reads the title and any schema.org `Product` offers (price, currency, availability), checks the final host, prints timings and always deletes the browser.
+It creates a headless stealth browser (60 s auto-delete), loads the page, reads the title and any schema.org `Product` offers (price, currency, availability), checks the final host, prints timings and always deletes the browser. A cross-host redirect exits non-zero and prints none of the page's data.
 
 **Verified so far:**
-- The URL checks work: it refuses `http://` and wrong hosts.
+- The URL checks work: it refuses `http://` and wrong hosts, and a cross-host redirect fails the run (`tests/browser-check.test.ts`, against a fake Kernel).
 - It reaches Kernel's real API: an invalid key gets Kernel's own `401`.
 
 **Not yet verified:** a full run with a real key. Next step: add the project key to `.env` and run it against two or three real product pages, including one that blocks bots.

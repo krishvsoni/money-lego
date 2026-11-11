@@ -63,6 +63,40 @@ export interface PaymentTimeline {
   to: string;
   workflows: Array<{ id: string; name: string }>;
   milestones: Milestone[];
+  // Set when a source had more records in the period than TIMELINE_LIMITS allows. The
+  // newest records are kept, so the timeline is complete only from `completeSince` on.
+  truncation: TimelineTruncation | null;
+}
+
+// ---------- the product limit on how much one timeline reads ----------
+//
+// A timeline is one bounded read per source, newest first. A merchant with more records in
+// the chosen period than these limits gets the newest ones and an explicit truncation
+// notice, never a silently shorter history. docs/payment-timeline.md documents the limits.
+export const TIMELINE_LIMITS = { resources: 1000, events: 1000, runs: 300 } as const;
+export type TimelineSource = keyof typeof TIMELINE_LIMITS;
+export type TimelineLimits = Record<TimelineSource, number>;
+
+export interface TimelineTruncation {
+  // The sources that hit their limit, with the limit each one hit.
+  sources: Array<{ source: TimelineSource; limit: number }>;
+  // The oldest moment every source is complete from; earlier activity may be missing.
+  completeSince: string;
+}
+
+// Takes the first `limit` of rows queried newest-first with `limit + 1`, and says whether
+// there were more.
+export function takeBounded<T>(rows: T[], limit: number): { rows: T[]; truncated: boolean } {
+  return rows.length > limit ? { rows: rows.slice(0, limit), truncated: true } : { rows, truncated: false };
+}
+
+// Combines what each source's bounded read found into one notice, or null when complete.
+// `oldestKept` is the time of the oldest record a truncated source still returned.
+export function truncationOf(reads: Array<{ source: TimelineSource; limit: number; truncated: boolean; oldestKept: Date | null }>): TimelineTruncation | null {
+  const hit = reads.filter((r) => r.truncated);
+  if (hit.length === 0) return null;
+  const since = Math.max(...hit.map((r) => r.oldestKept?.getTime() ?? Date.now()));
+  return { sources: hit.map(({ source, limit }) => ({ source, limit })), completeSince: new Date(since).toISOString() };
 }
 
 // ---------- inputs: the stored records, reduced to the fields the timeline reads ----------
@@ -205,9 +239,10 @@ interface BuildInput {
   resources: ResourceInput[];
   events: EventInput[];
   runs: RunInput[];
+  truncation?: TimelineTruncation | null;
 }
 
-export function buildTimeline({ from, to, workflows, resources, events, runs }: BuildInput): PaymentTimeline {
+export function buildTimeline({ from, to, workflows, resources, events, runs, truncation = null }: BuildInput): PaymentTimeline {
   const workflowName = new Map(workflows.map((w) => [w.id, w.name]));
   const lifecycles = new LifecycleIndex(resources, runs);
   const milestones = new Map<string, Milestone>();
@@ -296,7 +331,7 @@ export function buildTimeline({ from, to, workflows, resources, events, runs }: 
     return at >= from.getTime() && at <= to.getTime();
   });
   inRange.sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
-  return { from: from.toISOString(), to: to.toISOString(), workflows, milestones: inRange };
+  return { from: from.toISOString(), to: to.toISOString(), workflows, milestones: inRange, truncation };
 }
 
 const withOpaqueIds = (m: Milestone): Milestone => ({ ...m, id: `${m.kind}-${opaqueId(m.id)}`, lifecycleId: opaqueId(m.lifecycleId) });

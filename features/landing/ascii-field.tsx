@@ -97,8 +97,8 @@ export function AsciiField() {
           ctx.fillStyle = "rgba(82, 82, 91, 1)";
           ctx.fillText(text, x, y);
         };
-        label("treasury", SOURCE.x * width + 28, SOURCE.y * height + 2);
-        HOPS.forEach((h, i) => label(`hop ${i + 1}`, h.x * width + 28, h.y * height + 2));
+        label("PayPal checkout", SOURCE.x * width + 28, SOURCE.y * height + 2);
+        HOPS.forEach((h) => label(h.label, h.x * width + 28, h.y * height + 2));
         ctx.textAlign = "right";
         RECIPIENTS.forEach((r) => label(r.label, r.at.x * width - 32, r.at.y * height + 2));
       }

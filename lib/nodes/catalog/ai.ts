@@ -12,7 +12,7 @@ export const aiNodes: NodeDefinition[] = [
     category: "ai",
     description:
       "Choose the one product from the previous search that best matches what was asked, and say why. The pick must be one of the products the search returned (checked by id); price, brand and availability come from the search, never from the AI.",
-    icon: "Sparkles",
+    icon: "ScanSearch",
     fields: [
       { key: "request", label: "What the buyer wants", kind: "text", required: true, expression: true, maxLength: 300, placeholder: "{{ trigger.request }}" },
       { key: "criteria", label: "Prefer", kind: "textarea", maxLength: 500, placeholder: "Best rated within budget, in stock, from a well-known store." },
@@ -30,7 +30,7 @@ export const aiNodes: NodeDefinition[] = [
     category: "ai",
     description:
       "Combine deterministic checks (totals reconcile, currency matches, recipients are valid, amount within your limit) with an AI read of the data for anything unusual. The result is shown to the approver. High risk can take its own branch.",
-    icon: "Sparkles",
+    icon: "ShieldAlert",
     fields: [
       { key: "maxAmount", label: "Flag above", kind: "text", placeholder: "500.00", help: "Optional. Amounts above this are flagged as high risk." },
       { key: "guidance", label: "What to watch for", kind: "textarea", maxLength: 600, placeholder: "New recipients, amounts unusual for this client, weekend payments…" },
@@ -51,7 +51,7 @@ export const aiNodes: NodeDefinition[] = [
     category: "ai",
     description:
       "Draft text from the run's data: one message, or one per item of a list (for example a polite reminder per overdue invoice). Drafts are plain text for a human to review; facts such as amounts and dates come only from the data.",
-    icon: "Sparkles",
+    icon: "PenLine",
     fields: [
       { key: "instructions", label: "What to write", kind: "textarea", required: true, maxLength: 1000, placeholder: "A short, friendly reminder that mentions the invoice number, amount due and due date." },
       { key: "data", label: "Data", kind: "text", expression: true, placeholder: "{{ input.invoices }}", help: "The facts to write from. A list produces one draft per item (max 10)." },
