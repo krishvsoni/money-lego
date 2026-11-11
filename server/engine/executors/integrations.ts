@@ -2,7 +2,7 @@ import "server-only";
 import type { ObjectId } from "mongodb";
 import { isAppError } from "../../errors";
 import { searchProducts } from "../../integrations/channel3";
-import { resolveSlackUser, sendSlackDm, SlackLookupError } from "../../integrations/slack";
+import { resolveSlackUser, sendSlackDm, SlackLookupError, slackTarget } from "../../integrations/slack";
 import { ZAPIER_HOOK } from "../../workflows/credential-schema";
 import { readCredentialSecret } from "../../workflows/credentials";
 import { safeFetch } from "../safe-fetch";
@@ -25,6 +25,9 @@ async function webhookOf(ownerId: ObjectId, id: unknown, type: "discord_webhook"
   if (!secret.webhookUrl) throw new NodeError("This channel connection is incomplete. Reconnect it in Connections.");
   return secret.webhookUrl;
 }
+
+// The people in a Slack mention's data: who asked, and who was tagged.
+const SLACK_PEOPLE = ["requesterId", "taggedUserId"] as const;
 
 export const integrationExecutors: Record<string, Executor> = {
   // Zapier Catch Hook: the URL is the user's secret, and only hooks.zapier.com is accepted.
@@ -89,6 +92,25 @@ export const integrationExecutors: Record<string, Executor> = {
     const url = await webhookOf(ownerId, config.credentialId, "discord_webhook");
     await post(url, { content: String(config.message ?? "").slice(0, 2000), allowed_mentions: { parse: [] } }, signal, "Discord");
     return ok(asObject(input));
+  },
+
+  // A real Slack mention always carries member IDs. Test data may name people by their Slack
+  // email instead; those are looked up here (users:read.email), so every later step, such as
+  // a "<@{{ trigger.taggedUserId }}>" in a channel message, tags a real person by name.
+  "trigger.slack_mention": async ({ run, config, ownerId, signal, log }) => {
+    const payload = { ...asObject(run.trigger.payload ?? {}) };
+    const byEmail = SLACK_PEOPLE.filter((key) => slackTarget(payload[key]).kind === "email");
+    if (!byEmail.length) return ok(payload);
+    const { secret } = await connection(ownerId, config.credentialId, "slack_webhook");
+    if (!secret.accessToken) throw new NodeError("This Slack connection can't look people up by email. Reconnect Slack in Connections.");
+    try {
+      for (const key of byEmail) payload[key] = await resolveSlackUser(secret.accessToken, payload[key], signal);
+    } catch (error) {
+      if (error instanceof SlackLookupError) throw new NodeError(error.message);
+      throw error;
+    }
+    log(`Looked up ${byEmail.join(" and ")} by Slack email.`);
+    return ok(payload);
   },
 
   // A direct message from the app's bot to one person, given as an email or a member ID.
