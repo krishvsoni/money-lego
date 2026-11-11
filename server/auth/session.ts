@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { auth, currentUser as clerkUser } from "@clerk/nextjs/server";
 import { ObjectId } from "mongodb";
+import { clerkEnabled } from "@/lib/auth-provider";
 import { collections, isDuplicateKeyError } from "../db/collections";
 import type { UserDoc } from "../db/types";
 import { env } from "../config/env";
@@ -178,7 +179,8 @@ export async function signInLocal(emailInput: string, password: string): Promise
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
-  const clerk = await clerkBackedUser();
+  // Clerk's auth() throws when its middleware didn't run, so it is only asked when Clerk is on.
+  const clerk = clerkEnabled ? await clerkBackedUser() : null;
   if (clerk) return sessionOf(clerk);
   const local = await localUser();
   return local ? sessionOf(local) : null;

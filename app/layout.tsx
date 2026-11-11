@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { clerkEnabled } from "@/lib/auth-provider";
 import "./globals.css";
 
 const geist = Geist({
@@ -40,9 +41,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
-        <ClerkProvider>
+        {/* Without Clerk its script never loads, so its sign-in screens can't appear. */}
+        {clerkEnabled ? (
+          <ClerkProvider>
+            <Providers>{children}</Providers>
+          </ClerkProvider>
+        ) : (
           <Providers>{children}</Providers>
-        </ClerkProvider>
+        )}
       </body>
     </html>
   );

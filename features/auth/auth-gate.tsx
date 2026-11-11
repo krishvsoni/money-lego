@@ -1,30 +1,33 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/auth-provider";
 import { AccountControl } from "./account-control";
+import { useLocalSession } from "./use-local-session";
 
-// Everything behind the gate belongs to the signed-in account.
+// Everything behind the gate belongs to the signed-in account. Clerk's hooks only run when
+// Clerk is this deployment's sign-in system (they throw outside <ClerkProvider>).
 export function AuthGate({ children }: { children: ReactNode }) {
+  return clerkEnabled ? <ClerkGate>{children}</ClerkGate> : <LocalGate>{children}</LocalGate>;
+}
+
+function ClerkGate({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
-  const [localSignedIn, setLocalSignedIn] = useState(false);
+  const local = useLocalSession();
+  if (!isLoaded || (!isSignedIn && !local.loaded)) return <Loading />;
+  return isSignedIn || local.name ? <>{children}</> : <SignInPrompt />;
+}
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result) => {
-        if (active) setLocalSignedIn(result.user?.kind === "local");
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
+function LocalGate({ children }: { children: ReactNode }) {
+  const local = useLocalSession();
+  if (!local.loaded) return <Loading />;
+  return local.name ? <>{children}</> : <SignInPrompt />;
+}
 
-  if (!isLoaded) return <div className="h-40 animate-pulse rounded-xl bg-sunken" aria-label="Loading your account" />;
-  if (isSignedIn || localSignedIn) return <>{children}</>;
+const Loading = () => <div className="h-40 animate-pulse rounded-xl bg-sunken" aria-label="Loading your account" />;
 
+function SignInPrompt() {
   return (
     <section className="reveal mx-auto max-w-[520px] py-16">
       <h1 className="headline text-3xl">Sign in to Money Lego</h1>
