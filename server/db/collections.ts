@@ -3,6 +3,7 @@ import type { Collection, Db } from "mongodb";
 import { getDb } from "./client";
 import type {
   CredentialDoc,
+  AuthSessionDoc,
   LockDoc,
   NodeRunDoc,
   OAuthStateDoc,
@@ -26,6 +27,7 @@ export { COLLECTIONS, EMAIL_COLLATION, isDuplicateKeyError } from "./names";
 export interface Collections {
   db: Db;
   users: Collection<UserDoc>;
+  authSessions: Collection<AuthSessionDoc>;
   rateLimits: Collection<RateLimitDoc>;
   locks: Collection<LockDoc>;
   workflows: Collection<WorkflowDoc>;
@@ -46,6 +48,7 @@ export function collectionsOf(db: Db): Collections {
   return {
     db,
     users: db.collection<UserDoc>(COLLECTIONS.users),
+    authSessions: db.collection<AuthSessionDoc>(COLLECTIONS.authSessions),
     rateLimits: db.collection<RateLimitDoc>(COLLECTIONS.rateLimits),
     locks: db.collection<LockDoc>(COLLECTIONS.locks),
     workflows: db.collection<WorkflowDoc>(COLLECTIONS.workflows),
