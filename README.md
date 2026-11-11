@@ -228,8 +228,6 @@ Runs started with the editor's **Run** button use the trigger's test data and ar
 | <img src="docs/assets/partners/paypal.png" width="36" alt="PayPal" /> | **PayPal** | The payment backbone: Checkout, Payouts, Invoicing, Refunds, Subscriptions, Transaction Search, Webhooks and the Agent Toolkit |
 | <img src="docs/assets/partners/channel3.png" width="36" alt="Channel3" /> | **Channel3** | Real product data for agentic commerce: search, product details, live price and stock |
 | <img src="docs/assets/partners/ag-grid.png" width="36" alt="AG Grid" /> | **AG Grid · AG Studio** | The Payments dashboard: KPI tiles, charts, the ledger and cross-filtering, customisable by drag and drop or by AG Studio's AI agents |
-| <img src="docs/assets/partners/elastic.png" width="36" alt="Elastic" /> | **Elastic** | Full-text run search, and past failures that help "Explain this run" spot recurring problems |
-| <img src="docs/assets/partners/zapier.png" width="36" alt="Zapier" /> | **Zapier** | A block that sends run data to a Zapier Catch Hook, reaching 8,000+ apps |
 | <img src="docs/assets/partners/slack.png" width="36" alt="Slack" /> | **Slack** | Notifications with member tagging, per workflow branch |
 | <img src="docs/assets/partners/openrouter.png" width="36" alt="OpenRouter" /> | **OpenAI · OpenRouter** | OpenAI runs Sage, the assistant and the dashboard agents; OpenRouter runs small AI steps; each falls back to the other |
 
