@@ -16,6 +16,7 @@
     "keys:rotate": "tsx --env-file-if-exists=.env --conditions=react-server scripts/rotate-credential-keys.ts",
     "telegram:webhook": "tsx --env-file-if-exists=.env --conditions=react-server scripts/telegram-webhook.ts",
     "paypal:check": "tsx --env-file-if-exists=.env --conditions=react-server scripts/paypal-check.ts",
+    "kernel:poc": "tsx --env-file-if-exists=.env scripts/kernel-poc.ts",
     "paypal:webhook": "tsx --env-file-if-exists=.env --conditions=react-server scripts/paypal-webhook.ts",
     "db:cleanup-wallet": "tsx --env-file-if-exists=.env scripts/cleanup-wallet-era.ts"
   },
