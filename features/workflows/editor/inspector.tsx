@@ -79,7 +79,7 @@ function SlackMentionHelp({ workflow }: { workflow: WorkflowDTO }) {
         <li>
           Under <span className="font-semibold text-ink">Subscribe to bot events</span>, add <code className="font-mono">message.channels</code> (and <code className="font-mono">message.groups</code> for private channels).
         </li>
-        <li>Reconnect Slack in Connections once, so the app gets permission to read mentions and send DMs.</li>
+        <li>Reconnect Slack in Connections once, so the app gets permission to read mentions, send DMs and find people by email.</li>
         <li>
           In the Slack channel, type <code className="font-mono">/invite @Money Lego</code> so the app can see messages there.
         </li>

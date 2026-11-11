@@ -68,6 +68,7 @@ export const CONNECTIONS: ConnectionInfo[] = [
       { scope: "im:write", label: "Open a direct message with one person" },
       { scope: "channels:history", label: "Read messages in public channels the app is invited to (only matching ones are kept)" },
       { scope: "groups:history", label: "Read messages in private channels the app is invited to (only matching ones are kept)" },
+      { scope: "users:read.email", label: "Find a person by their email, so you can type an email instead of a member ID" },
     ],
     required: ["incoming-webhook"],
   },

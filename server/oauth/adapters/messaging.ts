@@ -15,7 +15,7 @@ const need = (v: string | undefined): string => {
 };
 const discordBasic = () => ({ user: need(env().DISCORD_CLIENT_ID), password: need(env().DISCORD_CLIENT_SECRET) });
 
-export const SLACK_SCOPES = "incoming-webhook,chat:write,im:write,channels:history,groups:history";
+export const SLACK_SCOPES = "incoming-webhook,chat:write,im:write,channels:history,groups:history,users:read,users:read.email";
 
 export const slack: Adapter = {
   type: "slack_webhook",

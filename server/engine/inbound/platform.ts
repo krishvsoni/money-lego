@@ -7,7 +7,9 @@ import { errors } from "../../errors";
 import { log } from "../../log";
 import { advanceRun } from "../advance";
 import { createRun } from "../runs";
-import { matchSlackMention, verifyDiscord, verifyShopify, verifySlack, verifyStripe } from "./providers";
+import { slackTarget, slackUserIdByEmail } from "../../integrations/slack";
+import { openConnection } from "../../oauth/store";
+import { matchSlackMention, verifyDiscord, verifyShopify, verifySlack, verifyStripe, type SlackEvent } from "./providers";
 import { InboundRejected } from "./types";
 
 // Platform endpoints: one per provider for every user. Each event is verified with the
@@ -106,6 +108,23 @@ export async function receiveDiscord(raw: Buffer, headers: Headers): Promise<Pla
   return { status: 200, body: ephemeral("Request received. Nothing is paid until an operator reviews and approves it.") };
 }
 
+// "Tagged person" may be an email. It's turned into a member ID with the owner's Slack
+// connection, and only for a message that already has the phrase and tags someone, so
+// ordinary chatter never costs a Slack call. If the person can't be found, nothing starts.
+async function withTaggedMemberId(w: WorkflowDoc, config: Record<string, unknown>, event: Extract<SlackEvent, { kind: "message" }>): Promise<Record<string, unknown> | null> {
+  const target = slackTarget(config.taggedUserId);
+  if (target.kind !== "email") return config;
+  if (!matchSlackMention({ ...config, taggedUserId: "" }, event)) return null;
+  try {
+    const { secret } = await openConnection(w.ownerId, config.credentialId, "slack_webhook");
+    if (!secret.accessToken) return null;
+    return { ...config, taggedUserId: await slackUserIdByEmail(secret.accessToken, target.email) };
+  } catch (error) {
+    log.warn("slack_mention.tagged_lookup_failed", { reason: error instanceof Error ? error.message.slice(0, 120) : "unknown" });
+    return null;
+  }
+}
+
 // Slack expects an answer within three seconds and retries otherwise, so runs get a short
 // head start and the event id keeps a retry from starting a second run. Messages that match
 // no workflow are dropped without being stored.
@@ -118,7 +137,8 @@ export async function receiveSlack(raw: Buffer, headers: Headers): Promise<Platf
   let started = 0;
   for (const w of await routed(`slack:${event.teamId}`)) {
     const trigger = w.graph.nodes.find((n) => n.type === "trigger.slack_mention");
-    const payload = trigger ? matchSlackMention(trigger.config, event) : null;
+    const config = trigger ? await withTaggedMemberId(w, trigger.config, event) : null;
+    const payload = config ? matchSlackMention(config, event) : null;
     if (payload && (await start(w, "trigger.slack_mention", `slack:${event.eventId}`, payload, 600))) started++;
   }
   return { status: 200, body: { ok: true, started } };

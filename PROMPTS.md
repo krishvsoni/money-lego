@@ -8,7 +8,7 @@ Short prompts to paste into **Sage** (Workflows page, or the Sage panel in the e
 Before you run them:
 
 - **Connect Slack** in Connections (**Add to Slack**) and pick the channel for the "paid" message. The same connection sends the DMs.
-- **A Slack DM goes to a member ID, not an email.** For prompts 2–16, put Neha's member ID (the Slack user for nehaprasad27118@gmail.com: her profile → ⋯ → **Copy member ID**, like `U0123ABCD`) in the **Slack DM** block's *Send to*.
+- **A Slack DM goes to an email.** The **Slack DM** block's *Send to* takes the email the person uses in Slack (or a member ID). Prompts 2–16 send to nehaprasad27118@gmail.com; she must be in your Slack workspace with that email.
 - **Replace `#your-channel`** in a prompt with the channel you want.
 - **Pay with a PayPal sandbox personal account.** Everything runs in the PayPal Sandbox.
 
